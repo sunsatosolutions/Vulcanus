@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vulcanus — forge a second brain your AI agents can read</title>
+    <meta
+      name="description"
+      content="Vulcanus builds and maintains an AI-readable second brain: a Git-versioned vault of linked Markdown that humans and AI agents both read. A Sunsato product."
+    />
+    <link rel="canonical" href="https://vulcanus.sunsato.com/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://vulcanus.sunsato.com/" />
+    <meta property="og:title" content="Vulcanus — forge a second brain your AI agents can read" />
+    <meta
+      property="og:description"
+      content="Answer a few questions. Get a validated, Git-versioned memory vault your AI agents can actually navigate."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E"
+    />
+
+    <style>
+      :root {
+        --bg: #08080c;
+        --bg-soft: #101018;
+        --panel: #121219;
+        --line: #23232e;
+        --text: #e8e8ef;
+        --muted: #9a9aab;
+        --dim: #6a6a7c;
+        --ember: #ff6b35;
+        --ember-2: #f7931e;
+        --ok: #4ade80;
+        --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* Forge glow behind the hero. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: -30vh 0 auto 0;
+        height: 90vh;
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 40%,
+          rgba(255, 107, 53, 0.14),
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .wrap {
+        position: relative;
+        z-index: 1;
+        width: min(100% - 2.5rem, 68rem);
+        margin-inline: auto;
+      }
+
+      /* ---------- nav ---------- */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.5rem 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+
+      .brand svg {
+        width: 1.4rem;
+        height: 1.4rem;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 1.4rem;
+        font-size: 0.9rem;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      @media (max-width: 640px) {
+        .nav-links a:not(.persist) {
+          display: none;
+        }
+      }
+
+      /* ---------- hero ---------- */
+      header {
+        padding: 4.5rem 0 3rem;
+        text-align: center;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.02em;
+      }
+
+      .eyebrow b {
+        color: var(--ember);
+        font-weight: 600;
+      }
+
+      h1 {
+        margin: 1.6rem 0 0;
+        font-size: clamp(2.4rem, 7vw, 4.2rem);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+        font-weight: 700;
+      }
+
+      h1 .fire {
+        background: linear-gradient(100deg, var(--ember), var(--ember-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .lede {
+        margin: 1.4rem auto 0;
+        max-width: 40rem;
+        color: var(--muted);
+        font-size: clamp(1rem, 2.2vw, 1.18rem);
+      }
+
+      /* ---------- install ---------- */
+      .install {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: fit-content;
+        max-width: 100%;
+        margin: 2.2rem auto 0;
+        padding: 0.85rem 0.85rem 0.85rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--panel);
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        overflow-x: auto;
+      }
+
+      .install .prompt {
+        color: var(--ember);
+        user-select: none;
+      }
+
+      .install code {
+        white-space: nowrap;
+      }
+
+      .copy {
+        flex-shrink: 0;
+        padding: 0.3rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 0.4rem;
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--sans);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .copy:hover {
+        border-color: var(--ember);
+        color: var(--ember);
+      }
+
+      .copy[data-copied="true"] {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+
+      .sub-install {
+        margin-top: 0.8rem;
+        color: var(--dim);
+        font-size: 0.85rem;
+      }
+
+      /* ---------- terminal ---------- */
+      .terminal {
+        /* No auto side margins: as a grid item those would defeat `stretch` and
+           size the box to its widest line instead of the column. */
+        margin: 3.5rem 0 0;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+        background: var(--bg-soft);
+        overflow: hidden;
+        box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+      }
+
+      .terminal-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.015);
+      }
+
+      .dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 50%;
+        background: #2c2c38;
+      }
+
+      .terminal-title {
+        margin-left: 0.5rem;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+
+      .terminal pre {
+        margin: 0;
+        padding: 1.2rem;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.75;
+        color: var(--muted);
+        text-align: left;
+      }
+
+      .terminal .q {
+        color: var(--text);
+      }
+
+      .terminal .a {
+        color: var(--ember);
+      }
+
+      .terminal .ok {
+        color: var(--ok);
+      }
+
+      /* ---------- sections ---------- */
+      section {
+        padding: 5rem 0;
+        border-top: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 0.6rem;
+        font-size: clamp(1.5rem, 3.5vw, 2rem);
+        letter-spacing: -0.025em;
+        font-weight: 650;
+      }
+
+      .section-lede {
+        max-width: 42rem;
+        margin: 0 0 2.5rem;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+      }
+
+      .card {
+        padding: 1.3rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--panel);
+      }
+
+      .card h3 {
+        margin: 0 0 0.4rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .card h3 code {
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.3rem;
+        background: rgba(255, 107, 53, 0.1);
+        color: var(--ember);
+        font-family: var(--mono);
+        font-size: 0.85rem;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .split {
+        display: grid;
+        gap: 2.5rem;
+        grid-template-columns: 1fr;
+      }
+
+      /* Grid children default to min-width:auto, which lets a wide code block
+         push the whole page sideways. Let them shrink and scroll internally. */
+      .split > * {
+        min-width: 0;
+      }
+
+      @media (min-width: 56rem) {
+        .split {
+          grid-template-columns: 1fr 1fr;
+          align-items: start;
+        }
+      }
+
+      .tree {
+        margin: 0;
+        padding: 1.3rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--panel);
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        line-height: 1.8;
+        color: var(--muted);
+      }
+
+      .tree .dir {
+        color: var(--text);
+      }
+
+      .tree .cm {
+        color: var(--dim);
+      }
+
+      ul.checks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      ul.checks li {
+        position: relative;
+        padding: 0.5rem 0 0.5rem 1.6rem;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      ul.checks li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--ok);
+        font-weight: 700;
+      }
+
+      ul.checks li:last-child {
+        border-bottom: 0;
+      }
+
+      .graph-card {
+        padding: 1.2rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--panel);
+      }
+
+      .graph-card svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .graph-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        margin-top: 0.8rem;
+        padding-top: 0.9rem;
+        border-top: 1px solid var(--line);
+        color: var(--dim);
+        font-size: 0.8rem;
+      }
+
+      .graph-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .graph-legend i {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+      }
+
+      .graph-legend .k-index {
+        background: var(--ember);
+      }
+
+      .graph-legend .k-hub {
+        background: var(--ember-2);
+      }
+
+      .graph-legend .k-note {
+        background: #4a4a5c;
+      }
+
+      .card p code,
+      td code {
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.25rem;
+        background: rgba(255, 255, 255, 0.05);
+        font-family: var(--mono);
+        font-size: 0.85em;
+        color: var(--text);
+      }
+
+      .note {
+        margin-top: 1.6rem;
+        padding: 1rem 1.2rem;
+        border: 1px solid var(--line);
+        border-left: 2px solid var(--ember);
+        border-radius: 0.5rem;
+        background: rgba(255, 107, 53, 0.04);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .note strong {
+        color: var(--text);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      th,
+      td {
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      th {
+        color: var(--dim);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      td:first-child {
+        white-space: nowrap;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .table-scroll {
+        overflow-x: auto;
+      }
+
+      /* ---------- footer ---------- */
+      footer {
+        padding: 3rem 0 4rem;
+        border-top: 1px solid var(--line);
+        color: var(--dim);
+        font-size: 0.87rem;
+      }
+
+      .footer-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      footer a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--ember);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <nav>
+        <div class="brand">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 2c1.2 3.4.2 5.3-1.3 6.9C9 10.7 7 12.4 7 15.2A5 5 0 0 0 17 15.4c0-1.7-.7-3-1.6-4.2-.4 1-1 1.7-1.8 2.1.6-2.6-.4-5.2-1.6-11.3Z"
+              fill="url(#g)"
+            />
+            <defs>
+              <linearGradient id="g" x1="7" y1="2" x2="18" y2="20">
+                <stop stop-color="#ff6b35" />
+                <stop offset="1" stop-color="#f7931e" />
+              </linearGradient>
+            </defs>
+          </svg>
+          Vulcanus
+        </div>
+        <div class="nav-links">
+          <a href="#how">How it works</a>
+          <a href="#import">Import</a>
+          <a href="#agents">Agents</a>
+          <a href="#obsidian">Obsidian</a>
+          <a class="persist" href="https://sunsato.com">Sunsato</a>
+        </div>
+      </nav>
+
+      <header>
+        <span class="eyebrow">A <b>Sunsato</b> product</span>
+
+        <h1>Forge a second brain<br />your agents can <span class="fire">read</span></h1>
+
+        <p class="lede">
+          Every session your AI starts cold. Vulcanus builds the memory it should have started with:
+          a Git-versioned vault of linked Markdown, structured so an agent finds the right context in
+          one hop instead of reading everything.
+        </p>
+
+        <div class="install">
+          <span class="prompt">$</span>
+          <code id="install-cmd">npx @sunsato/vulcanus</code>
+          <button class="copy" type="button" data-target="install-cmd">Copy</button>
+        </div>
+        <p class="sub-install">No account. Nothing leaves your machine. Node 18+.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="terminal-title">vulcanus init</span>
+          </div>
+          <pre><span class="q">◆  Import an existing AI history to seed your project tree?</span>
+│  <span class="a">●</span> Codex local sessions — ~/.codex, 268 rollout sessions
+│  ○ ChatGPT data export — 16 conversation files
+│  ○ No, I'll define projects myself
+│
+◇  257 conversations read, 23 project candidates found
+│
+<span class="q">◆  Project candidates</span>
+│  <span class="a">◼</span> Atlas       104 conversations, high confidence
+│  <span class="a">◼</span> Northwind    58 conversations, high confidence
+│  ◻ Kiln          6 conversations, medium confidence
+│
+<span class="q">◆  Vault name</span>  <span class="a">Flora</span>
+<span class="q">◆  Your name</span>   <span class="a">Ada</span>
+│
+◇  <span class="ok">103 notes and 567 links validated</span>
+└  Flora → ~/Flora</pre>
+        </div>
+      </header>
+
+      <section id="how">
+        <h2>Structure is the feature</h2>
+        <p class="section-lede">
+          A folder of notes is not memory — an agent still has to read all of it. Vulcanus writes a
+          layered graph: routing at the top, a compressed capsule per project, authoritative detail
+          underneath. Agents read down only as far as the task actually requires.
+        </p>
+
+        <div class="split">
+          <pre class="tree"><span class="dir">YourVault</span>
+├─ AGENTS.md            <span class="cm"># how agents behave here</span>
+├─ vulcanus.json        <span class="cm"># the source of truth</span>
+├─ <span class="dir">00_System/</span>
+│  ├─ Index             <span class="cm"># the map</span>
+│  ├─ Recall Map        <span class="cm"># triggers → the right note</span>
+│  ├─ Admin Profile     <span class="cm"># who you are, how you work</span>
+│  └─ Rules             <span class="cm"># what not to invent</span>
+├─ <span class="dir">02_Projects/</span>
+│  └─ <span class="dir">Atlas/</span>
+│     ├─ Atlas Capsule     <span class="cm"># read this first</span>
+│     ├─ Atlas Hub         <span class="cm"># navigation</span>
+│     ├─ Atlas Context     <span class="cm"># identity and scope</span>
+│     ├─ Atlas Decisions   <span class="cm"># confirmed choices</span>
+│     └─ Atlas Rules       <span class="cm"># future constraints</span>
+└─ <span class="dir">_imports/</span>          <span class="cm"># raw exports, git-ignored</span></pre>
+
+          <div>
+            <div class="grid" style="grid-template-columns: 1fr">
+              <div class="card">
+                <h3>Capsules keep it cheap</h3>
+                <p>
+                  Each project opens with a compressed must-remember note. Most questions never need
+                  more than that, so context windows stay small and answers stay grounded.
+                </p>
+              </div>
+              <div class="card">
+                <h3>Uncertainty is explicit</h3>
+                <p>
+                  Anything unconfirmed lives under <em>Needs Confirmation</em> and is never presented
+                  as fact. Corrections outrank older notes by design.
+                </p>
+              </div>
+              <div class="card">
+                <h3>Git is the memory history</h3>
+                <p>
+                  Every change is a commit. You can see when a decision changed, what it replaced,
+                  and why — the part chat history can never give you.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="import">
+        <h2>Start from what you already said</h2>
+        <p class="section-lede">
+          You have thousands of conversations describing your projects. The first question Vulcanus
+          asks is whether to read them.
+        </p>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>What it reads</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ChatGPT</td>
+                <td>Data export, including exports split across many conversation files</td>
+              </tr>
+              <tr>
+                <td>Claude</td>
+                <td>Data export, using Claude Projects as the grouping signal</td>
+              </tr>
+              <tr>
+                <td>Claude Code</td>
+                <td>Local sessions — no export needed, working directories name the projects</td>
+              </tr>
+              <tr>
+                <td>Codex</td>
+                <td>Local rollout sessions, grouped the same way</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>Nothing from your history is copied into the vault.</strong> Conversations are read
+          locally, reduced to candidate project names with evidence counts, and discarded. Only the
+          names you confirm become notes, and the import log records how many conversations were
+          scanned — never their content.
+        </div>
+      </section>
+
+      <section id="commands">
+        <h2>Six commands</h2>
+        <p class="section-lede">
+          The vault is plain Markdown you can edit by hand in Obsidian or any editor. These keep it
+          consistent as it grows.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h3><code>init</code></h3>
+            <p>Answer the questions, get a validated vault. This is the default command.</p>
+          </div>
+          <div class="card">
+            <h3><code>doctor</code></h3>
+            <p>Validate structure, links, and coverage against the manifest.</p>
+          </div>
+          <div class="card">
+            <h3><code>add project</code></h3>
+            <p>Add a project and wire it into the graph — routes, hubs, and links included.</p>
+          </div>
+          <div class="card">
+            <h3><code>import</code></h3>
+            <p>Propose more projects from an AI export, any time after setup.</p>
+          </div>
+          <div class="card">
+            <h3><code>update</code></h3>
+            <p>Bring an existing vault up to a newer CLI, without touching your writing.</p>
+          </div>
+          <div class="card">
+            <h3><code>sync</code></h3>
+            <p>Validate, then commit and push. It refuses to commit a broken vault.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="split">
+          <div>
+            <h2>It checks its own work</h2>
+            <p class="section-lede">
+              Memory rots quietly: a renamed note, a link that stopped resolving, a project nothing
+              routes to. Every check is derived from your manifest, so it stays correct as the vault
+              grows.
+            </p>
+            <div class="note">
+              <strong>Your writing is never overwritten.</strong> Generated scaffolding can be
+              refreshed; the notes holding actual memory are written once and left alone.
+            </div>
+          </div>
+
+          <ul class="checks">
+            <li>Every note carries complete, well-formed frontmatter</li>
+            <li>Every link resolves — and resolves to exactly one note</li>
+            <li>Every hub links to the notes it owns</li>
+            <li>Every note links back to its hub</li>
+            <li>Every project is reachable from the routing layer</li>
+            <li>No duplicate or case-colliding note names</li>
+            <li>Raw exports are actually ignored by Git</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="agents">
+        <h2>Make your agents actually use it</h2>
+        <p class="section-lede">
+          A vault nobody reads is a folder. Vulcanus writes the enforcement layer too — so
+          recalling your memory becomes a standing rule instead of something you remember to
+          mention.
+        </p>
+
+        <div class="split">
+          <div>
+            <div class="card" style="margin-bottom: 1rem">
+              <h3>Inside the vault — already done</h3>
+              <p>
+                <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and
+                <code>.cursor/rules</code> ship with the vault. Open the folder in Codex, Claude
+                Code, or Cursor and the protocol is already in effect.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Everywhere else — one paste</h3>
+              <p>
+                Most work happens in other repositories and in ordinary chat. Run
+                <code>vulcanus agents</code> and paste the block into your tool's global
+                instructions. From then on, every session recalls before working and consolidates
+                after.
+              </p>
+            </div>
+
+            <div class="table-scroll" style="margin-top: 1rem">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tool</th>
+                    <th>Where it goes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Claude Code</td><td><code>~/.claude/CLAUDE.md</code></td></tr>
+                  <tr><td>Codex</td><td><code>~/.codex/AGENTS.md</code></td></tr>
+                  <tr><td>Cursor</td><td>Settings → Rules → User Rules</td></tr>
+                  <tr><td>ChatGPT</td><td>Settings → Personalization → Custom instructions</td></tr>
+                  <tr><td>Gemini CLI</td><td><code>~/.gemini/GEMINI.md</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="terminal" style="margin-top: 0">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="terminal-title">vulcanus agents</span>
+            </div>
+            <pre><span class="q">## Flora is my second brain —</span>
+<span class="q">## use it in every session</span>
+
+I maintain <span class="q">Flora</span>, an AI-readable memory
+vault at <span class="a">~/Flora</span>. Using it is a standing
+requirement, not an optional extra.
+
+- <span class="q">Before</span> working on anything related to
+  my projects, recall from it first: read
+  <span class="a">~/Flora/AGENTS.md</span>, then route through the
+  Recall Map → the matching project Capsule →
+  Hub → Context, Decisions, and Rules. Treat
+  Flora as the source of truth, and prefer my
+  latest correction and the most specific file.
+
+- <span class="q">After</span> work that creates durable knowledge,
+  consolidate it into the correct note, then
+  run <span class="a">vulcanus doctor</span> and <span class="a">vulcanus sync</span>.
+
+- Never record uncertain information as fact.
+  Put it under <span class="a">Needs Confirmation</span>.
+
+- Do not add new projects without my
+  explicit confirmation.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="obsidian">
+        <div class="split">
+          <div>
+            <h2>See your memory as a graph</h2>
+            <p class="section-lede">
+              The vault is a valid Obsidian vault the moment it exists — no plugin, no import step.
+              Open the folder and every note, link, and cluster is there, with shortest-path
+              wikilinks and rename-safe links already configured.
+            </p>
+            <p class="section-lede">
+              Obsidian's graph view is the fastest health check you have: projects show up as
+              clusters, hubs sit at their center, and a note nothing links to stands out
+              immediately. Edit anything there and it stays plain Markdown — the CLI and your
+              agents see the change straight away.
+            </p>
+            <div class="note">
+              <strong>Both directions stay in sync.</strong> Write in Obsidian, let an agent write
+              through the protocol, or edit by hand — it is one Git repository either way, and
+              <code>vulcanus doctor</code> keeps all three honest.
+            </div>
+          </div>
+
+          <div class="graph-card">
+            <svg viewBox="0 0 320 260" role="img" aria-label="Graph view showing project clusters around a central index">
+              <defs>
+                <radialGradient id="node-hot">
+                  <stop offset="0" stop-color="#ff8a5c" />
+                  <stop offset="1" stop-color="#ff6b35" />
+                </radialGradient>
+              </defs>
+
+              <g stroke="#2b2b38" stroke-width="1">
+                <line x1="160" y1="128" x2="72" y2="62" />
+                <line x1="160" y1="128" x2="252" y2="70" />
+                <line x1="160" y1="128" x2="96" y2="206" />
+                <line x1="160" y1="128" x2="236" y2="198" />
+
+                <line x1="72" y1="62" x2="34" y2="30" />
+                <line x1="72" y1="62" x2="104" y2="24" />
+                <line x1="72" y1="62" x2="28" y2="98" />
+                <line x1="72" y1="62" x2="118" y2="94" />
+
+                <line x1="252" y1="70" x2="290" y2="36" />
+                <line x1="252" y1="70" x2="222" y2="26" />
+                <line x1="252" y1="70" x2="296" y2="108" />
+
+                <line x1="96" y1="206" x2="46" y2="234" />
+                <line x1="96" y1="206" x2="118" y2="246" />
+                <line x1="96" y1="206" x2="40" y2="176" />
+
+                <line x1="236" y1="198" x2="284" y2="228" />
+                <line x1="236" y1="198" x2="206" y2="242" />
+              </g>
+
+              <g fill="#4a4a5c">
+                <circle cx="34" cy="30" r="4" />
+                <circle cx="104" cy="24" r="4" />
+                <circle cx="28" cy="98" r="4" />
+                <circle cx="118" cy="94" r="4" />
+                <circle cx="290" cy="36" r="4" />
+                <circle cx="222" cy="26" r="4" />
+                <circle cx="296" cy="108" r="4" />
+                <circle cx="46" cy="234" r="4" />
+                <circle cx="118" cy="246" r="4" />
+                <circle cx="40" cy="176" r="4" />
+                <circle cx="284" cy="228" r="4" />
+                <circle cx="206" cy="242" r="4" />
+              </g>
+
+              <g fill="#f7931e">
+                <circle cx="72" cy="62" r="7" />
+                <circle cx="252" cy="70" r="7" />
+                <circle cx="96" cy="206" r="7" />
+                <circle cx="236" cy="198" r="7" />
+              </g>
+
+              <circle cx="160" cy="128" r="11" fill="url(#node-hot)" />
+            </svg>
+            <div class="graph-legend">
+              <span><i class="k-index"></i> Index</span>
+              <span><i class="k-hub"></i> Project hubs</span>
+              <span><i class="k-note"></i> Notes</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style="text-align: center">
+        <h2>Your agents are only as good as their memory</h2>
+        <p class="section-lede" style="margin-inline: auto">Build it once. Keep it honest.</p>
+        <div class="install">
+          <span class="prompt">$</span>
+          <code id="install-cmd-2">npx @sunsato/vulcanus</code>
+          <button class="copy" type="button" data-target="install-cmd-2">Copy</button>
+        </div>
+      </section>
+
+      <footer>
+        <div class="footer-row">
+          <div>© <span id="year">2026</span> Sunsato · MIT licensed</div>
+          <div>
+            <a href="https://sunsato.com">Sunsato</a> ·
+            <a href="https://www.npmjs.com/package/@sunsato/vulcanus">npm</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      document.getElementById("year").textContent = String(new Date().getFullYear());
+
+      for (const button of document.querySelectorAll(".copy")) {
+        button.addEventListener("click", async () => {
+          const source = document.getElementById(button.dataset.target);
+          if (!source) return;
+          try {
+            await navigator.clipboard.writeText(source.textContent.trim());
+          } catch {
+            return; // Clipboard blocked (insecure context or denied permission).
+          }
+          const original = button.textContent;
+          button.textContent = "Copied";
+          button.dataset.copied = "true";
+          setTimeout(() => {
+            button.textContent = original;
+            delete button.dataset.copied;
+          }, 1600);
+        });
+      }
+    </script>
+  </body>
+</html>

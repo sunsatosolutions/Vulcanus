@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# local scratch vaults used while developing the CLI
+/tmp-vault/
+/.vulcanus-dev/

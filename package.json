@@ -1,0 +1,51 @@
+{
+  "name": "@sunsato/vulcanus",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Scaffold and maintain an AI-readable second-brain vault for you and your AI agents.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Sunsato",
+  "homepage": "https://vulcanus.sunsato.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sunsatosolutions/Vulcanus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sunsatosolutions/Vulcanus/issues"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "bin": {
+    "vulcanus": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --import tsx test/*.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "second-brain",
+    "vault",
+    "obsidian",
+    "ai-memory",
+    "cli"
+  ],
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
