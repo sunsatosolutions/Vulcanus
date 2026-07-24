@@ -162,7 +162,9 @@ npm install && npm run build && npm test
 npm run dev -- doctor
 ```
 
-Source layout: `manifest/` derives every path and link expectation, `generate/` turns that plan into Markdown, `doctor/` validates the result against the same plan, `importers/` normalizes AI exports, and `commands/` wires it to the CLI. The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/`.
+Source layout: `manifest/` derives every path and link expectation, `generate/` turns that plan into Markdown, `doctor/` validates the result against the same plan, `importers/` normalizes AI exports, and `commands/` wires it to the CLI.
+
+The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed by Cloudflare Pages from `site/` on every push to `main`.
 
 ## License
 
