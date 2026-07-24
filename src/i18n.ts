@@ -104,6 +104,14 @@ export interface Messages {
   doctorPassed: (files: number, links: number) => string;
   doctorFailed: (errors: number) => string;
 
+  skillsExplain: string;
+  skillsInVault: (count: number) => string;
+  skillsInstallHint: string;
+  skillsInstalled: (count: number, path: string) => string;
+  skillsKept: (count: number) => string;
+  skillsForceHint: string;
+  skillsOutro: string;
+
   cancelled: string;
   summaryTitle: string;
   nextSteps: (path: string) => string;
@@ -223,12 +231,24 @@ const en: Messages = {
   doctorPassed: (files, links) => `${files} notes and ${links} links validated`,
   doctorFailed: (errors) => `${errors} problem(s) found`,
 
+  skillsExplain:
+    "Skills are invocable capabilities, not prose an agent may ignore. Each one runs\nthe real vulcanus command and reports its actual output.",
+  skillsInVault: (count) =>
+    `${count} skills ship inside the vault, for agents working in this repository.`,
+  skillsInstallHint:
+    "Agents in other repositories need them installed personally:\n  vulcanus skills --install",
+  skillsInstalled: (count, path) => `${count} skill(s) written to ${path}`,
+  skillsKept: (count) => `${count} existing skill(s) left untouched; --force overwrites them.`,
+  skillsForceHint: "Nothing outside the vault is written without --install.",
+  skillsOutro: "Ask your agent to validate or sync the vault and it will use these.",
+
   cancelled: "Cancelled. Nothing was written.",
   summaryTitle: "Vault ready",
   nextSteps: (path) =>
     [
       `cd ${path}`,
       "vulcanus agents        # make your AI tools use this vault everywhere",
+      "vulcanus skills        # give them a skill that runs these commands",
       "vulcanus doctor        # validate the structure",
       'vulcanus sync "topic"  # commit and push',
       "",
@@ -350,12 +370,24 @@ const tr: Messages = {
   doctorPassed: (files, links) => `${files} not ve ${links} bağlantı doğrulandı`,
   doctorFailed: (errors) => `${errors} sorun bulundu`,
 
+  skillsExplain:
+    "Skill'ler ajanın dikkate almayabileceği bir metin değil, çağrılabilir bir yetenek.\nHer biri gerçek vulcanus komutunu çalıştırır ve çıktısını olduğu gibi aktarır.",
+  skillsInVault: (count) =>
+    `${count} skill vault'un içinde duruyor; bu repoda çalışan ajanlar için.`,
+  skillsInstallHint:
+    "Diğer repolardaki ajanların bunları kişisel dizine kurman gerekir:\n  vulcanus skills --install",
+  skillsInstalled: (count, path) => `${count} skill ${path} altına yazıldı`,
+  skillsKept: (count) => `${count} mevcut skill'e dokunulmadı; üzerine yazmak için --force.`,
+  skillsForceHint: "--install verilmeden vault dışına hiçbir şey yazılmaz.",
+  skillsOutro: "Ajanına vault'u doğrulat ya da senkronlat; bunları kendisi kullanacak.",
+
   cancelled: "İptal edildi. Hiçbir dosya yazılmadı.",
   summaryTitle: "Vault hazır",
   nextSteps: (path) =>
     [
       `cd ${path}`,
       "vulcanus agents        # yapay zekâ araçlarına bu vault'u zorunlu kıl",
+      "vulcanus skills        # bu komutları çalıştıran skill'leri kur",
       "vulcanus doctor        # yapıyı doğrula",
       'vulcanus sync "konu"   # commit ve push',
       "",

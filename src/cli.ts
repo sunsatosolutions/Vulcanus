@@ -5,6 +5,7 @@ import { agentsCommand } from "./commands/agents.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
+import { skillsCommand } from "./commands/skills.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
 import type { ImportSourceId } from "./importers/index.js";
@@ -81,6 +82,16 @@ async function main(): Promise<void> {
     .option("--raw", "print only the snippet, for piping into a file")
     .action(async (options: { raw?: boolean }) => {
       process.exitCode = await agentsCommand(options);
+    });
+
+  program
+    .command("skills")
+    .description("Agent skills that run this vault's commands, and where to install them")
+    .option("--raw", "print the SKILL.md files themselves")
+    .option("--install", "write them into your personal skill directories")
+    .option("--force", "with --install, replace skills that already exist")
+    .action(async (options: { raw?: boolean; install?: boolean; force?: boolean }) => {
+      process.exitCode = await skillsCommand(options);
     });
 
   program

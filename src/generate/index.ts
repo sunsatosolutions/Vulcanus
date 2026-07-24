@@ -6,6 +6,7 @@ import type { VaultManifest } from "../manifest/schema.js";
 import { generateAgentFiles } from "./agents.js";
 import { generateProjectNotes } from "./project.js";
 import { generateRootFiles } from "./root.js";
+import { generateSkillFiles } from "./skills.js";
 import { generateSystemNotes } from "./system.js";
 import type { GeneratedFile } from "./types.js";
 
@@ -16,6 +17,7 @@ export function generateFiles(manifest: VaultManifest): { plan: VaultPlan; files
   const files = [
     ...generateRootFiles(plan),
     ...generateAgentFiles(plan),
+    ...generateSkillFiles(plan),
     ...generateSystemNotes(plan),
     ...generateProjectNotes(plan),
   ];

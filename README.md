@@ -19,6 +19,8 @@ YourVault
 ├─ USING-WITH-AI.md       # how to make every tool recall this vault
 ├─ README.md
 ├─ vulcanus.json          # the manifest everything is derived and validated from
+├─ .claude/skills/        # invocable skills for Claude Code
+├─ .agents/skills/        # the same skills for Codex, Cursor, and Gemini CLI
 ├─ 00_System/             # Index, Recall Map, Admin Profile, Rules, Update Format …
 ├─ 02_Projects/           # one cluster per project
 └─ _imports/              # raw AI exports, ignored by Git
@@ -77,6 +79,10 @@ vulcanus agents          # print the block that makes your AI tools use the vaul
 ```
 
 ```bash
+vulcanus skills          # agent skills that run these commands for you
+```
+
+```bash
 vulcanus update          # bring the vault up to date with a newer CLI
 ```
 
@@ -84,7 +90,7 @@ vulcanus update          # bring the vault up to date with a newer CLI
 vulcanus sync "topic"    # validate, then commit and push
 ```
 
-`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` accepts `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`.
+`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` accepts `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 ## Filling the project notes
 
@@ -111,6 +117,33 @@ For everywhere else — other repositories, ordinary chat — run `vulcanus agen
 | Gemini CLI | `~/.gemini/GEMINI.md` |
 
 `vulcanus agents --raw` prints the snippet alone, so it can be appended straight to a file. Every generated vault also contains `USING-WITH-AI.md` with the same guidance.
+
+## Skills
+
+Instructions are prose a model may or may not honour. A skill is a capability it can invoke, so "sync the vault" runs the real `vulcanus sync` instead of the model improvising an equivalent. Vulcanus writes one skill per vault operation, plus a recall skill that carries the Recall Map → Capsule → Hub → Context/Decisions/Rules routing:
+
+| Skill | Runs |
+| --- | --- |
+| `<vault>-recall` | nothing — it teaches the read order and the authority rules |
+| `<vault>-doctor` | `vulcanus doctor`, and `--repair` when structure is missing |
+| `<vault>-sync` | `vulcanus sync --dry-run`, then `vulcanus sync "topic"` |
+| `<vault>-add-project` | `vulcanus add project "Name"` |
+| `<vault>-import` | `vulcanus import` |
+| `<vault>-update` | `vulcanus update --dry-run`, then `vulcanus update` |
+
+Skills follow the [Agent Skills](https://agentskills.io) format: a directory per skill holding a `SKILL.md` with `name` and `description` frontmatter. The description is what decides whether a model reaches for the skill at all, so each one names the vault, the operator, and the phrasings that should trigger it.
+
+Every vault ships its skills twice — `.claude/skills/` for Claude Code, `.agents/skills/` for Codex, Cursor, and Gemini CLI, which all read that vendor-neutral directory. Two copies of one text, versioned with the vault, so an agent opening the repository can act on day one. Tools without a skill mechanism keep the prose path; this adds a channel rather than replacing one.
+
+That only covers agents working *inside* the vault, and the point of a second brain is recall from everywhere else. For that the skills have to live in your home configuration, which Vulcanus will not do behind your back:
+
+```bash
+vulcanus skills --install
+```
+
+That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault's real path baked in so an agent in another repository knows where to run. It is the only thing Vulcanus writes outside the vault, it never happens during `init`, and it leaves existing files alone unless you pass `--force`. `vulcanus skills` on its own explains what would be installed; `--raw` prints the files.
+
+`sync` pushes to a remote and `update` rewrites files, which is a lot of consequence for one sentence of chat. Both skills instruct the agent to show the `--dry-run` output and get your confirmation in that conversation first, and every skill is told to report the command's actual output and exit code rather than reporting success. Skills are managed files, so `doctor --repair` and `update` bring template improvements to existing vaults.
 
 ## Obsidian
 
@@ -151,7 +184,7 @@ Missing structure is an error; extra hand-added links are a warning, because a v
 
 Generated files fall into two classes:
 
-- **managed** — `AGENTS.md`, the Index, hubs that are pure navigation, the Import Log. `doctor --repair` rewrites these.
+- **managed** — `AGENTS.md`, the Index, hubs that are pure navigation, the Import Log, and the generated skills. `doctor --repair` rewrites these.
 - **seed** — everything holding actual memory, including the Recall Map and every project note. These are written once and never overwritten. Adding a project appends a route and a sub-project link surgically instead of regenerating the file.
 
 ## Vault naming

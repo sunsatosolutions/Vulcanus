@@ -110,6 +110,23 @@ function usingWithAiFile(plan: VaultPlan): GeneratedFile {
       "Anything that accepts standing instructions works the same way: the rule is simply *recall before, consolidate after*.",
     ].join("\n"),
     [
+      "## Skills — the invocable version",
+      "",
+      `The block above is prose: a tool may honour it or not. A skill is a capability the model can actually invoke, so "sync the vault" runs \`vulcanus sync\` instead of being improvised. ${vault.name} ships one skill per vault operation, plus a recall skill that teaches the routing.`,
+      "",
+      "They already sit in this repository, under `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and Gemini CLI, so an agent working here can use them straight away.",
+      "",
+      "For agents in *other* repositories, install them into your personal skill directories:",
+      "",
+      "```bash",
+      "vulcanus skills --install",
+      "```",
+      "",
+      "That is the only thing Vulcanus writes outside the vault, and it never happens on its own. `vulcanus skills` on its own explains what would be installed; `vulcanus skills --raw` prints the files.",
+      "",
+      "The skills that commit, push, or rewrite files require your confirmation before they run, and each one reports the command's real output and exit code rather than claiming success.",
+    ].join("\n"),
+    [
       "## Keeping it honest",
       "",
       bulletList([
