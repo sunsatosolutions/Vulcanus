@@ -2,6 +2,7 @@ import * as p from "@clack/prompts";
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest, writeManifest } from "../manifest/io.js";
 import {
@@ -109,11 +110,48 @@ export async function applyProjects(
   return { created, patched, ok: report.ok };
 }
 
-/** Ask the per-project questions for a list of names. Shared by `add` and `import`. */
+export type DetailMode = "skip" | "manual" | "ai";
+
+/**
+ * How the project notes get their content. Manual stays the default so pressing
+ * enter reproduces the flow operators already know.
+ */
+export async function askDetailMode(locale: Locale): Promise<DetailMode> {
+  const t = messages(locale);
+  return askSelect<DetailMode>({
+    message: t.detailModeQuestion,
+    options: [
+      { value: "manual", label: t.detailModeManual, hint: t.detailModeManualHint },
+      { value: "ai", label: t.detailModeAi, hint: t.detailModeAiHint },
+      { value: "skip", label: t.detailModeSkip, hint: t.detailModeSkipHint },
+    ],
+    initialValue: "manual",
+  });
+}
+
+function seedProject(id: string, name: string): ProjectNode {
+  return {
+    id,
+    name,
+    parent: null,
+    group: null,
+    status: "active",
+    summary: "",
+    triggers: [name],
+    specialized: [],
+  };
+}
+
+/**
+ * Ask the per-project questions for a list of names. Shared by `init`, `add`,
+ * and `import`. Any mode other than `manual` produces the same untouched seed
+ * nodes: the notes are filled in afterwards, by the operator or by an AI.
+ */
 export async function collectProjectDetails(
   names: string[],
-  manifest: VaultManifest,
+  manifest: Pick<VaultManifest, "projects" | "groups">,
   locale: Locale,
+  mode: DetailMode = "manual",
 ): Promise<{ projects: ProjectNode[]; groups: ProjectGroup[] }> {
   setPromptLocale(locale);
   const t = messages(locale);
@@ -123,8 +161,14 @@ export async function collectProjectDetails(
   const selectable = [...manifest.projects];
 
   for (const name of names) {
-    p.log.step(t.projectSection(name));
     const id = makeProjectId(name, takenIds);
+
+    if (mode !== "manual") {
+      projects.push(seedProject(id, name));
+      continue;
+    }
+
+    p.log.step(t.projectSection(name));
 
     const summary = (await askText({ message: t.summaryQuestion(name) })).trim();
 
@@ -197,6 +241,8 @@ export async function collectProjectDetails(
 export interface AddOptions {
   cwd?: string;
   names?: string[];
+  /** `true` picks the AI path, a string also names the CLI to hand over to. */
+  ai?: string | boolean;
 }
 
 export async function addProjectCommand(options: AddOptions = {}): Promise<number> {
@@ -217,7 +263,17 @@ export async function addProjectCommand(options: AddOptions = {}): Promise<numbe
       ? options.names
       : splitList(await askText({ message: t.manualProjectsQuestion, required: true }));
 
-  const { projects, groups } = await collectProjectDetails(names, manifest, locale);
+  const requested: DetailMode = options.ai ? "ai" : await askDetailMode(locale);
+
+  // Planned before anything is written, so a machine without an AI CLI falls
+  // back to the questions instead of creating projects nobody described.
+  const handoff =
+    requested === "ai"
+      ? await planHandoff(names, locale, typeof options.ai === "string" ? options.ai : undefined)
+      : null;
+  const mode: DetailMode = requested === "ai" && !handoff ? "manual" : requested;
+
+  const { projects, groups } = await collectProjectDetails(names, manifest, locale, mode);
 
   const spinner = p.spinner();
   spinner.start(t.generating);
@@ -225,7 +281,8 @@ export async function addProjectCommand(options: AddOptions = {}): Promise<numbe
   spinner.stop(`${result.created.length} files written, ${result.patched.length} patched`);
 
   // Surface what the plan actually produced so the operator can review it.
-  const plan = buildPlan(await readManifest(vaultRoot));
+  const merged = await readManifest(vaultRoot);
+  const plan = buildPlan(merged);
   p.note(
     projects
       .map((project) => {
@@ -236,6 +293,9 @@ export async function addProjectCommand(options: AddOptions = {}): Promise<numbe
     "Added",
   );
 
-  p.outro(result.ok ? "PASS" : "FAIL — see findings above");
-  return result.ok ? 0 : 1;
+  const afterAi = handoff ? await runHandoff(vaultRoot, merged, handoff, locale) : null;
+  const ok = afterAi ? afterAi.ok : result.ok;
+
+  p.outro(ok ? "PASS" : "FAIL — see findings above");
+  return ok ? 0 : 1;
 }

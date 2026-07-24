@@ -27,11 +27,22 @@ async function main(): Promise<void> {
     .argument("[target]", "directory to create the vault in")
     .option("-l, --lang <locale>", "wizard language: tr or en")
     .option("-y, --yes", "skip the final confirmation")
-    .action(async (target: string | undefined, options: { lang?: string; yes?: boolean }) => {
-      const locale =
-        options.lang === "tr" || options.lang === "en" ? (options.lang as Locale) : undefined;
-      process.exitCode = await initCommand({ target, locale, yes: options.yes });
-    });
+    .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
+    .action(
+      async (
+        target: string | undefined,
+        options: { lang?: string; yes?: boolean; ai?: string | boolean },
+      ) => {
+        const locale =
+          options.lang === "tr" || options.lang === "en" ? (options.lang as Locale) : undefined;
+        process.exitCode = await initCommand({
+          target,
+          locale,
+          yes: options.yes,
+          ai: options.ai,
+        });
+      },
+    );
 
   program
     .command("doctor")
@@ -47,8 +58,9 @@ async function main(): Promise<void> {
     .command("project")
     .description("Add one or more projects and wire them into the graph")
     .argument("[names...]", "project names")
-    .action(async (names: string[]) => {
-      process.exitCode = await addProjectCommand({ names });
+    .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
+    .action(async (names: string[], options: { ai?: string | boolean }) => {
+      process.exitCode = await addProjectCommand({ names, ai: options.ai });
     });
 
   program

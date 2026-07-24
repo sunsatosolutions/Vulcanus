@@ -84,7 +84,15 @@ vulcanus update          # bring the vault up to date with a newer CLI
 vulcanus sync "topic"    # validate, then commit and push
 ```
 
-`init` accepts `--lang tr|en` and a target directory; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`.
+`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` accepts `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`.
+
+## Filling the project notes
+
+When projects are added, Vulcanus asks how their notes should get their content: answer the questions here, skip and write them yourself later, or hand the job to an AI CLI already installed on your machine.
+
+The AI path probes your PATH for `claude`, `codex`, `cursor-agent`, and `gemini`, offers only what is really there, and asks where each project's source code lives — proposing the directories your past Claude Code and Codex sessions ran in. Before anything starts it tells you which CLI is taking over your terminal, in which directory, and exactly which notes it has been told to write. Nothing is spawned without your confirmation.
+
+The CLI is asked to study the codebase, question you about what the code cannot answer, and write the cluster's notes to the vault's conventions. When the session exits, `doctor` runs immediately, so an edit that broke the graph is reported rather than discovered later.
 
 ## Making agents actually use it
 

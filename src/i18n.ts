@@ -53,8 +53,34 @@ export interface Messages {
   adminAliasesQuestion: string;
   adminAliasesHint: string;
 
-  detailQuestion: string;
-  detailHint: string;
+  detailModeQuestion: string;
+  detailModeSkip: string;
+  detailModeSkipHint: string;
+  detailModeManual: string;
+  detailModeManualHint: string;
+  detailModeAi: string;
+  detailModeAiHint: string;
+
+  aiDetecting: string;
+  aiDetected: (count: number) => string;
+  aiNoneDetected: string;
+  aiNoneHint: string;
+  aiCliQuestion: string;
+  aiCliUnknown: (name: string) => string;
+  aiScanning: string;
+  aiScanned: (count: number) => string;
+  aiSourceQuestion: (name: string) => string;
+  aiSourceHint: string;
+  aiSourceOther: string;
+  aiSourceSkip: string;
+  aiSourceMissing: (path: string) => string;
+  aiSkipped: (name: string) => string;
+  aiHandoffTitle: (name: string) => string;
+  aiHandoffSummary: (cli: string, dir: string, files: string[]) => string;
+  aiHandoffConfirm: (cli: string) => string;
+  aiSessionExited: (cli: string, code: number) => string;
+  aiRevalidating: (name: string) => string;
+
   projectSection: (name: string) => string;
   summaryQuestion: (name: string) => string;
   parentQuestion: (name: string) => string;
@@ -139,8 +165,41 @@ const en: Messages = {
   adminAliasesQuestion: "Other words that mean you (optional, comma separated)",
   adminAliasesHint: "e.g. me, user",
 
-  detailQuestion: "Answer detail questions for each project?",
-  detailHint: "Summary, hierarchy, grouping, specialized notes, recall triggers",
+  detailModeQuestion: "How should each project's notes be filled in?",
+  detailModeSkip: "Skip",
+  detailModeSkipHint: "Leave them as empty seeds and write them yourself later",
+  detailModeManual: "Answer here",
+  detailModeManualHint: "Summary, hierarchy, grouping, specialized notes, recall triggers",
+  detailModeAi: "Let a local AI read the code",
+  detailModeAiHint: "An installed AI CLI studies each project's source and writes the notes",
+
+  aiDetecting: "Looking for AI CLIs on PATH",
+  aiDetected: (count) => `${count} AI CLI(s) found`,
+  aiNoneDetected: "No AI CLI found on PATH",
+  aiNoneHint: "Nothing to hand the notes to, so the questions are asked here instead.",
+  aiCliQuestion: "Which CLI should write the notes?",
+  aiCliUnknown: (name) => `${name} is not installed; pick from what was found.`,
+  aiScanning: "Looking for the directories you have worked in",
+  aiScanned: (count) => `${count} working directories known`,
+  aiSourceQuestion: (name) => `Where does ${name}'s source code live?`,
+  aiSourceHint: "Absolute path to the repository",
+  aiSourceOther: "Another path…",
+  aiSourceSkip: "Skip this project",
+  aiSourceMissing: (path) => `${path} is not a directory.`,
+  aiSkipped: (name) => `${name} skipped — its notes stay as they are.`,
+  aiHandoffTitle: (name) => `Handing over ${name}`,
+  aiHandoffSummary: (cli, dir, files) =>
+    [
+      `${cli} takes over your terminal, running in ${dir}.`,
+      "It can read everything there. Vulcanus cannot restrict it once it starts.",
+      "",
+      "It is asked to write only these files:",
+      ...files.map((file) => `  ${file}`),
+    ].join("\n"),
+  aiHandoffConfirm: (cli) => `Start ${cli} now?`,
+  aiSessionExited: (cli, code) => `${cli} exited with code ${code}`,
+  aiRevalidating: (name) => `Validating the vault after ${name}`,
+
   projectSection: (name) => `Project — ${name}`,
   summaryQuestion: (name) => `One-line definition of ${name}`,
   parentQuestion: (name) => `Does ${name} belong under another project?`,
@@ -233,8 +292,41 @@ const tr: Messages = {
   adminAliasesQuestion: "Seni ifade eden diğer kelimeler (opsiyonel, virgülle ayır)",
   adminAliasesHint: "örn. ben, user",
 
-  detailQuestion: "Her proje için detay sorularını soralım mı?",
-  detailHint: "Tanım, hiyerarşi, gruplama, özel notlar, recall trigger'ları",
+  detailModeQuestion: "Projelerin notları nasıl doldurulsun?",
+  detailModeSkip: "Atla",
+  detailModeSkipHint: "Boş şablon kalsın, sonra kendin yazarsın",
+  detailModeManual: "Buradan yanıtlayayım",
+  detailModeManualHint: "Tanım, hiyerarşi, gruplama, özel notlar, recall trigger'ları",
+  detailModeAi: "Yerel bir yapay zekâ kodu okusun",
+  detailModeAiHint: "Kurulu bir yapay zekâ CLI'ı projenin kaynak kodunu inceleyip notları yazsın",
+
+  aiDetecting: "PATH üzerinde yapay zekâ CLI'ları aranıyor",
+  aiDetected: (count) => `${count} CLI bulundu`,
+  aiNoneDetected: "PATH üzerinde yapay zekâ CLI'ı bulunamadı",
+  aiNoneHint: "Notları devredecek bir araç yok; sorular burada soruluyor.",
+  aiCliQuestion: "Notları hangi CLI yazsın?",
+  aiCliUnknown: (name) => `${name} kurulu değil; bulunanlar arasından seç.`,
+  aiScanning: "Daha önce çalıştığın dizinler taranıyor",
+  aiScanned: (count) => `${count} çalışma dizini bulundu`,
+  aiSourceQuestion: (name) => `${name} kaynak kodu nerede?`,
+  aiSourceHint: "Depoya giden mutlak yol",
+  aiSourceOther: "Başka bir yol…",
+  aiSourceSkip: "Bu projeyi atla",
+  aiSourceMissing: (path) => `${path} bir dizin değil.`,
+  aiSkipped: (name) => `${name} atlandı — notları olduğu gibi kaldı.`,
+  aiHandoffTitle: (name) => `${name} devrediliyor`,
+  aiHandoffSummary: (cli, dir, files) =>
+    [
+      `${cli} terminalini devralacak ve ${dir} içinde çalışacak.`,
+      "Orada her şeyi okuyabilir; başladıktan sonra Vulcanus onu sınırlayamaz.",
+      "",
+      "Yazması istenen dosyalar yalnızca bunlar:",
+      ...files.map((file) => `  ${file}`),
+    ].join("\n"),
+  aiHandoffConfirm: (cli) => `${cli} şimdi başlatılsın mı?`,
+  aiSessionExited: (cli, code) => `${cli} ${code} koduyla çıktı`,
+  aiRevalidating: (name) => `${name} sonrası vault doğrulanıyor`,
+
   projectSection: (name) => `Proje — ${name}`,
   summaryQuestion: (name) => `${name} tek cümleyle nedir?`,
   parentQuestion: (name) => `${name} başka bir projenin altında mı?`,

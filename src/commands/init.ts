@@ -4,6 +4,7 @@ import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
+import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { messages, type Locale } from "../i18n.js";
 import {
   ADAPTERS,
@@ -18,13 +19,9 @@ import { runDoctor } from "../doctor/index.js";
 import { writeManifest } from "../manifest/io.js";
 import {
   DEFAULT_STRUCTURE,
-  KNOWN_SPECIALIZED_NOTES,
   MANIFEST_VERSION,
-  makeProjectId,
   type ImportRecord,
   type NamingStyle,
-  type ProjectGroup,
-  type ProjectNode,
   type VaultManifest,
   type VaultProfile,
 } from "../manifest/schema.js";
@@ -38,6 +35,7 @@ import {
 } from "../prompts.js";
 import { safeFileName, slugify } from "../util/text.js";
 import { CLI_VERSION } from "../version.js";
+import { askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 import { reportDoctor } from "./doctor.js";
 
 const run = promisify(execFile);
@@ -130,6 +128,8 @@ export interface InitOptions {
   target?: string;
   locale?: Locale;
   yes?: boolean;
+  /** `true` picks the AI path, a string also names the CLI to hand over to. */
+  ai?: string | boolean;
 }
 
 export async function initCommand(options: InitOptions = {}): Promise<number> {
@@ -235,96 +235,27 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   );
 
   // --- Step 4: project details --------------------------------------------
-  const wantsDetail =
-    projectNames.length > 0 &&
-    (await askConfirm({ message: `${t.detailQuestion} (${t.detailHint})`, initialValue: true }));
+  const requested: DetailMode =
+    projectNames.length === 0 ? "skip" : options.ai ? "ai" : await askDetailMode(locale);
 
-  const takenIds = new Set<string>();
-  const groups: ProjectGroup[] = [];
-  const projects: ProjectNode[] = [];
+  // The handoff is planned now but runs after the vault exists, because the AI
+  // is given the real note paths. No AI CLI means the questions get asked here.
+  const handoff =
+    requested === "ai"
+      ? await planHandoff(
+          projectNames,
+          locale,
+          typeof options.ai === "string" ? options.ai : undefined,
+        )
+      : null;
+  const mode: DetailMode = requested === "ai" && !handoff ? "manual" : requested;
 
-  for (const name of projectNames) {
-    const id = makeProjectId(name, takenIds);
-
-    if (!wantsDetail) {
-      projects.push({
-        id,
-        name,
-        parent: null,
-        group: null,
-        status: "active",
-        summary: "",
-        triggers: [name],
-        specialized: [],
-      });
-      continue;
-    }
-
-    p.log.step(t.projectSection(name));
-
-    const summary = (await askText({ message: t.summaryQuestion(name) })).trim();
-
-    const parent =
-      projects.length === 0
-        ? null
-        : (await askSelect({
-            message: t.parentQuestion(name),
-            options: [
-              { value: "", label: t.parentNone },
-              ...projects.map((project) => ({ value: project.id, label: project.name })),
-            ],
-            initialValue: "",
-          })) || null;
-
-    let group: string | null = null;
-    if (!parent) {
-      const choice = await askSelect({
-        message: t.groupQuestion(name),
-        options: [
-          { value: "", label: t.groupNone },
-          ...groups.map((entry) => ({ value: entry.id, label: entry.name })),
-          { value: "__new__", label: t.groupNew },
-        ],
-        initialValue: "",
-      });
-
-      if (choice === "__new__") {
-        const groupName = (
-          await askText({ message: t.groupNameQuestion, required: true })
-        ).trim();
-        const groupId = slugify(groupName) || `group-${groups.length + 1}`;
-        groups.push({ id: groupId, name: groupName, navigationOnly: true });
-        group = groupId;
-      } else {
-        group = choice || null;
-      }
-    }
-
-    const specialized = await askMultiselect({
-      message: t.specializedQuestion(name),
-      options: KNOWN_SPECIALIZED_NOTES.map((kind) => ({ value: kind, label: kind })),
-    });
-
-    const triggers = splitList(
-      await askText({
-        message: t.triggersQuestion(name),
-        placeholder: t.triggersHint,
-        defaultValue: name,
-        initialValue: name,
-      }),
-    );
-
-    projects.push({
-      id,
-      name,
-      parent,
-      group,
-      status: "active",
-      summary,
-      triggers: triggers.length ? triggers : [name],
-      specialized: [...specialized],
-    });
-  }
+  const { projects, groups } = await collectProjectDetails(
+    projectNames,
+    { projects: [], groups: [] },
+    locale,
+    mode,
+  );
 
   // --- Step 5: destination -------------------------------------------------
   // Default to the vault's own name so Obsidian shows the vault under that name.
@@ -410,8 +341,11 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
 
   if (!report.ok) reportDoctor(report);
 
+  // --- Step 8: hand the notes to a local AI --------------------------------
+  const afterAi = handoff ? await runHandoff(vaultRoot, manifest, handoff, locale) : null;
+
   p.note(t.nextSteps(vaultRoot), t.summaryTitle);
   p.outro(`${vaultName} → ${vaultRoot}`);
 
-  return report.ok ? 0 : 1;
+  return (afterAi ?? report).ok ? 0 : 1;
 }
