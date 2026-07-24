@@ -28,23 +28,98 @@ export interface Choice<T extends string> {
   hint?: string;
 }
 
-export async function askText(options: {
+export interface TextRequest {
   message: string;
   placeholder?: string;
   defaultValue?: string;
   initialValue?: string;
   required?: boolean;
-}): Promise<string> {
-  const answer = await p.text({
-    message: options.message,
-    placeholder: options.placeholder,
-    defaultValue: options.defaultValue,
-    initialValue: options.initialValue,
-    validate: options.required
-      ? (value) => (value.trim() ? undefined : messages(activeLocale).required)
-      : undefined,
-  });
-  return unwrap(answer) ?? "";
+}
+
+export interface SelectRequest {
+  message: string;
+  options: Array<Choice<string>>;
+  initialValue?: string;
+}
+
+export interface MultiselectRequest {
+  message: string;
+  options: Array<Choice<string>>;
+  initialValues?: string[];
+}
+
+export interface ConfirmRequest {
+  message: string;
+  initialValue?: boolean;
+}
+
+/**
+ * Where the answers come from. Swapping this is what makes a command's question
+ * flow testable — the wizards are otherwise reachable only through a TTY, and
+ * the order and shape of what they ask is exactly the part worth pinning down.
+ */
+export interface PromptDriver {
+  text(request: TextRequest): Promise<string>;
+  select(request: SelectRequest): Promise<string>;
+  multiselect(request: MultiselectRequest): Promise<string[]>;
+  confirm(request: ConfirmRequest): Promise<boolean>;
+}
+
+const clackDriver: PromptDriver = {
+  async text(request) {
+    const answer = await p.text({
+      message: request.message,
+      placeholder: request.placeholder,
+      defaultValue: request.defaultValue,
+      initialValue: request.initialValue,
+      validate: request.required
+        ? (value) => (value.trim() ? undefined : messages(activeLocale).required)
+        : undefined,
+    });
+    return unwrap(answer) ?? "";
+  },
+  async select(request) {
+    return unwrap(
+      await p.select({
+        message: request.message,
+        options: request.options as StringChoice[],
+        initialValue: request.initialValue,
+      }),
+    );
+  },
+  async multiselect(request) {
+    return unwrap(
+      await p.multiselect({
+        message: request.message,
+        options: request.options as StringChoice[],
+        initialValues: request.initialValues ?? [],
+        required: false,
+      }),
+    );
+  },
+  async confirm(request) {
+    return unwrap(
+      await p.confirm({
+        message: request.message,
+        initialValue: request.initialValue ?? true,
+      }),
+    );
+  },
+};
+
+let driver: PromptDriver = clackDriver;
+
+/** Returns a restore function, so a test can never leak its driver into the next one. */
+export function setPromptDriver(next: PromptDriver): () => void {
+  const previous = driver;
+  driver = next;
+  return () => {
+    driver = previous;
+  };
+}
+
+export async function askText(options: TextRequest): Promise<string> {
+  return driver.text(options);
 }
 
 // clack's `Option<Value>` is a conditional type that cannot resolve against an
@@ -57,12 +132,7 @@ export async function askSelect<T extends string>(options: {
   options: Array<Choice<T>>;
   initialValue?: T;
 }): Promise<T> {
-  const answer = await p.select({
-    message: options.message,
-    options: options.options as StringChoice[],
-    initialValue: options.initialValue as string | undefined,
-  });
-  return unwrap(answer) as T;
+  return (await driver.select(options as SelectRequest)) as T;
 }
 
 export async function askMultiselect<T extends string>(options: {
@@ -70,24 +140,11 @@ export async function askMultiselect<T extends string>(options: {
   options: Array<Choice<T>>;
   initialValues?: T[];
 }): Promise<T[]> {
-  const answer = await p.multiselect({
-    message: options.message,
-    options: options.options as StringChoice[],
-    initialValues: (options.initialValues ?? []) as string[],
-    required: false,
-  });
-  return unwrap(answer) as T[];
+  return (await driver.multiselect(options as MultiselectRequest)) as T[];
 }
 
-export async function askConfirm(options: {
-  message: string;
-  initialValue?: boolean;
-}): Promise<boolean> {
-  const answer = await p.confirm({
-    message: options.message,
-    initialValue: options.initialValue ?? true,
-  });
-  return unwrap(answer);
+export async function askConfirm(options: ConfirmRequest): Promise<boolean> {
+  return driver.confirm(options);
 }
 
 /** Comma-separated free text into a trimmed list. */

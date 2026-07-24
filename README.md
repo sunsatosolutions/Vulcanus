@@ -90,13 +90,15 @@ vulcanus update          # bring the vault up to date with a newer CLI
 vulcanus sync "topic"    # validate, then commit and push
 ```
 
-`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` accepts `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 ## Filling the project notes
 
-When projects are added, Vulcanus asks how their notes should get their content: answer the questions here, skip and write them yourself later, or hand the job to an AI CLI already installed on your machine.
+Whenever projects are added — by `init`, `add project`, or `import` — Vulcanus asks how their notes should get their content: answer the questions here, skip and write them yourself later, or hand the job to an AI CLI already installed on your machine.
 
-The AI path probes your PATH for `claude`, `codex`, `cursor-agent`, and `gemini`, offers only what is really there, and asks where each project's source code lives — proposing the directories your past Claude Code and Codex sessions ran in. Before anything starts it tells you which CLI is taking over your terminal, in which directory, and exactly which notes it has been told to write. Nothing is spawned without your confirmation.
+The AI path probes your PATH for `claude`, `codex`, `cursor-agent` (also installed as `agent`), and `gemini`, offers only what is really there, and asks where each project's source code lives — proposing the directories your past Claude Code and Codex sessions ran in. Before anything starts it tells you which CLI is taking over your terminal, in which directory, and exactly which notes it has been told to write. Nothing is spawned without your confirmation, and that confirmation cannot be suppressed by a flag.
+
+The short structural questions — hierarchy, grouping, which specialized notes to create — are asked in the terminal either way. They decide the folder layout and the generated system notes, and they have to be settled before a single file exists, while the AI session only starts once the notes are there. What the AI takes over is the note bodies, which is where the work actually is.
 
 The CLI is asked to study the codebase, question you about what the code cannot answer, and write the cluster's notes to the vault's conventions. When the session exits, `doctor` runs immediately, so an edit that broke the graph is reported rather than discovered later.
 

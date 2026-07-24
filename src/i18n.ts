@@ -61,6 +61,8 @@ export interface Messages {
   detailModeAi: string;
   detailModeAiHint: string;
 
+  aiStructureNote: string;
+  summaryAiHint: string;
   aiDetecting: string;
   aiDetected: (count: number) => string;
   aiNoneDetected: string;
@@ -181,6 +183,9 @@ const en: Messages = {
   detailModeAi: "Let a local AI read the code",
   detailModeAiHint: "An installed AI CLI studies each project's source and writes the notes",
 
+  aiStructureNote:
+    "These questions decide where each project lives in the graph, so they are settled before anything is written. The AI fills the notes themselves afterwards.",
+  summaryAiHint: "A line is enough — the AI expands it from the code",
   aiDetecting: "Looking for AI CLIs on PATH",
   aiDetected: (count) => `${count} AI CLI(s) found`,
   aiNoneDetected: "No AI CLI found on PATH",
@@ -320,6 +325,9 @@ const tr: Messages = {
   detailModeAi: "Yerel bir yapay zekâ kodu okusun",
   detailModeAiHint: "Kurulu bir yapay zekâ CLI'ı projenin kaynak kodunu inceleyip notları yazsın",
 
+  aiStructureNote:
+    "Bu sorular projenin grafikteki yerini belirlediği için hiçbir şey yazılmadan önce cevaplanıyor. Notların içeriğini sonrasında yapay zekâ dolduracak.",
+  summaryAiHint: "Bir cümle yeter — yapay zekâ kodu okuyup genişletecek",
   aiDetecting: "PATH üzerinde yapay zekâ CLI'ları aranıyor",
   aiDetected: (count) => `${count} CLI bulundu`,
   aiNoneDetected: "PATH üzerinde yapay zekâ CLI'ı bulunamadı",

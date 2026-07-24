@@ -144,8 +144,15 @@ function seedProject(id: string, name: string): ProjectNode {
 
 /**
  * Ask the per-project questions for a list of names. Shared by `init`, `add`,
- * and `import`. Any mode other than `manual` produces the same untouched seed
- * nodes: the notes are filled in afterwards, by the operator or by an AI.
+ * and `import`.
+ *
+ * The AI path answers these questions too, because they are the ones an AI
+ * cannot answer for us: hierarchy, grouping and the specialized note list decide
+ * the directory layout and the generated system notes, and they are settled
+ * before a single file is written — while the AI session only starts once the
+ * notes exist. A project described entirely after generation would sit outside
+ * the graph. What the AI takes over is the note bodies, which is where the work
+ * actually is. Only `skip` leaves an untouched seed node.
  */
 export async function collectProjectDetails(
   names: string[],
@@ -160,17 +167,24 @@ export async function collectProjectDetails(
   const projects: ProjectNode[] = [];
   const selectable = [...manifest.projects];
 
+  if (mode === "ai" && names.length > 0) p.log.info(t.aiStructureNote);
+
   for (const name of names) {
     const id = makeProjectId(name, takenIds);
 
-    if (mode !== "manual") {
+    if (mode === "skip") {
       projects.push(seedProject(id, name));
       continue;
     }
 
     p.log.step(t.projectSection(name));
 
-    const summary = (await askText({ message: t.summaryQuestion(name) })).trim();
+    const summary = (
+      await askText({
+        message: t.summaryQuestion(name),
+        placeholder: mode === "ai" ? t.summaryAiHint : undefined,
+      })
+    ).trim();
 
     const parent =
       selectable.length === 0

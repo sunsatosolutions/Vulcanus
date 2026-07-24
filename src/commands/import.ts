@@ -10,7 +10,8 @@ import {
 } from "../importers/index.js";
 import { messages, type Locale } from "../i18n.js";
 import { askMultiselect, askSelect, askText, setPromptLocale } from "../prompts.js";
-import { applyProjects, collectProjectDetails } from "./add.js";
+import { planHandoff, runHandoff } from "../ai/handoff.js";
+import { applyProjects, askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 
 function expandHome(value: string): string {
   return value.replace(/^~(?=$|\/)/, process.env.HOME ?? "~");
@@ -20,6 +21,8 @@ export interface ImportOptions {
   cwd?: string;
   source?: ImportSourceId;
   path?: string;
+  /** `true` picks the AI path, a string also names the CLI to hand over to. */
+  ai?: string | boolean;
 }
 
 export async function importCommand(options: ImportOptions = {}): Promise<number> {
@@ -120,7 +123,17 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
     return 0;
   }
 
-  const { projects, groups } = await collectProjectDetails(selected, manifest, locale);
+  const requested: DetailMode = options.ai ? "ai" : await askDetailMode(locale);
+
+  // Planned before anything is written, so a machine without an AI CLI falls
+  // back to the questions instead of creating projects nobody described.
+  const handoff =
+    requested === "ai"
+      ? await planHandoff(selected, locale, typeof options.ai === "string" ? options.ai : undefined)
+      : null;
+  const mode: DetailMode = requested === "ai" && !handoff ? "manual" : requested;
+
+  const { projects, groups } = await collectProjectDetails(selected, manifest, locale, mode);
 
   const withRecord = {
     ...manifest,
@@ -141,6 +154,11 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   const result = await applyProjects(vaultRoot, withRecord, { projects, groups });
   spinner.stop(`${result.created.length} files written, ${result.patched.length} patched`);
 
-  p.outro(result.ok ? "PASS" : "FAIL — see findings above");
-  return result.ok ? 0 : 1;
+  const afterAi = handoff
+    ? await runHandoff(vaultRoot, await readManifest(vaultRoot), handoff, locale)
+    : null;
+  const ok = afterAi ? afterAi.ok : result.ok;
+
+  p.outro(ok ? "PASS" : "FAIL — see findings above");
+  return ok ? 0 : 1;
 }

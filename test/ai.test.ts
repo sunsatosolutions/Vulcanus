@@ -5,8 +5,10 @@ import { after, describe, it } from "node:test";
 import { AI_CLIS, detectAiClis, findOnPath } from "../src/ai/clis.js";
 import { buildHandoffPrompt, editableNotes } from "../src/ai/prompt.js";
 import { detectSourceDirectories, proposeSourceDirectories } from "../src/ai/workdirs.js";
+import { collectProjectDetails, type DetailMode } from "../src/commands/add.js";
 import { buildPlan } from "../src/manifest/derive.js";
-import { cleanup, manifest, project, tempDir } from "./helpers.js";
+import { setPromptDriver } from "../src/prompts.js";
+import { cleanup, manifest, project, scriptedPrompts, tempDir } from "./helpers.js";
 
 const tempDirs: string[] = [];
 after(async () => {
@@ -43,6 +45,28 @@ describe("AI CLI detection", () => {
   it("detects nothing when PATH is empty, so the caller can fall back", () => {
     assert.deepEqual(detectAiClis({ PATH: "" }, fakePath(["/usr/local/bin/claude"])), []);
     assert.deepEqual(detectAiClis({}, fakePath(["/usr/local/bin/claude"])), []);
+  });
+
+  it("accepts a renamed binary, and reports the name that actually resolved", () => {
+    const env = { PATH: "/usr/local/bin" };
+    const detected = detectAiClis(env, fakePath(["/usr/local/bin/agent"]));
+
+    assert.deepEqual(
+      detected.map((cli) => cli.id),
+      ["cursor-agent"],
+    );
+    assert.equal(detected[0].command, "agent");
+    assert.equal(detected[0].path, "/usr/local/bin/agent");
+  });
+
+  it("prefers the primary name when both are installed, so it resolves once", () => {
+    const detected = detectAiClis(
+      { PATH: "/usr/local/bin" },
+      fakePath(["/usr/local/bin/cursor-agent", "/usr/local/bin/agent"]),
+    );
+
+    assert.equal(detected.length, 1);
+    assert.equal(detected[0].command, "cursor-agent");
   });
 
   it("passes the task to every CLI as an interactive first prompt", () => {
@@ -175,27 +199,114 @@ describe("handoff prompt", () => {
 });
 
 describe("detail modes", () => {
-  it("seeds untouched project nodes for skip and ai, and asks nothing", async () => {
-    const { collectProjectDetails } = await import("../src/commands/add.js");
-    const empty = { projects: [], groups: [] };
+  const empty = { projects: [], groups: [] };
 
-    for (const mode of ["skip", "ai"] as const) {
-      const result = await collectProjectDetails(["Kiln", "Kiln"], empty, "en", mode);
-      assert.deepEqual(result.groups, []);
-      assert.deepEqual(
-        result.projects.map((entry) => entry.id),
-        ["kiln", "kiln-2"],
-      );
-      assert.deepEqual(result.projects[0], {
-        id: "kiln",
-        name: "Kiln",
-        parent: null,
-        group: null,
-        status: "active",
-        summary: "",
-        triggers: ["Kiln"],
-        specialized: [],
-      });
+  /** Run the question flow against a script, always restoring the real driver. */
+  async function collect(names: string[], mode: DetailMode, answers: unknown[], base = empty) {
+    const { driver, asked } = scriptedPrompts(answers);
+    const restore = setPromptDriver(driver);
+    try {
+      return { ...(await collectProjectDetails(names, base, "en", mode)), asked };
+    } finally {
+      restore();
     }
+  }
+
+  it("seeds untouched project nodes for skip, and asks nothing", async () => {
+    const { projects, groups, asked } = await collect(["Kiln", "Kiln"], "skip", []);
+
+    assert.deepEqual(asked, []);
+    assert.deepEqual(groups, []);
+    assert.deepEqual(
+      projects.map((entry) => entry.id),
+      ["kiln", "kiln-2"],
+    );
+    assert.deepEqual(projects[0], {
+      id: "kiln",
+      name: "Kiln",
+      parent: null,
+      group: null,
+      status: "active",
+      summary: "",
+      triggers: ["Kiln"],
+      specialized: [],
+    });
+  });
+
+  it("builds the node from the answers, in a fixed order", async () => {
+    const { projects, asked } = await collect(["Kiln"], "manual", [
+      "A pottery kiln controller.",
+      "",
+      ["Architecture"],
+      "kiln, firing",
+    ]);
+
+    assert.deepEqual(
+      asked.map((question) => question.kind),
+      ["text", "select", "multiselect", "text"],
+    );
+    // Nothing to be a parent of yet, so only grouping is offered.
+    assert.match(asked[1].message, /group/i);
+    assert.deepEqual(projects[0], {
+      id: "kiln",
+      name: "Kiln",
+      parent: null,
+      group: null,
+      status: "active",
+      summary: "A pottery kiln controller.",
+      triggers: ["kiln", "firing"],
+      specialized: ["Architecture"],
+    });
+  });
+
+  it("asks the AI path the same structural questions, so the graph is never left flat", async () => {
+    const answers = ["A pottery kiln controller.", "", ["Architecture"], "kiln, firing"];
+    const manual = await collect(["Kiln"], "manual", answers);
+    const ai = await collect(["Kiln"], "ai", answers);
+
+    assert.deepEqual(
+      ai.asked.map((question) => question.kind),
+      manual.asked.map((question) => question.kind),
+    );
+    assert.deepEqual(ai.projects, manual.projects);
+  });
+
+  it("offers an earlier project as a parent, and skips grouping once one is chosen", async () => {
+    const { projects, asked } = await collect(["Kiln", "Glaze"], "manual", [
+      "Controller.",
+      "",
+      [],
+      "kiln",
+      "Glaze calculator.",
+      "kiln",
+      [],
+      "glaze",
+    ]);
+
+    assert.deepEqual(asked[5].choices, ["", "kiln"]);
+    assert.equal(projects[1].parent, "kiln");
+    assert.equal(projects[1].group, null);
+    // Four questions for the first project, then parent replaces the group question.
+    assert.deepEqual(
+      asked.slice(4).map((question) => question.kind),
+      ["text", "select", "multiselect", "text"],
+    );
+  });
+
+  it("creates a group on the fly and reuses its slug", async () => {
+    const { projects, groups } = await collect(
+      ["Kiln"],
+      "manual",
+      ["Controller.", "__new__", "Studio Tools", [], "kiln"],
+    );
+
+    assert.deepEqual(groups, [{ id: "studio-tools", name: "Studio Tools", navigationOnly: true }]);
+    assert.equal(projects[0].group, "studio-tools");
+  });
+
+  it("falls back to the project name when no triggers are given", async () => {
+    const { projects } = await collect(["Kiln"], "manual", ["Controller.", "", [], "  ,  "]);
+
+    assert.deepEqual(projects[0].triggers, ["Kiln"]);
   });
 });

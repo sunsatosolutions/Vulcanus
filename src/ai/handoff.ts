@@ -38,7 +38,8 @@ function isDirectory(path: string): boolean {
 function matchCli(clis: DetectedCli[], wanted: string): DetectedCli | undefined {
   const needle = wanted.trim().toLowerCase();
   return clis.find(
-    (cli) => cli.id === needle || cli.command === needle || cli.label.toLowerCase() === needle,
+    (cli) =>
+      cli.id === needle || cli.commands.includes(needle) || cli.label.toLowerCase() === needle,
   );
 }
 

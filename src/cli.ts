@@ -69,10 +69,12 @@ async function main(): Promise<void> {
     .description("Propose projects from an AI conversation export")
     .option("-s, --source <source>", "chatgpt | claude | claude-code | codex")
     .option("-p, --path <path>", "path to the export or session directory")
-    .action(async (options: { source?: string; path?: string }) => {
+    .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
+    .action(async (options: { source?: string; path?: string; ai?: string | boolean }) => {
       process.exitCode = await importCommand({
         source: options.source as ImportSourceId | undefined,
         path: options.path,
+        ai: options.ai,
       });
     });
 
