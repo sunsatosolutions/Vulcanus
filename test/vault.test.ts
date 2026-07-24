@@ -318,6 +318,15 @@ describe("agent adoption files", () => {
     assert.match(guide, /Obsidian/);
   });
 
+  it("documents the skills channel alongside the prose snippet", async () => {
+    const input = manifest({ projects: [project("meridian", "Meridian")] });
+    const { root } = await scaffold(input);
+
+    const guide = await readFile(resolve(root, "USING-WITH-AI.md"), "utf8");
+    assert.match(guide, /vulcanus skills --install/);
+    assert.match(guide, /\.agents\/skills\//);
+  });
+
   it("builds an enforcement snippet naming the vault, operator, and path", async () => {
     const { enforcementSnippet } = await import("../src/generate/agents.js");
     const plan = buildPlan(manifest({ projects: [project("meridian", "Meridian")] }));
@@ -327,5 +336,109 @@ describe("agent adoption files", () => {
     assert.match(snippet, /\/Users\/ada\/ATLAS\/AGENTS\.md/);
     assert.match(snippet, /Ada is the operator/);
     assert.match(snippet, /Needs Confirmation/);
+  });
+});
+
+describe("agent skills", () => {
+  const OPERATIONS = ["recall", "doctor", "sync", "add-project", "import", "update"];
+
+  it("writes one skill per vault operation into every supported skills directory", async () => {
+    const input = manifest({ projects: [project("meridian", "Meridian")] });
+    const { root } = await scaffold(input);
+
+    for (const dir of [".claude/skills", ".agents/skills"]) {
+      for (const operation of OPERATIONS) {
+        const path = `${dir}/atlas-${operation}/SKILL.md`;
+        assert.ok(existsSync(resolve(root, path)), `${path} should be generated`);
+      }
+    }
+
+    // The same skill content in both directories, so no tool gets a stale copy.
+    const claude = await readFile(resolve(root, ".claude/skills/atlas-doctor/SKILL.md"), "utf8");
+    const agents = await readFile(resolve(root, ".agents/skills/atlas-doctor/SKILL.md"), "utf8");
+    assert.equal(claude, agents);
+  });
+
+  it("honours the Agent Skills frontmatter contract", async () => {
+    const { buildSkills, renderSkill } = await import("../src/generate/skills.js");
+    const plan = buildPlan(manifest({ projects: [project("meridian", "Meridian")] }));
+
+    for (const skill of buildSkills(plan)) {
+      assert.match(skill.name, /^[a-z0-9]+(-[a-z0-9]+)*$/, skill.name);
+      assert.ok(skill.name.length <= 64, `${skill.name} is longer than 64 characters`);
+      assert.ok(skill.description.length > 0 && skill.description.length <= 1024, skill.name);
+
+      const rendered = renderSkill(skill);
+      const lines = rendered.split("\n");
+      assert.equal(lines[0], "---");
+      assert.equal(lines[1], `name: ${skill.name}`);
+      assert.match(lines[2], /^description: "/);
+      assert.equal(lines[3], "---");
+      // A description is a single quoted scalar; an inner quote would break it.
+      assert.ok(!skill.description.includes('"'), skill.name);
+    }
+  });
+
+  it("names the real command instead of restating vault logic", async () => {
+    const { buildSkills } = await import("../src/generate/skills.js");
+    const plan = buildPlan(manifest({ projects: [project("meridian", "Meridian")] }));
+    const skills = new Map(buildSkills(plan).map((skill) => [skill.name, skill]));
+
+    assert.match(skills.get("atlas-doctor")!.body, /```bash\nvulcanus doctor\n```/);
+    assert.match(skills.get("atlas-sync")!.body, /vulcanus sync "short topic"/);
+    assert.match(skills.get("atlas-add-project")!.body, /vulcanus add project "Project Name"/);
+    assert.match(skills.get("atlas-import")!.body, /vulcanus import/);
+    assert.match(skills.get("atlas-update")!.body, /vulcanus update --dry-run/);
+    assert.match(skills.get("atlas-recall")!.body, /00_System\/ATLAS Recall Map\.md/);
+  });
+
+  it("gates the destructive skills on the operator's confirmation", async () => {
+    const { buildSkills } = await import("../src/generate/skills.js");
+    const plan = buildPlan(manifest({ projects: [project("meridian", "Meridian")] }));
+    const skills = new Map(buildSkills(plan).map((skill) => [skill.name, skill]));
+
+    const sync = skills.get("atlas-sync")!;
+    assert.match(sync.description, /explicit confirmation/);
+    assert.match(sync.body, /Do not run `vulcanus sync` until Ada has confirmed it/);
+    assert.match(sync.body, /vulcanus sync --dry-run/);
+
+    const update = skills.get("atlas-update")!;
+    assert.match(update.body, /vulcanus update --dry-run/);
+    assert.match(update.body, /--force/);
+
+    const add = skills.get("atlas-add-project")!;
+    assert.match(add.description, /never be run on a guess/);
+
+    // Every skill that runs a command reports what happened instead of assuming success.
+    for (const skill of skills.values()) {
+      if (skill.name === "atlas-recall") continue;
+      assert.match(skill.body, /real output and exit code/, skill.name);
+    }
+  });
+
+  it("carries the vault path only when the skill lives outside the vault", async () => {
+    const { buildSkills } = await import("../src/generate/skills.js");
+    const plan = buildPlan(manifest({ projects: [project("meridian", "Meridian")] }));
+
+    const installed = buildSkills(plan, "/Users/ada/ATLAS").find(
+      (skill) => skill.name === "atlas-doctor",
+    )!;
+    assert.match(installed.body, /cd "\/Users\/ada\/ATLAS" && vulcanus doctor/);
+
+    const inVault = buildSkills(plan).find((skill) => skill.name === "atlas-doctor")!;
+    assert.ok(!inVault.body.includes("/Users/ada/ATLAS"));
+    assert.match(inVault.body, /walking up to `vulcanus\.json`/);
+  });
+
+  it("treats skills as managed files that repair restores", async () => {
+    const input = manifest({ projects: [project("meridian", "Meridian")] });
+    const { root, files } = await scaffold(input);
+
+    const skillPath = resolve(root, ".claude/skills/atlas-sync/SKILL.md");
+    const generated = await readFile(skillPath, "utf8");
+    await writeFile(skillPath, "tampered\n", "utf8");
+
+    await writeFiles(root, files, { repair: true });
+    assert.equal(await readFile(skillPath, "utf8"), generated);
   });
 });
