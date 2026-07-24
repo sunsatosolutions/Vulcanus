@@ -29,7 +29,8 @@ export interface AnalysisResult {
   candidates: ProjectCandidate[];
 }
 
-const CAPITALIZED_PHRASE = /[A-ZÇĞİÖŞÜ][\p{L}\p{N}'’&.-]*(?:[ ][A-ZÇĞİÖŞÜ][\p{L}\p{N}'’&.-]*){0,2}/gu;
+const CAPITALIZED_PHRASE =
+  /[A-ZÇĞİÖŞÜ][\p{L}\p{N}'’&.-]*(?:[ ][A-ZÇĞİÖŞÜ][\p{L}\p{N}'’&.-]*){0,2}/gu;
 
 /**
  * Locale-independent folding key. Turkish casing would split "ARIA" (→ "arıa")

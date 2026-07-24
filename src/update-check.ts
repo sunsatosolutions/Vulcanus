@@ -14,17 +14,14 @@ interface CacheFile {
 }
 
 function cachePath(): string {
-  const base =
-    process.env.XDG_CACHE_HOME?.trim() || resolve(homedir(), ".cache");
+  const base = process.env.XDG_CACHE_HOME?.trim() || resolve(homedir(), ".cache");
   return resolve(base, "vulcanus", "update-check.json");
 }
 
 /** Users and CI systems must be able to turn the network call off entirely. */
 export function updateCheckDisabled(): boolean {
   return Boolean(
-    process.env.VULCANUS_NO_UPDATE_CHECK ||
-      process.env.NO_UPDATE_NOTIFIER ||
-      process.env.CI,
+    process.env.VULCANUS_NO_UPDATE_CHECK || process.env.NO_UPDATE_NOTIFIER || process.env.CI,
   );
 }
 

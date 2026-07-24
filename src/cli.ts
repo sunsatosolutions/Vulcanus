@@ -104,12 +104,7 @@ async function main(): Promise<void> {
     .option("--profile <profile>", "switch the system layer: core or full")
     .option("--json", "print the summary as JSON")
     .action(
-      async (options: {
-        dryRun?: boolean;
-        force?: boolean;
-        profile?: string;
-        json?: boolean;
-      }) => {
+      async (options: { dryRun?: boolean; force?: boolean; profile?: string; json?: boolean }) => {
         const profile =
           options.profile === "core" || options.profile === "full"
             ? (options.profile as VaultProfile)

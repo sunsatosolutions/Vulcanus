@@ -44,7 +44,9 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
   if (options.repair) {
     const { files } = generateFiles(manifest);
     const results = await writeFiles(vaultRoot, files, { repair: true });
-    const touched = results.filter((entry) => entry.action !== "skipped" && entry.action !== "unchanged");
+    const touched = results.filter(
+      (entry) => entry.action !== "skipped" && entry.action !== "unchanged",
+    );
     if (!options.json) {
       p.log.info(
         touched.length

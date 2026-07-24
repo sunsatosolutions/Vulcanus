@@ -377,9 +377,7 @@ function adminProfileNote(plan: VaultPlan): GeneratedFile {
       "## Project Ownership and Boundary Rules",
       "",
       bulletList(
-        admin.boundaries.length
-          ? admin.boundaries
-          : ["_No ownership boundaries recorded yet._"],
+        admin.boundaries.length ? admin.boundaries : ["_No ownership boundaries recorded yet._"],
         "_No ownership boundaries recorded yet._",
       ),
     ].join("\n"),
@@ -716,11 +714,7 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
   const content = joinSections([
     frontmatter(plan, "Import Log", ["import-log"]),
     `# ${note.name}`,
-    [
-      "## Navigation",
-      "",
-      bulletList([`Hub: ${wiki(plan.systemHub.name)}`]),
-    ].join("\n"),
+    ["## Navigation", "", bulletList([`Hub: ${wiki(plan.systemHub.name)}`])].join("\n"),
     [
       "## Purpose",
       "",
@@ -768,10 +762,7 @@ function brainOsNote(plan: VaultPlan): GeneratedFile {
     [
       "## Navigation",
       "",
-      bulletList([
-        `Hub: ${wiki(plan.systemHub.name)}`,
-        `Recall Map: ${wiki(plan.recallMap.name)}`,
-      ]),
+      bulletList([`Hub: ${wiki(plan.systemHub.name)}`, `Recall Map: ${wiki(plan.recallMap.name)}`]),
     ].join("\n"),
     [
       "## Purpose",

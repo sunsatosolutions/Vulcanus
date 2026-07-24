@@ -72,11 +72,9 @@ function capsuleNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
         ...project.specialized.map((entry) => wiki(entry.note.name)),
       ]),
     ].join("\n"),
-    [
-      "## Needs Confirmation",
-      "",
-      `- Detailed scope and operating structure for ${name}.`,
-    ].join("\n"),
+    ["## Needs Confirmation", "", `- Detailed scope and operating structure for ${name}.`].join(
+      "\n",
+    ),
   ]);
 
   return { path: project.capsule.path, content, kind: "seed" };
@@ -107,18 +105,19 @@ function hubNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
     ["## Core Files", "", bulletList(coreFiles)].join("\n"),
     ["## Parent", "", bulletList([wiki(project.parentLink.name)])].join("\n"),
     project.children.length
-      ? ["## Sub-Projects", "", bulletList(project.children.map((child) => wiki(child.hub.name)))].join(
-          "\n",
-        )
+      ? [
+          "## Sub-Projects",
+          "",
+          bulletList(project.children.map((child) => wiki(child.hub.name))),
+        ].join("\n")
       : "",
     [
       "## Core Memory",
       "",
       bulletList(
-        [
-          project.project.summary,
-          `${name} keeps its own Context, Decisions, and Rules.`,
-        ].filter(Boolean),
+        [project.project.summary, `${name} keeps its own Context, Decisions, and Rules.`].filter(
+          Boolean,
+        ),
       ),
     ].join("\n"),
     [
@@ -331,9 +330,11 @@ function specializedNote(
   const content = joinSections([
     projectFrontmatter(plan, project, slugify(kind)),
     `# ${note.name}`,
-    ["## Navigation", "", bulletList([`Hub: ${wiki(project.hub.name)}`, `Context: ${wiki(project.context.name)}`])].join(
-      "\n",
-    ),
+    [
+      "## Navigation",
+      "",
+      bulletList([`Hub: ${wiki(project.hub.name)}`, `Context: ${wiki(project.context.name)}`]),
+    ].join("\n"),
     [
       "## Purpose",
       "",
@@ -362,8 +363,7 @@ function groupHubNote(plan: VaultPlan, group: GroupPlan): GeneratedFile {
     [
       "## Purpose",
       "",
-      group.group.summary ||
-        `Navigation cluster for ${group.group.name} projects.`,
+      group.group.summary || `Navigation cluster for ${group.group.name} projects.`,
     ].join("\n"),
     group.group.navigationOnly
       ? [
@@ -372,11 +372,9 @@ function groupHubNote(plan: VaultPlan, group: GroupPlan): GeneratedFile {
           "This grouping exists for graph navigation only. It does not imply ownership, a shared business hierarchy, or any relationship between the projects below.",
         ].join("\n")
       : "",
-    [
-      "## Projects",
-      "",
-      bulletList(group.members.map((member) => wiki(member.hub.name))),
-    ].join("\n"),
+    ["## Projects", "", bulletList(group.members.map((member) => wiki(member.hub.name)))].join(
+      "\n",
+    ),
     ["## Parent", "", bulletList([wiki(plan.index.name)])].join("\n"),
   ]);
 

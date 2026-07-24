@@ -158,10 +158,7 @@ describe("handoff prompt", () => {
       notes.map((note) => note.kind),
       ["Capsule", "Hub", "Context", "Decisions", "Rules", "Architecture"],
     );
-    assert.equal(
-      notes[0].path,
-      "/Users/ada/ATLAS/02_Projects/Northwind/Kiln/Kiln Capsule.md",
-    );
+    assert.equal(notes[0].path, "/Users/ada/ATLAS/02_Projects/Northwind/Kiln/Kiln Capsule.md");
     for (const note of notes) assert.ok(prompt.includes(note.path), `${note.kind} path is missing`);
   });
 
@@ -294,11 +291,13 @@ describe("detail modes", () => {
   });
 
   it("creates a group on the fly and reuses its slug", async () => {
-    const { projects, groups } = await collect(
-      ["Kiln"],
-      "manual",
-      ["Controller.", "__new__", "Studio Tools", [], "kiln"],
-    );
+    const { projects, groups } = await collect(["Kiln"], "manual", [
+      "Controller.",
+      "__new__",
+      "Studio Tools",
+      [],
+      "kiln",
+    ]);
 
     assert.deepEqual(groups, [{ id: "studio-tools", name: "Studio Tools", navigationOnly: true }]);
     assert.equal(projects[0].group, "studio-tools");

@@ -12,7 +12,10 @@ import type { GeneratedFile } from "./types.js";
 
 export type { GeneratedFile } from "./types.js";
 
-export function generateFiles(manifest: VaultManifest): { plan: VaultPlan; files: GeneratedFile[] } {
+export function generateFiles(manifest: VaultManifest): {
+  plan: VaultPlan;
+  files: GeneratedFile[];
+} {
   const plan = buildPlan(manifest);
   const files = [
     ...generateRootFiles(plan),

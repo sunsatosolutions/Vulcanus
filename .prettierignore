@@ -1,0 +1,8 @@
+dist/
+node_modules/
+package-lock.json
+
+# Hand-written prose and a single hand-tuned static page: reflowing them would
+# churn the diff without making either easier to read.
+*.md
+site/

@@ -126,6 +126,8 @@ export function proposeSourceDirectories(
     })
     .filter((entry) => entry.score > 0);
 
-  scored.sort((a, b) => b.score - a.score || a.dir.length - b.dir.length || a.dir.localeCompare(b.dir));
+  scored.sort(
+    (a, b) => b.score - a.score || a.dir.length - b.dir.length || a.dir.localeCompare(b.dir),
+  );
   return scored.slice(0, limit).map((entry) => entry.dir);
 }

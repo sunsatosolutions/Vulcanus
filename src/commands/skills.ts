@@ -3,12 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import {
-  PERSONAL_SKILL_DIRS,
-  SKILL_DIRS,
-  buildSkills,
-  renderSkill,
-} from "../generate/skills.js";
+import { PERSONAL_SKILL_DIRS, SKILL_DIRS, buildSkills, renderSkill } from "../generate/skills.js";
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { messages, type Locale } from "../i18n.js";
@@ -81,10 +76,7 @@ export async function skillsCommand(options: SkillsOptions = {}): Promise<number
 
   p.note(skills.map((skill) => skill.name).join("\n"), `${skills.length} skills`);
   p.log.message(t.skillsInVault(skills.length));
-  p.note(
-    SKILL_DIRS.map((dir) => resolve(vaultRoot, dir)).join("\n"),
-    "In this vault",
-  );
+  p.note(SKILL_DIRS.map((dir) => resolve(vaultRoot, dir)).join("\n"), "In this vault");
 
   if (!options.install) {
     p.note(

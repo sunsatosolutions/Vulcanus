@@ -164,9 +164,11 @@ const en: Messages = {
   namingGeneric: 'Generic — "Index.md", "Recall Map.md"',
   profileQuestion: "How deep should the system layer be?",
   profileCore: "Core",
-  profileCoreHint: "Index, Recall Map, Admin Profile, Context, Rules, Update Format, Changelog, Import Log",
+  profileCoreHint:
+    "Index, Recall Map, Admin Profile, Context, Rules, Update Format, Changelog, Import Log",
   profileFull: "Full",
-  profileFullHint: "Core plus Brain OS Architecture, Operating Intuition, Neural Link Map, Confidence Model",
+  profileFullHint:
+    "Core plus Brain OS Architecture, Operating Intuition, Neural Link Map, Confidence Model",
 
   adminSection: "Operator",
   adminNameQuestion: "Your name",
@@ -271,7 +273,8 @@ const tr: Messages = {
   localeEn: "English",
 
   importQuestion: "Proje ağacını çıkarmak için mevcut bir yapay zekâ geçmişini içe aktaralım mı?",
-  importHint: "Vault'a hiçbir konuşma kopyalanmaz — yalnızca onayladığın proje isimleri kullanılır.",
+  importHint:
+    "Vault'a hiçbir konuşma kopyalanmaz — yalnızca onayladığın proje isimleri kullanılır.",
   importNone: "Hayır, projeleri kendim tanımlayayım",
   importNoneHint: "Doğrudan sorulara geç",
   importCustom: "Başka bir yol…",
@@ -306,9 +309,11 @@ const tr: Messages = {
   namingGeneric: 'Jenerik — "Index.md", "Recall Map.md"',
   profileQuestion: "Sistem katmanı ne kadar derin olsun?",
   profileCore: "Çekirdek",
-  profileCoreHint: "Index, Recall Map, Admin Profile, Context, Rules, Update Format, Changelog, Import Log",
+  profileCoreHint:
+    "Index, Recall Map, Admin Profile, Context, Rules, Update Format, Changelog, Import Log",
   profileFull: "Tam",
-  profileFullHint: "Çekirdek + Brain OS Architecture, Operating Intuition, Neural Link Map, Confidence Model",
+  profileFullHint:
+    "Çekirdek + Brain OS Architecture, Operating Intuition, Neural Link Map, Confidence Model",
 
   adminSection: "Yönetici",
   adminNameQuestion: "Adın",

@@ -101,9 +101,7 @@ export const chatgptAdapter: ImportAdapter = {
     const files = await conversationFiles(path);
     if (files.length === 0) return null;
     const detail =
-      files.length === 1
-        ? "1 conversation file"
-        : `${files.length} conversation files`;
+      files.length === 1 ? "1 conversation file" : `${files.length} conversation files`;
     return { source: "chatgpt", path, detail } satisfies DetectedSource;
   },
 
@@ -125,7 +123,7 @@ export const chatgptAdapter: ImportAdapter = {
       const conversations: ChatGptConversation[] = Array.isArray(parsed)
         ? (parsed as ChatGptConversation[])
         : Array.isArray((parsed as { conversations?: unknown }).conversations)
-          ? ((parsed as { conversations: ChatGptConversation[] }).conversations)
+          ? (parsed as { conversations: ChatGptConversation[] }).conversations
           : [];
 
       for (const conversation of conversations) {

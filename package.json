@@ -30,7 +30,9 @@
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --import tsx test/*.test.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write src test",
+    "format:check": "prettier --check src test"
   },
   "keywords": [
     "second-brain",
@@ -45,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "prettier": "^3.9.0",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0"
   }

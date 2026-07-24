@@ -84,7 +84,11 @@ function recallSkill(plan: VaultPlan, vaultPath: string | undefined): SkillDefin
         "",
         `If durable knowledge changed, update the affected notes, then validate with the \`${slug}-doctor\` skill. Commit only through the \`${slug}-sync\` skill, and only after ${admin.name} approves.`,
       ].join("\n"),
-      ["## Say what you read", "", "State which notes you recalled from, so the routing can be corrected when it sends you to the wrong place."].join("\n"),
+      [
+        "## Say what you read",
+        "",
+        "State which notes you recalled from, so the routing can be corrected when it sends you to the wrong place.",
+      ].join("\n"),
     ]),
   };
 }
@@ -141,7 +145,7 @@ function syncSkill(plan: VaultPlan, vaultPath: string | undefined): SkillDefinit
         "",
         "Before asking, show what would be committed:",
         "",
-        runLine(vaultPath, 'vulcanus sync --dry-run'),
+        runLine(vaultPath, "vulcanus sync --dry-run"),
         "",
         `That validates and prints the pending changes without committing. Show ${admin.name} that list and the commit topic you intend to use, then ask.`,
       ].join("\n"),

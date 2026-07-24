@@ -87,7 +87,9 @@ async function runImport(locale: Locale): Promise<ImportOutcome> {
   let path: string;
 
   if (choice === "custom") {
-    path = resolve(expandHome((await askText({ message: t.importPathQuestion, required: true })).trim()));
+    path = resolve(
+      expandHome((await askText({ message: t.importPathQuestion, required: true })).trim()),
+    );
     sourceId = await askSelect<ImportSourceId>({
       message: t.importSourceQuestion,
       options: ADAPTERS.map((adapter) => ({ value: adapter.id, label: adapter.label })),

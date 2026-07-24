@@ -99,7 +99,10 @@ describe("doctor", () => {
     const { root } = await scaffold(input);
 
     const contextPath = resolve(root, "02_Projects/Meridian/Meridian Context.md");
-    const stripped = (await readFile(contextPath, "utf8")).replace("[[Meridian Hub]]", "Meridian Hub");
+    const stripped = (await readFile(contextPath, "utf8")).replace(
+      "[[Meridian Hub]]",
+      "Meridian Hub",
+    );
     await writeFile(contextPath, stripped, "utf8");
 
     const report = await runDoctor(root, input);
@@ -111,7 +114,10 @@ describe("doctor", () => {
     const { root, plan } = await scaffold(input);
 
     const recallPath = resolve(root, plan.recallMap.path);
-    const stripped = (await readFile(recallPath, "utf8")).replaceAll("[[Meridian Capsule]]", "Meridian Capsule");
+    const stripped = (await readFile(recallPath, "utf8")).replaceAll(
+      "[[Meridian Capsule]]",
+      "Meridian Capsule",
+    );
     await writeFile(recallPath, stripped, "utf8");
 
     const report = await runDoctor(root, input);
@@ -135,16 +141,15 @@ describe("manifest validation", () => {
     const issues = validateManifest(
       manifest({ projects: [project("a", "Meridian"), project("b", "meridian")] }),
     );
-    assert.ok(issues.some((issue) => issue.level === "error" && /share the name/.test(issue.message)));
+    assert.ok(
+      issues.some((issue) => issue.level === "error" && /share the name/.test(issue.message)),
+    );
   });
 
   it("rejects a hierarchy cycle", () => {
     const issues = validateManifest(
       manifest({
-        projects: [
-          project("a", "A", { parent: "b" }),
-          project("b", "B", { parent: "a" }),
-        ],
+        projects: [project("a", "A", { parent: "b" }), project("b", "B", { parent: "a" })],
       }),
     );
     assert.ok(issues.some((issue) => /cycle/.test(issue.message)));
@@ -188,7 +193,10 @@ describe("adding a project to an existing vault", () => {
     const { root, plan } = await scaffold(input);
     await writeManifest(root, input);
 
-    const parentHubBefore = await readFile(resolve(root, "02_Projects/Northwind/Northwind Hub.md"), "utf8");
+    const parentHubBefore = await readFile(
+      resolve(root, "02_Projects/Northwind/Northwind Hub.md"),
+      "utf8",
+    );
     assert.ok(!parentHubBefore.includes("[[Harbor Hub]]"));
 
     const result = await applyProjects(root, input, {
@@ -202,7 +210,10 @@ describe("adding a project to an existing vault", () => {
     assert.match(recall, /### Harbor/);
     assert.match(recall, /\[\[Harbor Capsule\]\]/);
 
-    const parentHub = await readFile(resolve(root, "02_Projects/Northwind/Northwind Hub.md"), "utf8");
+    const parentHub = await readFile(
+      resolve(root, "02_Projects/Northwind/Northwind Hub.md"),
+      "utf8",
+    );
     assert.match(parentHub, /\[\[Harbor Hub\]\]/);
 
     assert.ok(existsSync(resolve(root, "02_Projects/Northwind/Harbor/Harbor Capsule.md")));
@@ -247,7 +258,11 @@ describe("update", () => {
     await writeManifest(root, input);
 
     const contextPath = resolve(root, "02_Projects/Meridian/Meridian Context.md");
-    await writeFile(`${contextPath}`, `${await readFile(contextPath, "utf8")}\nOwn memory.\n`, "utf8");
+    await writeFile(
+      `${contextPath}`,
+      `${await readFile(contextPath, "utf8")}\nOwn memory.\n`,
+      "utf8",
+    );
 
     await updateCommand({ cwd: root, json: true });
     assert.match(await readFile(contextPath, "utf8"), /Own memory\./);

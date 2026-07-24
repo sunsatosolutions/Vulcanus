@@ -57,10 +57,7 @@ function baseName(path: string): string {
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "").normalize("NFC");
 }
 
-export async function runDoctor(
-  vaultRoot: string,
-  manifest: VaultManifest,
-): Promise<DoctorReport> {
+export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Promise<DoctorReport> {
   const findings: DoctorFinding[] = [];
   const add = (level: FindingLevel, code: string, message: string, file?: string) => {
     findings.push({ level, code, message, file });
@@ -128,7 +125,9 @@ export async function runDoctor(
     }
     if (parsed.frontmatterLines === null) continue;
 
-    const duplicates = [...new Set(parsed.keys.filter((key, index) => parsed.keys.indexOf(key) !== index))];
+    const duplicates = [
+      ...new Set(parsed.keys.filter((key, index) => parsed.keys.indexOf(key) !== index)),
+    ];
     if (duplicates.length) {
       add("error", "FRONTMATTER", `duplicate keys: ${duplicates.join(", ")}`, file);
     }
@@ -163,11 +162,7 @@ export async function runDoctor(
   }
   for (const [stem, paths] of byCasefold) {
     if (paths.length > 1 && new Set(paths.map(baseName)).size > 1) {
-      add(
-        "error",
-        "CASEFOLD",
-        `note names differ only by case ("${stem}"): ${paths.join(", ")}`,
-      );
+      add("error", "CASEFOLD", `note names differ only by case ("${stem}"): ${paths.join(", ")}`);
     }
   }
 

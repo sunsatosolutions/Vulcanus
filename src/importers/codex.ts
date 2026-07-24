@@ -99,7 +99,9 @@ export const codexAdapter: ImportAdapter = {
 
         yield {
           id: basename(file, ".jsonl"),
-          title: messages.find((message) => message.role === "user")?.text.slice(0, 90) ?? "(untitled session)",
+          title:
+            messages.find((message) => message.role === "user")?.text.slice(0, 90) ??
+            "(untitled session)",
           syntheticTitle: true,
           createdAt: firstTimestamp,
           updatedAt: lastTimestamp,

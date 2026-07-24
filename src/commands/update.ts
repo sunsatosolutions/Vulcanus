@@ -69,7 +69,9 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<number
 
   const manifest: VaultManifest = {
     ...migration.manifest,
-    ...(options.profile ? { vault: { ...migration.manifest.vault, profile: options.profile } } : {}),
+    ...(options.profile
+      ? { vault: { ...migration.manifest.vault, profile: options.profile } }
+      : {}),
     generator: { name: "vulcanus", version: CLI_VERSION },
   };
 
@@ -113,7 +115,11 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<number
 
   p.intro(`update — ${manifest.vault.name}`);
 
-  if (compareVersions(fromVersion, CLI_VERSION) === 0 && created.length === 0 && updated.length === 0) {
+  if (
+    compareVersions(fromVersion, CLI_VERSION) === 0 &&
+    created.length === 0 &&
+    updated.length === 0
+  ) {
     p.log.success(`Already current (Vulcanus ${CLI_VERSION}).`);
   } else {
     p.log.info(`Vulcanus ${fromVersion} → ${CLI_VERSION}`);

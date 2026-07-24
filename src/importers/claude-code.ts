@@ -104,7 +104,10 @@ export const claudeCodeAdapter: ImportAdapter = {
       const group = projectNameFrom(cwds, dir);
       yield {
         id: basename(file, ".jsonl"),
-        title: title || messages.find((message) => message.role === "user")?.text.slice(0, 90) || "(untitled session)",
+        title:
+          title ||
+          messages.find((message) => message.role === "user")?.text.slice(0, 90) ||
+          "(untitled session)",
         syntheticTitle: title === "",
         createdAt: firstTimestamp,
         updatedAt: lastTimestamp,
