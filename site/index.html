@@ -164,6 +164,7 @@
 
       .nav-links {
         display: flex;
+        align-items: center;
         gap: 1.4rem;
         font-size: 0.9rem;
       }
@@ -196,6 +197,34 @@
       .nav-links a.gh svg {
         width: 1rem;
         height: 1rem;
+      }
+
+      .sponsor-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.4rem;
+        padding: 0.6rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.55rem;
+        background: rgba(255, 107, 53, 0.06);
+        color: var(--text);
+        font-size: 0.92rem;
+        text-decoration: none;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+
+      .sponsor-btn:hover {
+        border-color: var(--ember);
+        background: rgba(255, 107, 53, 0.12);
+      }
+
+      .sponsor-btn svg {
+        width: 1.05rem;
+        height: 1.05rem;
+        color: var(--ember);
       }
 
       @media (max-width: 640px) {
@@ -1060,6 +1089,19 @@ requirement, not an optional extra.
             >read the source on GitHub</a
           >.
         </p>
+        <a
+          class="sponsor-btn"
+          href="https://github.com/sponsors/yasinakinn"
+          rel="noopener"
+          aria-label="Sponsor Vulcanus development on GitHub"
+        >
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path
+              d="M8 14.25.345 6.575a4.05 4.05 0 0 1 0-5.73 4.05 4.05 0 0 1 5.729 0L8 2.77l1.926-1.925a4.05 4.05 0 0 1 5.729 5.73L8 14.25Z"
+            />
+          </svg>
+          Sponsor its development
+        </a>
       </section>
 
       <footer>
@@ -1069,7 +1111,8 @@ requirement, not an optional extra.
             <a href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener">GitHub</a> ·
             <a href="https://www.npmjs.com/package/@sunsato/vulcanus" rel="noopener">npm</a> ·
             <a href="https://github.com/sunsatosolutions/Vulcanus/issues" rel="noopener">Issues</a>
-            · <a href="https://sunsato.com">Sunsato</a>
+            · <a href="https://github.com/sponsors/yasinakinn" rel="noopener">Sponsor</a> ·
+            <a href="https://sunsato.com">Sunsato</a>
           </div>
         </div>
       </footer>
