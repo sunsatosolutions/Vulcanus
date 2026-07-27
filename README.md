@@ -2,7 +2,7 @@
 
 Vulcanus builds and maintains an **AI-readable second brain** — a Git-versioned vault of linked Markdown that humans and AI agents can both read, so an agent can resume work with reliable context instead of starting cold.
 
-You answer a few questions, and Vulcanus writes the whole vault — routing layer, operator profile, agent protocol, and one memory cluster per project — then validates that the graph actually holds together.
+You answer a few questions, and Vulcanus writes the whole vault — routing layer, operator profile, agent protocol, and one memory cluster per project — then validates that the graph actually holds together. Already keep an Obsidian vault? It adds the memory structure to that vault instead of creating a separate one.
 
 A [Sunsato](https://sunsato.com) product · [vulcanus.sunsato.com](https://vulcanus.sunsato.com)
 
@@ -59,7 +59,7 @@ Names the source itself grouped conversations under — a Claude project, a repo
 ## Commands
 
 ```bash
-vulcanus init            # create a vault (this is the default command)
+vulcanus init            # create a vault, or add memory to an existing Obsidian vault (default command)
 ```
 
 ```bash
