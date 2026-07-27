@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3
+
+Continuing in an existing Obsidian vault no longer asks for a vault name or the
+rest of the identity questions — the vault already has an identity.
+
+- When `init` continues inside an existing Obsidian vault, the vault name is
+  taken from the folder, the operator name from the vault's Git identity (then
+  the OS user), and system-note naming defaults to generic so the folder name
+  is not stamped into every note. None of these are asked.
+- Choosing to create a separate new vault still asks for everything as before.
+- If the chosen vault already has a `vulcanus.json`, `init` stops and points to
+  `add project` / `update` instead of overwriting the manifest.
+
 ## 0.3.2
 
 When a single Obsidian vault is detected, `init` now continues inside it

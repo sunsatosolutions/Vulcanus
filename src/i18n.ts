@@ -103,6 +103,9 @@ export interface Messages {
   existingVaultNew: string;
   existingVaultNewHint: string;
   continuingInVault: (path: string) => string;
+  derivedIdentity: (vault: string, admin: string) => string;
+  alreadyVulcanus: (path: string) => string;
+  alreadyVulcanusHint: string;
   gitQuestion: string;
   overwriteWarning: (path: string) => string;
   confirmQuestion: (files: number, path: string) => string;
@@ -241,6 +244,11 @@ const en: Messages = {
   existingVaultNew: "Create a separate new vault",
   existingVaultNewHint: "Scaffold a fresh vault in its own directory",
   continuingInVault: (path) => `Continuing in existing Obsidian vault: ${path}`,
+  derivedIdentity: (vault, admin) =>
+    `Vault "${vault}", operator "${admin}" — taken from the folder`,
+  alreadyVulcanus: (path) => `${path} is already a Vulcanus vault.`,
+  alreadyVulcanusHint:
+    "Use `vulcanus add project` to add projects, or `vulcanus update` to upgrade.",
   gitQuestion: "Initialize a Git repository?",
   overwriteWarning: (path) => `${path} already exists and is not empty.`,
   confirmQuestion: (files, path) => `Create ${files} files in ${path}?`,
@@ -392,6 +400,10 @@ const tr: Messages = {
   existingVaultNew: "Ayrı yeni bir vault oluştur",
   existingVaultNewHint: "Kendi dizininde sıfır bir vault kurar",
   continuingInVault: (path) => `Mevcut Obsidian vault içinde devam ediliyor: ${path}`,
+  derivedIdentity: (vault, admin) => `Vault "${vault}", operatör "${admin}" — klasörden alındı`,
+  alreadyVulcanus: (path) => `${path} zaten bir Vulcanus vault'u.`,
+  alreadyVulcanusHint:
+    "Proje eklemek için `vulcanus add project`, yükseltmek için `vulcanus update` kullan.",
   gitQuestion: "Git deposu başlatılsın mı?",
   overwriteWarning: (path) => `${path} zaten var ve boş değil.`,
   confirmQuestion: (files, path) => `${path} içine ${files} dosya oluşturulsun mu?`,

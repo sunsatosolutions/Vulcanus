@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { relative, resolve } from "node:path";
+import { basename, relative, resolve } from "node:path";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { messages, type Locale } from "../i18n.js";
 import {
@@ -19,6 +19,7 @@ import { runDoctor } from "../doctor/index.js";
 import { writeManifest } from "../manifest/io.js";
 import {
   DEFAULT_STRUCTURE,
+  MANIFEST_FILENAME,
   MANIFEST_VERSION,
   type ImportRecord,
   type NamingStyle,
@@ -83,6 +84,22 @@ async function detectObsidianVaults(cwd: string): Promise<string[]> {
   }
 
   return found;
+}
+
+/**
+ * Name the operator without asking, for when we continue inside an existing
+ * vault: the vault's own Git identity first, then the OS user, then the vault
+ * name. Seed content the operator can edit later, never a blocking question.
+ */
+async function defaultAdminName(vaultRoot: string, fallback: string): Promise<string> {
+  try {
+    const { stdout } = await run("git", ["config", "user.name"], { cwd: vaultRoot });
+    const name = stdout.trim();
+    if (name) return name;
+  } catch {
+    // No Git identity here — fall through to the OS user.
+  }
+  return (process.env.USER ?? "").trim() || fallback;
 }
 
 interface ImportOutcome {
@@ -223,48 +240,114 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   const projectNames = [...new Set(splitList(finalList))];
   if (projectNames.length === 0) p.log.warn(t.noProjects);
 
-  // --- Step 2: vault identity ---------------------------------------------
-  p.log.step(t.vaultSection);
+  // --- Step 2: destination + vault identity -------------------------------
+  // Decide up front whether we are continuing inside an Obsidian vault the
+  // operator already keeps. When we are, the vault already has an identity —
+  // there is nothing to name — so the identity questions are skipped and the
+  // values are taken from the folder instead. A single detected vault is used
+  // without asking; only a choice between several is put to the operator. An
+  // explicit `--target` skips detection and scaffolds wherever it points.
+  const existingVaults = options.target ? [] : await detectObsidianVaults(process.cwd());
 
-  const vaultName = (
-    await askText({
-      message: t.vaultNameQuestion,
-      placeholder: t.vaultNameHint,
-      required: true,
-    })
-  ).trim();
+  const chooseExistingVault = async (): Promise<string | null> => {
+    if (existingVaults.length === 0) return null;
+    if (existingVaults.length === 1) return existingVaults[0]!;
+    const NEW_VAULT = "::new";
+    const choice = await askSelect<string>({
+      message: t.existingVaultQuestion,
+      options: [
+        ...existingVaults.map((path) => ({
+          value: path,
+          label: t.existingVaultLabel(relative(process.cwd(), path) || "."),
+          hint: t.existingVaultHint,
+        })),
+        { value: NEW_VAULT, label: t.existingVaultNew, hint: t.existingVaultNewHint },
+      ],
+    });
+    return choice === NEW_VAULT ? null : choice;
+  };
 
-  const fullName = (await askText({ message: t.vaultFullNameQuestion })).trim();
-  const tagline = (await askText({ message: t.vaultTaglineQuestion })).trim();
+  const continueRoot = await chooseExistingVault();
 
-  const naming = await askSelect<NamingStyle>({
-    message: t.namingQuestion,
-    options: [
-      { value: "branded", label: t.namingBranded(vaultName) },
-      { value: "generic", label: t.namingGeneric },
-    ],
-    initialValue: "branded",
-  });
+  let vaultName: string;
+  let fullName = "";
+  let tagline = "";
+  let naming: NamingStyle;
+  let profile: VaultProfile;
+  let adminName: string;
+  let adminRole = "";
+  let adminAliases: string[] = [];
+  let vaultRoot: string;
 
-  const profile = await askSelect<VaultProfile>({
-    message: t.profileQuestion,
-    options: [
-      { value: "core", label: t.profileCore, hint: t.profileCoreHint },
-      { value: "full", label: t.profileFull, hint: t.profileFullHint },
-    ],
-    initialValue: "core",
-  });
+  if (continueRoot) {
+    vaultRoot = continueRoot;
+    p.log.info(t.continuingInVault(vaultRoot));
 
-  // --- Step 3: operator ----------------------------------------------------
-  p.log.step(t.adminSection);
+    // Already a Vulcanus vault? Overwriting its manifest would drop the projects
+    // it already tracks. Point the operator at the commands meant for an
+    // existing vault rather than quietly clobbering it.
+    if (existsSync(resolve(vaultRoot, MANIFEST_FILENAME))) {
+      p.log.warn(t.alreadyVulcanus(vaultRoot));
+      p.outro(t.alreadyVulcanusHint);
+      return 1;
+    }
 
-  const adminName = (await askText({ message: t.adminNameQuestion, required: true })).trim();
-  const adminRole = (
-    await askText({ message: t.adminRoleQuestion, placeholder: t.adminRoleHint })
-  ).trim();
-  const adminAliases = splitList(
-    await askText({ message: t.adminAliasesQuestion, placeholder: t.adminAliasesHint }),
-  );
+    // A plain Obsidian vault: take the identity from the folder and fall back to
+    // sensible defaults for everything the wizard would otherwise ask. Generic
+    // naming keeps the folder's own name out of every generated note.
+    vaultName = basename(vaultRoot);
+    naming = "generic";
+    profile = "core";
+    adminName = await defaultAdminName(vaultRoot, vaultName);
+    p.log.info(t.derivedIdentity(vaultName, adminName));
+  } else {
+    // --- New vault: ask for its identity and operator ---------------------
+    p.log.step(t.vaultSection);
+
+    vaultName = (
+      await askText({ message: t.vaultNameQuestion, placeholder: t.vaultNameHint, required: true })
+    ).trim();
+    fullName = (await askText({ message: t.vaultFullNameQuestion })).trim();
+    tagline = (await askText({ message: t.vaultTaglineQuestion })).trim();
+
+    naming = await askSelect<NamingStyle>({
+      message: t.namingQuestion,
+      options: [
+        { value: "branded", label: t.namingBranded(vaultName) },
+        { value: "generic", label: t.namingGeneric },
+      ],
+      initialValue: "branded",
+    });
+
+    profile = await askSelect<VaultProfile>({
+      message: t.profileQuestion,
+      options: [
+        { value: "core", label: t.profileCore, hint: t.profileCoreHint },
+        { value: "full", label: t.profileFull, hint: t.profileFullHint },
+      ],
+      initialValue: "core",
+    });
+
+    p.log.step(t.adminSection);
+    adminName = (await askText({ message: t.adminNameQuestion, required: true })).trim();
+    adminRole = (
+      await askText({ message: t.adminRoleQuestion, placeholder: t.adminRoleHint })
+    ).trim();
+    adminAliases = splitList(
+      await askText({ message: t.adminAliasesQuestion, placeholder: t.adminAliasesHint }),
+    );
+
+    // Default to the vault's own name so Obsidian shows the vault under that name.
+    const defaultTarget = options.target ?? `./${safeFileName(vaultName) || "vault"}`;
+    const targetInput = await askText({
+      message: t.targetQuestion,
+      placeholder: t.targetHint,
+      defaultValue: defaultTarget,
+      initialValue: defaultTarget,
+    });
+    vaultRoot = resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
+    if (!(await isEmptyDir(vaultRoot))) p.log.warn(t.overwriteWarning(vaultRoot));
+  }
 
   // --- Step 4: project details --------------------------------------------
   const requested: DetailMode =
@@ -288,59 +371,6 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
     locale,
     mode,
   );
-
-  // --- Step 5: destination -------------------------------------------------
-  // Default to the vault's own name so Obsidian shows the vault under that name.
-  const defaultTarget = options.target ?? `./${safeFileName(vaultName) || "vault"}`;
-
-  const askNewTarget = async (): Promise<string> => {
-    const targetInput = await askText({
-      message: t.targetQuestion,
-      placeholder: t.targetHint,
-      defaultValue: defaultTarget,
-      initialValue: defaultTarget,
-    });
-    return resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
-  };
-
-  // If the operator already started working in an Obsidian vault, continue
-  // inside it rather than scaffolding a separate, competing vault. A single
-  // detected vault is used without asking; only an ambiguous choice between
-  // several is put to the operator. An explicit `--target` skips detection
-  // entirely and scaffolds wherever it points.
-  const NEW_VAULT = "::new";
-  const existingVaults = options.target ? [] : await detectObsidianVaults(process.cwd());
-
-  let vaultRoot: string;
-  if (existingVaults.length === 1) {
-    vaultRoot = existingVaults[0]!;
-    p.log.info(t.continuingInVault(vaultRoot));
-  } else if (existingVaults.length > 1) {
-    const choice = await askSelect<string>({
-      message: t.existingVaultQuestion,
-      options: [
-        ...existingVaults.map((path) => ({
-          value: path,
-          label: t.existingVaultLabel(relative(process.cwd(), path) || "."),
-          hint: t.existingVaultHint,
-        })),
-        { value: NEW_VAULT, label: t.existingVaultNew, hint: t.existingVaultNewHint },
-      ],
-    });
-    if (choice === NEW_VAULT) {
-      vaultRoot = await askNewTarget();
-    } else {
-      vaultRoot = choice;
-      p.log.info(t.continuingInVault(vaultRoot));
-    }
-  } else {
-    vaultRoot = await askNewTarget();
-  }
-
-  // A chosen Obsidian vault is expected to be non-empty; only warn when the
-  // operator is scaffolding into a directory that already holds other files.
-  if (!existingVaults.includes(vaultRoot) && !(await isEmptyDir(vaultRoot)))
-    p.log.warn(t.overwriteWarning(vaultRoot));
 
   const wantsGit = await askConfirm({ message: t.gitQuestion, initialValue: true });
 
