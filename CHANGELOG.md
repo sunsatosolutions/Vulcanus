@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+Documentation only. The README intro and the `init` command line now state that
+`init` can add the memory structure to an Obsidian vault you already keep,
+matching the 0.3.0 behavior. No code changes.
+
 ## 0.3.0
 
 ### Continue in an existing Obsidian vault
