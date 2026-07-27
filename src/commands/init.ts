@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { messages, type Locale } from "../i18n.js";
 import {
@@ -53,6 +53,36 @@ async function isEmptyDir(path: string): Promise<boolean> {
   if (!existsSync(path)) return true;
   const entries = await readdir(path);
   return entries.filter((entry) => entry !== ".git" && entry !== ".DS_Store").length === 0;
+}
+
+/** A directory is an Obsidian vault when it holds a `.obsidian` config folder. */
+function isObsidianVault(path: string): boolean {
+  return existsSync(resolve(path, ".obsidian"));
+}
+
+/**
+ * Find Obsidian vaults the operator has already started: the current directory
+ * and any immediate subdirectory carrying a `.obsidian` folder. Lets init offer
+ * to continue inside an existing vault instead of scaffolding a separate one.
+ */
+async function detectObsidianVaults(cwd: string): Promise<string[]> {
+  const found: string[] = [];
+  if (isObsidianVault(cwd)) found.push(cwd);
+
+  let entries: string[] = [];
+  try {
+    entries = await readdir(cwd);
+  } catch {
+    return found;
+  }
+
+  for (const entry of entries) {
+    if (entry.startsWith(".")) continue;
+    const child = resolve(cwd, entry);
+    if (child !== cwd && isObsidianVault(child)) found.push(child);
+  }
+
+  return found;
 }
 
 interface ImportOutcome {
@@ -262,15 +292,50 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   // --- Step 5: destination -------------------------------------------------
   // Default to the vault's own name so Obsidian shows the vault under that name.
   const defaultTarget = options.target ?? `./${safeFileName(vaultName) || "vault"}`;
-  const targetInput = await askText({
-    message: t.targetQuestion,
-    placeholder: t.targetHint,
-    defaultValue: defaultTarget,
-    initialValue: defaultTarget,
-  });
-  const vaultRoot = resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
 
-  if (!(await isEmptyDir(vaultRoot))) p.log.warn(t.overwriteWarning(vaultRoot));
+  const askNewTarget = async (): Promise<string> => {
+    const targetInput = await askText({
+      message: t.targetQuestion,
+      placeholder: t.targetHint,
+      defaultValue: defaultTarget,
+      initialValue: defaultTarget,
+    });
+    return resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
+  };
+
+  // If the operator already started working in an Obsidian vault, offer to
+  // continue inside it rather than scaffolding a separate, competing vault.
+  // An explicit `--target` skips the prompt and is respected as-is.
+  const NEW_VAULT = "::new";
+  const existingVaults = options.target ? [] : await detectObsidianVaults(process.cwd());
+
+  let vaultRoot: string;
+  if (existingVaults.length > 0) {
+    const choice = await askSelect<string>({
+      message: t.existingVaultQuestion,
+      options: [
+        ...existingVaults.map((path) => ({
+          value: path,
+          label: t.existingVaultLabel(relative(process.cwd(), path) || "."),
+          hint: t.existingVaultHint,
+        })),
+        { value: NEW_VAULT, label: t.existingVaultNew, hint: t.existingVaultNewHint },
+      ],
+    });
+    if (choice === NEW_VAULT) {
+      vaultRoot = await askNewTarget();
+    } else {
+      vaultRoot = choice;
+      p.log.info(t.continuingInVault(vaultRoot));
+    }
+  } else {
+    vaultRoot = await askNewTarget();
+  }
+
+  // A chosen Obsidian vault is expected to be non-empty; only warn when the
+  // operator is scaffolding into a directory that already holds other files.
+  if (!existingVaults.includes(vaultRoot) && !(await isEmptyDir(vaultRoot)))
+    p.log.warn(t.overwriteWarning(vaultRoot));
 
   const wantsGit = await askConfirm({ message: t.gitQuestion, initialValue: true });
 

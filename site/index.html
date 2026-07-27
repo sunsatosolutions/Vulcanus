@@ -50,7 +50,7 @@
             "description": "A command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that humans and AI agents can both navigate.",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Linux, Windows",
-            "softwareVersion": "0.2.0",
+            "softwareVersion": "0.3.0",
             "license": "https://opensource.org/licenses/MIT",
             "downloadUrl": "https://www.npmjs.com/package/@sunsato/vulcanus",
             "codeRepository": "https://github.com/sunsatosolutions/Vulcanus",
@@ -1015,6 +1015,11 @@ requirement, not an optional extra.
               <strong>Both directions stay in sync.</strong> Write in Obsidian, let an agent write
               through the protocol, or edit by hand — it is one Git repository either way, and
               <code>vulcanus doctor</code> keeps all three honest.
+            </div>
+            <div class="note">
+              <strong>Already have a vault?</strong> <code>vulcanus init</code> detects an existing
+              Obsidian vault and offers to add the memory structure to it, instead of scaffolding a
+              separate one beside it. Your own notes are never overwritten.
             </div>
           </div>
 

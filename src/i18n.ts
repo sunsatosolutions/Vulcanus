@@ -97,6 +97,12 @@ export interface Messages {
 
   targetQuestion: string;
   targetHint: string;
+  existingVaultQuestion: string;
+  existingVaultLabel: (path: string) => string;
+  existingVaultHint: string;
+  existingVaultNew: string;
+  existingVaultNewHint: string;
+  continuingInVault: (path: string) => string;
   gitQuestion: string;
   overwriteWarning: (path: string) => string;
   confirmQuestion: (files: number, path: string) => string;
@@ -229,6 +235,12 @@ const en: Messages = {
 
   targetQuestion: "Where should the vault be created?",
   targetHint: "Relative or absolute path",
+  existingVaultQuestion: "An Obsidian vault is already here. Where should Vulcanus live?",
+  existingVaultLabel: (path) => `Continue in existing vault: ${path}`,
+  existingVaultHint: "Adds the memory structure to your current Obsidian vault",
+  existingVaultNew: "Create a separate new vault",
+  existingVaultNewHint: "Scaffold a fresh vault in its own directory",
+  continuingInVault: (path) => `Continuing in existing Obsidian vault: ${path}`,
   gitQuestion: "Initialize a Git repository?",
   overwriteWarning: (path) => `${path} already exists and is not empty.`,
   confirmQuestion: (files, path) => `Create ${files} files in ${path}?`,
@@ -374,6 +386,12 @@ const tr: Messages = {
 
   targetQuestion: "Vault nereye kurulsun?",
   targetHint: "Göreli ya da mutlak yol",
+  existingVaultQuestion: "Burada zaten bir Obsidian vault var. Vulcanus nereye kurulsun?",
+  existingVaultLabel: (path) => `Mevcut vault içinde devam et: ${path}`,
+  existingVaultHint: "Bellek yapısını şu anki Obsidian vault'una ekler",
+  existingVaultNew: "Ayrı yeni bir vault oluştur",
+  existingVaultNewHint: "Kendi dizininde sıfır bir vault kurar",
+  continuingInVault: (path) => `Mevcut Obsidian vault içinde devam ediliyor: ${path}`,
   gitQuestion: "Git deposu başlatılsın mı?",
   overwriteWarning: (path) => `${path} zaten var ve boş değil.`,
   confirmQuestion: (files, path) => `${path} içine ${files} dosya oluşturulsun mu?`,

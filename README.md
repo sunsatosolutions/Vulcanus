@@ -151,6 +151,8 @@ That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault
 
 The vault is a valid Obsidian vault the moment it exists — no plugin, no import. Open the folder and the graph is there, with shortest-path wikilinks and rename-safe links already configured.
 
+Already keep an Obsidian vault? `init` detects one — a directory with a `.obsidian` folder, in the current directory or an immediate subdirectory — and offers to add the memory structure to it instead of creating a separate vault beside it. Your own notes are never overwritten; generated files are written only where nothing exists.
+
 The graph view doubles as a health check: projects appear as clusters, hubs at their centers, and an unlinked note stands out immediately. Edits made in Obsidian are plain Markdown, so the CLI and your agents pick them up straight away, and `vulcanus doctor` keeps hand edits, agent edits, and generated structure consistent.
 
 ## Staying current

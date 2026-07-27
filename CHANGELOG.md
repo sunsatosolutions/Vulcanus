@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0
+
+### Continue in an existing Obsidian vault
+
+If you already keep an Obsidian vault and have started writing in it, `init` no
+longer forces a separate, competing vault beside it.
+
+- Before asking where to create the vault, `init` looks for an Obsidian vault —
+  a directory holding a `.obsidian` folder — in the current directory and its
+  immediate subdirectories.
+- When one is found, it offers to add the memory structure to that vault or to
+  scaffold a fresh one in its own directory, instead of assuming a new vault.
+- Continuing in an existing vault never overwrites your own notes: generated
+  files are written only where nothing exists, exactly as elsewhere.
+- Passing an explicit target directory skips the prompt and is respected as-is.
+
 ## 0.2.0
 
 Two ways to close the gap between a vault and the agents meant to use it: let an
