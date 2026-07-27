@@ -303,14 +303,19 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
     return resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
   };
 
-  // If the operator already started working in an Obsidian vault, offer to
-  // continue inside it rather than scaffolding a separate, competing vault.
-  // An explicit `--target` skips the prompt and is respected as-is.
+  // If the operator already started working in an Obsidian vault, continue
+  // inside it rather than scaffolding a separate, competing vault. A single
+  // detected vault is used without asking; only an ambiguous choice between
+  // several is put to the operator. An explicit `--target` skips detection
+  // entirely and scaffolds wherever it points.
   const NEW_VAULT = "::new";
   const existingVaults = options.target ? [] : await detectObsidianVaults(process.cwd());
 
   let vaultRoot: string;
-  if (existingVaults.length > 0) {
+  if (existingVaults.length === 1) {
+    vaultRoot = existingVaults[0]!;
+    p.log.info(t.continuingInVault(vaultRoot));
+  } else if (existingVaults.length > 1) {
     const choice = await askSelect<string>({
       message: t.existingVaultQuestion,
       options: [

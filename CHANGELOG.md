@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+When a single Obsidian vault is detected, `init` now continues inside it
+without asking. The choice prompt only appears when more than one vault is
+found and the destination is genuinely ambiguous; an explicit `--target` still
+scaffolds a separate vault wherever it points.
+
 ## 0.3.1
 
 Documentation only. The README intro and the `init` command line now state that
