@@ -85,6 +85,10 @@ vulcanus import          # propose more projects from an AI export
 ```
 
 ```bash
+vulcanus serve           # serve the vault to MCP clients: recall, search, append_decision, …
+```
+
+```bash
 vulcanus agents          # print the block that makes your AI tools use the vault
 ```
 
@@ -167,6 +171,27 @@ vulcanus skills --install
 That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault's real path baked in so an agent in another repository knows where to run. It is the only thing Vulcanus writes outside the vault, it never happens during `init`, and it leaves existing files alone unless you pass `--force`. `vulcanus skills` on its own explains what would be installed; `--raw` prints the files.
 
 `sync` pushes to a remote and `update` rewrites files, which is a lot of consequence for one sentence of chat. Both skills instruct the agent to show the `--dry-run` output and get your confirmation in that conversation first, and every skill is told to report the command's actual output and exit code rather than reporting success. Skills are managed files, so `doctor --repair` and `update` bring template improvements to existing vaults.
+
+## MCP server
+
+`vulcanus serve` turns the vault into structured memory for any MCP client — Claude Code, Cursor, or your own agent runtime — instead of ad-hoc file reads:
+
+| Tool | Does |
+| --- | --- |
+| `recall` | returns a project's Capsule plus the read-next list — the protocol's entry point |
+| `search` | layer-aware text search; Capsule and Recall Map hits rank first |
+| `list_projects` | the routing table: names, statuses, trigger words, capsule paths |
+| `append_decision` | records a confirmed decision in the Decision/Details format |
+| `vault_status` | the `vulcanus status` summary, as JSON |
+| `doctor` | full structural validation with every finding |
+
+Register it the way your client expects, e.g. for Claude Code:
+
+```bash
+claude mcp add vulcanus -- vulcanus serve
+```
+
+Run it from inside the vault (or any subdirectory). The manifest is re-read on every call, so edits made while the server runs are always visible.
 
 ## Obsidian
 

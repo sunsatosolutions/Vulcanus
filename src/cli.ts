@@ -10,6 +10,7 @@ import {
   removeProjectCommand,
   renameProjectCommand,
 } from "./commands/project.js";
+import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
 import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
@@ -190,6 +191,13 @@ async function main(): Promise<void> {
     .option("--force", "with --install, replace skills that already exist")
     .action(async (options: { raw?: boolean; install?: boolean; force?: boolean }) => {
       process.exitCode = await skillsCommand(options);
+    });
+
+  program
+    .command("serve")
+    .description("Serve the vault to MCP clients over stdio: recall, search, append_decision, …")
+    .action(async () => {
+      process.exitCode = await serveCommand();
     });
 
   program

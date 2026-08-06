@@ -8,9 +8,9 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 
 ## 1. Altyapı & Kalite (P0)
 
-- [ ] **CI pipeline kur** — `.github/workflows/ci.yml`: typecheck + test + `format:check`,
+- [x] **CI pipeline kur** — `.github/workflows/ci.yml`: typecheck + test + `format:check`,
   Node 18 / 20 / 22 matrisi, Ubuntu + macOS + Windows. Şu an hiç CI yok. *(S)*
-- [ ] **ESLint ekle** — `typescript-eslint` + `eslint-config-prettier`; `no-floating-promises`
+- [x] **ESLint ekle** — `typescript-eslint` + `eslint-config-prettier`; `no-floating-promises`
   gibi async hatalarını yakalayan kurallar CLI için kritik. *(S)*
 - [ ] **Test coverage raporu** — `node --test`'in `--experimental-test-coverage`'ı veya `c8`;
   CI'da eşik koy (%80 hedef). Şu an sadece 3 test dosyası var (`vault`, `ai`, `importers`);
@@ -25,21 +25,21 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 
 ## 2. Test Genişletme (P0–P1)
 
-- [ ] **`doctor` testleri** — bozuk manifest, kırık wikilink, eksik nota karşı `--repair`'in
+- [x] **`doctor` testleri** — bozuk manifest, kırık wikilink, eksik nota karşı `--repair`'in
   gerçekten onardığını doğrulayan senaryolar. *(M)*
-- [ ] **E2E init testi** — geçici dizinde `init -y` koş, üretilen vault'u `doctor` ile
+- [x] **E2E init testi** — geçici dizinde `init -y` koş, üretilen vault'u `doctor` ile
   doğrula; Obsidian vault'u algılama senaryoları (tek vault / çoklu vault / `--target`). *(M)*
 - [ ] **Importer edge-case'leri** — boş export, bozuk JSON, dev dosya (streaming),
   çok parçalı ChatGPT export'u, exotic unicode başlıklar. *(M)*
-- [ ] **i18n bütünlük testi** — `tr` ve `en` anahtar kümelerinin birebir eşleştiğini
+- [x] **i18n bütünlük testi** — `tr` ve `en` anahtar kümelerinin birebir eşleştiğini
   otomatik doğrula (446 satırlık `i18n.ts` elle senkron tutuluyor). *(S)*
-- [ ] **Manifest migrate testleri** — her eski şema sürümünden güncele migration zinciri. *(M)*
+- [x] **Manifest migrate testleri** — her eski şema sürümünden güncele migration zinciri. *(M)*
 
 ## 3. CLI UX (P1)
 
-- [ ] **`--dry-run`** — `init`, `add project`, `update`, `import` için: ne yazılacağını
+- [x] **`--dry-run`** — `init`, `add project`, `update`, `import` için: ne yazılacağını
   diff/ağaç olarak göster, dokunma. *(M)*
-- [ ] **Tam non-interactive mod** — tüm sorular flag'le cevaplanabilsin
+- [x] **Tam non-interactive mod** — tüm sorular flag'le cevaplanabilsin
   (`--name`, `--operator`, `--projects a,b,c` …); CI/script kullanımı için şart. *(M)*
 - [ ] **`--json` çıktısını yaygınlaştır** — sadece `doctor`'da var; `update`, `sync`,
   `import` de makine-okunur çıktı versin. *(S)*
@@ -47,29 +47,29 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 - [ ] **Shell completion** — `vulcanus completion bash|zsh|fish|pwsh`. *(S)*
 - [ ] **Hata mesajlarını zenginleştir** — her hataya "ne oldu / neden / ne yapmalı"
   formatı; çıkış kodlarını dokümante et. *(M)*
-- [ ] **`update-check` önbelleği** — her koşuda registry'e gitmesin, günde bir kontrol
+- [x] **`update-check` önbelleği** — her koşuda registry'e gitmesin, günde bir kontrol
   + offline'da sessiz geç. *(S)*
 
 ## 4. Yeni Komutlar (P1)
 
-- [ ] **`vulcanus status`** — vault özeti: proje sayısı, not sayısı, son güncellenme,
+- [x] **`vulcanus status`** — vault özeti: proje sayısı, not sayısı, son güncellenme,
   capsule tazeliği, doctor skoru. Tek bakışta sağlık ekranı. *(M)*
-- [ ] **`vulcanus remove project <name>`** — projeyi grafikten sök, linkleri temizle,
+- [x] **`vulcanus remove project <name>`** — projeyi grafikten sök, linkleri temizle,
   notları `_archive/`'a taşı. *(M)*
-- [ ] **`vulcanus rename project <old> <new>`** — dosya adları + tüm wikilink'ler +
+- [x] **`vulcanus rename project <old> <new>`** — dosya adları + tüm wikilink'ler +
   manifest tek hamlede. *(M)*
-- [ ] **`vulcanus archive project <name>`** — silmeden pasifleştir; Recall Map'ten düşür. *(S)*
-- [ ] **`vulcanus search <query>`** — capsule/hub öncelikli, token-ekonomik arama;
+- [x] **`vulcanus archive project <name>`** — silmeden pasifleştir; Recall Map'ten düşür. *(S)*
+- [x] **`vulcanus search <query>`** — capsule/hub öncelikli, token-ekonomik arama;
   `--json` ile ajanların kullanabileceği çıktı. *(M)*
 - [ ] **`vulcanus stats`** — token bütçesi raporu: her capsule/hub kaç token, bir ajanın
   "cold start" maliyeti ne. Projenin ana vaadi token ekonomisi — ölçülebilir yap. *(M)*
 
 ## 5. Ajan Entegrasyonu — Ürünün Kalbi (P1–P2)
 
-- [ ] **MCP server: `vulcanus serve`** — vault'u MCP üzerinden sun: `recall(project)`,
+- [x] **MCP server: `vulcanus serve`** — vault'u MCP üzerinden sun: `recall(project)`,
   `search(query)`, `append_decision(...)` tool'ları. Claude Code / Cursor / diğer
   MCP istemcileri vault'a dosya okumadan yapılandırılmış erişsin. En büyük fark yaratacak iş. *(L)*
-- [ ] **Capsule tazelik takibi** — git log'a bakıp "Decisions değişti ama Capsule
+- [x] **Capsule tazelik takibi** — git log'a bakıp "Decisions değişti ama Capsule
   X gündür güncellenmedi" uyarısı (`doctor` + `status` içine). *(M)*
 - [ ] **`vulcanus sync --watch`** — dosya değişikliklerini izleyip Recall Map / Index'i
   canlı güncelle. *(M)*
