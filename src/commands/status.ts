@@ -1,10 +1,11 @@
 import * as p from "@clack/prompts";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { runDoctor } from "../doctor/index.js";
-import { buildPlan } from "../manifest/derive.js";
+import { buildPlan, type VaultPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { compareVersions } from "../util/semver.js";
 import { CLI_VERSION } from "../version.js";
@@ -22,6 +23,13 @@ export interface GitStatus {
   lastCommit: string | null;
   /** Files changed but not yet committed. */
   dirty: number;
+}
+
+export interface StaleCapsule {
+  project: string;
+  capsule: string;
+  /** Source notes changed more recently than the capsule. */
+  changedSince: string[];
 }
 
 export interface StatusSummary {
@@ -46,6 +54,8 @@ export interface StatusSummary {
   doctor: { ok: boolean; errors: number; warnings: number };
   imports: number;
   git: GitStatus | null;
+  /** Capsules older than the Decisions/Rules/Context they summarize. */
+  staleCapsules: StaleCapsule[];
 }
 
 async function gitStatus(vaultRoot: string): Promise<GitStatus | null> {
@@ -64,6 +74,71 @@ async function gitStatus(vaultRoot: string): Promise<GitStatus | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * When a note last changed: the last git commit touching it, or the file
+ * mtime in a vault that is not a repository. Null when unknowable.
+ */
+async function lastChanged(
+  vaultRoot: string,
+  path: string,
+  useGit: boolean,
+): Promise<number | null> {
+  const absolute = resolve(vaultRoot, path);
+  if (!existsSync(absolute)) return null;
+  if (useGit) {
+    try {
+      const { stdout } = await run("git", ["log", "-1", "--format=%ct", "--", path], {
+        cwd: vaultRoot,
+      });
+      const epoch = Number(stdout.trim());
+      // An uncommitted note has no history yet; fall through to its mtime.
+      if (Number.isFinite(epoch) && stdout.trim()) return epoch * 1000;
+    } catch {
+      // git missing or not a repo after all — mtime still answers the question.
+    }
+  }
+  try {
+    return (await stat(absolute)).mtimeMs;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A capsule is the compressed summary agents read first, so it must never lag
+ * the notes it summarizes. Compare each capsule against its cluster's
+ * Decisions, Rules, and Context.
+ */
+export async function findStaleCapsules(
+  vaultRoot: string,
+  plan: VaultPlan,
+): Promise<StaleCapsule[]> {
+  const useGit = existsSync(resolve(vaultRoot, ".git"));
+  const stale: StaleCapsule[] = [];
+
+  for (const project of plan.allProjects) {
+    const capsuleTime = await lastChanged(vaultRoot, project.capsule.path, useGit);
+    if (capsuleTime === null) continue;
+
+    const changedSince: string[] = [];
+    for (const note of [project.decisions, project.rules, project.context]) {
+      const noteTime = await lastChanged(vaultRoot, note.path, useGit);
+      // A one-second grace keeps freshly generated clusters, written in one
+      // pass, from reading as stale.
+      if (noteTime !== null && noteTime > capsuleTime + 1000) changedSince.push(note.name);
+    }
+    if (changedSince.length) {
+      stale.push({
+        project: project.project.name,
+        capsule: project.capsule.name,
+        changedSince,
+      });
+    }
+  }
+
+  return stale;
 }
 
 export async function collectStatus(vaultRoot: string): Promise<StatusSummary> {
@@ -101,6 +176,7 @@ export async function collectStatus(vaultRoot: string): Promise<StatusSummary> {
     },
     imports: manifest.imports.length,
     git: await gitStatus(vaultRoot),
+    staleCapsules: await findStaleCapsules(vaultRoot, plan),
   };
 }
 
@@ -143,6 +219,18 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
     );
   }
   p.note(lines.join("\n"), "Vault health");
+
+  if (summary.staleCapsules.length) {
+    p.log.warn(
+      [
+        "Stale capsules — the summary an agent reads first lags the notes beneath it:",
+        ...summary.staleCapsules.map(
+          (entry) => `  ${entry.capsule} — ${entry.changedSince.join(", ")} changed since`,
+        ),
+        "Refresh them (or have your agent do it) so recall stays truthful.",
+      ].join("\n"),
+    );
+  }
 
   if (summary.projects.names.length) {
     p.log.message(summary.projects.names.map((name) => `· ${name}`).join("\n"));

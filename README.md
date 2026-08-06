@@ -75,6 +75,12 @@ vulcanus add project     # add projects and wire them into the graph
 ```
 
 ```bash
+vulcanus project remove "Name"        # unlink a project; its notes move to _archive/
+vulcanus project rename "Old" "New"   # folder, notes, and every link, in one move
+vulcanus project archive "Name"       # mark it archived (--restore undoes it)
+```
+
+```bash
 vulcanus import          # propose more projects from an AI export
 ```
 

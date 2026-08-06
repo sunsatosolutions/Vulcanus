@@ -36,6 +36,47 @@ export function ensureBulletUnderHeading(
   return { content: lines.join("\n"), changed: true };
 }
 
+/**
+ * Remove a whole section: the heading line plus everything up to the next
+ * heading of the same or a higher level. `heading` carries its own hashes,
+ * e.g. `### Meridian`.
+ */
+export function removeSection(
+  content: string,
+  heading: string,
+): { content: string; changed: boolean } {
+  const lines = content.split("\n");
+  const start = lines.findIndex((line) => line.trim() === heading.trim());
+  if (start === -1) return { content, changed: false };
+
+  const level = heading.match(/^#+/)?.[0].length ?? 3;
+  let end = start + 1;
+  while (end < lines.length) {
+    const match = lines[end].match(/^(#+)\s/);
+    if (match && match[1].length <= level) break;
+    end += 1;
+  }
+
+  lines.splice(start, end - start);
+  // Collapse the doubled blank line the removal can leave behind.
+  while (start > 0 && lines[start - 1] === "" && lines[start] === "") lines.splice(start, 1);
+
+  return { content: lines.join("\n"), changed: true };
+}
+
+/** Drop every bullet line that wikilinks to one of `names`. */
+export function removeBulletsLinking(
+  content: string,
+  names: string[],
+): { content: string; changed: boolean } {
+  const targets = names.map((name) => `[[${name}]]`);
+  const lines = content.split("\n");
+  const kept = lines.filter(
+    (line) => !(line.trimStart().startsWith("- ") && targets.some((t) => line.includes(t))),
+  );
+  return { content: kept.join("\n"), changed: kept.length !== lines.length };
+}
+
 /** Insert a full section before `beforeHeading`, or append it at the end. */
 export function insertSectionBefore(
   content: string,

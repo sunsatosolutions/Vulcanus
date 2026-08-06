@@ -5,6 +5,11 @@ import { agentsCommand } from "./commands/agents.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
+import {
+  archiveProjectCommand,
+  removeProjectCommand,
+  renameProjectCommand,
+} from "./commands/project.js";
 import { skillsCommand } from "./commands/skills.js";
 import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
@@ -126,6 +131,33 @@ async function main(): Promise<void> {
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
     .action(async (names: string[], options: { ai?: string | boolean }) => {
       process.exitCode = await addProjectCommand({ names, ai: options.ai });
+    });
+
+  const projectCmd = program
+    .command("project")
+    .description("Manage existing projects: remove, rename, archive");
+  projectCmd
+    .command("remove")
+    .description("Remove a project from the graph; its notes move to _archive/")
+    .argument("<name>", "project name or id")
+    .action(async (name: string) => {
+      process.exitCode = await removeProjectCommand(name);
+    });
+  projectCmd
+    .command("rename")
+    .description("Rename a project everywhere: folder, notes, and links")
+    .argument("<old>", "current project name or id")
+    .argument("<new>", "new project name")
+    .action(async (oldName: string, newName: string) => {
+      process.exitCode = await renameProjectCommand(oldName, newName);
+    });
+  projectCmd
+    .command("archive")
+    .description("Mark a project archived without touching its notes")
+    .argument("<name>", "project name or id")
+    .option("--restore", "set the project active again")
+    .action(async (name: string, options: { restore?: boolean }) => {
+      process.exitCode = await archiveProjectCommand(name, options);
     });
 
   program
