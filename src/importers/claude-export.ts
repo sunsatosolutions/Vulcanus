@@ -7,7 +7,6 @@ import {
   normalizeRole,
   MAX_MESSAGES_PER_CONVERSATION,
   type ImportAdapter,
-  type NormalizedConversation,
   type NormalizedMessage,
 } from "./types.js";
 

@@ -9,8 +9,6 @@ import { skillsCommand } from "./commands/skills.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
 import type { ImportSourceId } from "./importers/index.js";
-import type { Locale } from "./i18n.js";
-import type { VaultProfile } from "./manifest/schema.js";
 import { updateNotice } from "./update-check.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -34,8 +32,7 @@ async function main(): Promise<void> {
         target: string | undefined,
         options: { lang?: string; yes?: boolean; ai?: string | boolean },
       ) => {
-        const locale =
-          options.lang === "tr" || options.lang === "en" ? (options.lang as Locale) : undefined;
+        const locale = options.lang === "tr" || options.lang === "en" ? options.lang : undefined;
         process.exitCode = await initCommand({
           target,
           locale,
@@ -106,9 +103,7 @@ async function main(): Promise<void> {
     .action(
       async (options: { dryRun?: boolean; force?: boolean; profile?: string; json?: boolean }) => {
         const profile =
-          options.profile === "core" || options.profile === "full"
-            ? (options.profile as VaultProfile)
-            : undefined;
+          options.profile === "core" || options.profile === "full" ? options.profile : undefined;
         if (options.profile && !profile) {
           process.stderr.write("--profile must be 'core' or 'full'.\n");
           process.exitCode = 2;

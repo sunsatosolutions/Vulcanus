@@ -70,7 +70,7 @@ async function detectObsidianVaults(cwd: string): Promise<string[]> {
   const found: string[] = [];
   if (isObsidianVault(cwd)) found.push(cwd);
 
-  let entries: string[] = [];
+  let entries: string[];
   try {
     entries = await readdir(cwd);
   } catch {
@@ -251,7 +251,7 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
 
   const chooseExistingVault = async (): Promise<string | null> => {
     if (existingVaults.length === 0) return null;
-    if (existingVaults.length === 1) return existingVaults[0]!;
+    if (existingVaults.length === 1) return existingVaults[0];
     const NEW_VAULT = "::new";
     const choice = await askSelect<string>({
       message: t.existingVaultQuestion,

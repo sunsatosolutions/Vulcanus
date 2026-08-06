@@ -11,7 +11,7 @@ export async function* readJsonl(file: string): AsyncGenerator<Record<string, un
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        const parsed = JSON.parse(trimmed);
+        const parsed: unknown = JSON.parse(trimmed);
         if (parsed && typeof parsed === "object") yield parsed as Record<string, unknown>;
       } catch {
         // Truncated or partially written sessions are common; skip the line.

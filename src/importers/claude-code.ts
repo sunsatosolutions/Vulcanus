@@ -92,7 +92,7 @@ export const claudeCodeAdapter: ImportAdapter = {
 
         const message = entry.message as { role?: string; content?: unknown } | undefined;
         if (!message) continue;
-        const role = normalizeRole(message.role ?? (entry.type as string));
+        const role = normalizeRole(message.role ?? entry.type);
         if (role === "other") continue;
         const text = cap(blockText(message.content));
         if (!text) continue;
