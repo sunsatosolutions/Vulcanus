@@ -63,6 +63,10 @@ vulcanus init            # create a vault, or add memory to an existing Obsidian
 ```
 
 ```bash
+vulcanus status          # one-screen vault health: projects, notes, doctor result, git state
+```
+
+```bash
 vulcanus doctor          # validate the vault against its manifest
 ```
 
@@ -90,7 +94,18 @@ vulcanus update          # bring the vault up to date with a newer CLI
 vulcanus sync "topic"    # validate, then commit and push
 ```
 
-`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` accepts `--json`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
+
+### Scripting `init`
+
+Every wizard question can be answered from a flag, so `init` also runs without a TTY — in CI, containers, or an agent's shell. A flag skips exactly its question; `--defaults` answers everything else with the default, and `--dry-run` prints the tree that would be created without writing:
+
+```bash
+vulcanus init ./vault --name ATLAS --operator Ada --projects "Meridian, Harbor" --defaults -y
+vulcanus init ./vault --name ATLAS --defaults --dry-run   # look before you leap
+```
+
+The full set: `--name`, `--full-name`, `--tagline`, `--naming branded|generic`, `--profile core|full`, `--operator`, `--role`, `--aliases`, `--projects`, `--no-import`, `--git` / `--no-git`, `--defaults`, `--dry-run`.
 
 ## Filling the project notes
 

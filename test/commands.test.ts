@@ -60,7 +60,6 @@ describe("init end to end", () => {
       "Ada", // operator name
       "", // role
       "", // aliases
-      target, // destination
       "skip", // per-project detail mode
       false, // git init
     ]);
@@ -75,11 +74,9 @@ describe("init end to end", () => {
     }
 
     // The wizard asked its questions in the documented order, none twice.
+    // No destination question: an explicit --target already answered it.
     const kinds = asked.map((question) => question.kind).join(",");
-    assert.equal(
-      kinds,
-      "select,text,text,text,text,select,select,text,text,text,text,select,confirm",
-    );
+    assert.equal(kinds, "select,text,text,text,text,select,select,text,text,text,select,confirm");
 
     const written = await readManifest(target);
     assert.equal(written.vault.name, "ATLAS");
@@ -139,6 +136,145 @@ describe("init end to end", () => {
       process.chdir(previousCwd);
       restoreRerun();
     }
+  });
+});
+
+describe("init without a TTY", () => {
+  it("builds a vault entirely from flags, asking nothing", async () => {
+    const target = await tempDir();
+    tempDirs.push(target);
+    await rm(target, { recursive: true, force: true });
+
+    // A driver with no scripted answers throws on any question.
+    const { driver } = scriptedPrompts([]);
+    const restore = setPromptDriver(driver);
+    try {
+      const { result: code } = await captureStdout(() =>
+        initCommand({
+          locale: "en",
+          yes: true,
+          target,
+          name: "ATLAS",
+          operator: "Ada",
+          projects: "Meridian, Harbor",
+          defaults: true,
+          git: false,
+        }),
+      );
+      assert.equal(code, 0);
+    } finally {
+      restore();
+    }
+
+    const written = await readManifest(target);
+    assert.equal(written.vault.name, "ATLAS");
+    assert.equal(written.admin.name, "Ada");
+    assert.deepEqual(
+      written.projects.map((entry) => entry.name),
+      ["Meridian", "Harbor"],
+    );
+    assert.ok(!existsSync(resolve(target, ".git")));
+
+    const { result } = await captureStdout(() => doctorCommand({ cwd: target, json: true }));
+    assert.equal(result, 0);
+  });
+
+  it("requires a name when --defaults cannot invent one", async () => {
+    const { driver } = scriptedPrompts([]);
+    const restore = setPromptDriver(driver);
+    try {
+      const { result: code } = await captureStdout(() =>
+        initCommand({ locale: "en", yes: true, defaults: true, target: "./nowhere-vault" }),
+      );
+      assert.equal(code, 2);
+    } finally {
+      restore();
+    }
+    assert.ok(!existsSync(resolve(process.cwd(), "nowhere-vault")));
+  });
+
+  it("writes nothing on --dry-run and prints the planned tree", async () => {
+    const target = await tempDir();
+    tempDirs.push(target);
+    await rm(target, { recursive: true, force: true });
+
+    const { driver } = scriptedPrompts([]);
+    const restore = setPromptDriver(driver);
+    try {
+      const { result: code } = await captureStdout(() =>
+        initCommand({
+          locale: "en",
+          target,
+          name: "ATLAS",
+          operator: "Ada",
+          projects: "Meridian",
+          defaults: true,
+          dryRun: true,
+        }),
+      );
+      assert.equal(code, 0);
+    } finally {
+      restore();
+    }
+
+    assert.ok(!existsSync(target), "dry run must not create the vault directory");
+  });
+});
+
+describe("status command", () => {
+  it("exits 2 when there is no vault", async () => {
+    const empty = await tempDir();
+    tempDirs.push(empty);
+    const { statusCommand } = await import("../src/commands/status.js");
+    assert.equal(await statusCommand({ cwd: empty, json: true }), 2);
+  });
+
+  it("summarizes a healthy vault as JSON", async () => {
+    const { statusCommand } = await import("../src/commands/status.js");
+    const input = manifest({
+      projects: [project("meridian", "Meridian"), project("kiln", "Kiln", { status: "paused" })],
+    });
+    const root = await scaffold(input);
+
+    const { result, output } = await captureStdout(() => statusCommand({ cwd: root, json: true }));
+    assert.equal(result, 0);
+
+    const summary = JSON.parse(output) as {
+      vault: string;
+      projects: { total: number; active: number; byStatus: Record<string, number> };
+      doctor: { ok: boolean; errors: number };
+      plannedNotes: number;
+      notesOnDisk: number;
+      git: unknown;
+    };
+    assert.equal(summary.vault, "ATLAS");
+    assert.equal(summary.projects.total, 2);
+    assert.equal(summary.projects.active, 1);
+    assert.equal(summary.projects.byStatus.paused, 1);
+    assert.equal(summary.doctor.ok, true);
+    assert.equal(summary.notesOnDisk, summary.plannedNotes);
+    assert.equal(summary.git, null);
+  });
+
+  it("flags a broken vault and an older generator", async () => {
+    const { statusCommand } = await import("../src/commands/status.js");
+    const input = manifest({
+      generator: { name: "vulcanus", version: "0.0.1" },
+      projects: [project("meridian", "Meridian")],
+    });
+    const root = await scaffold(input);
+    await rm(resolve(root, "02_Projects/Meridian/Meridian Rules.md"));
+
+    const { result, output } = await captureStdout(() => statusCommand({ cwd: root, json: true }));
+    assert.equal(result, 1);
+
+    const summary = JSON.parse(output) as {
+      doctor: { ok: boolean; errors: number };
+      updateAvailable: boolean;
+    };
+    assert.equal(summary.doctor.ok, false);
+    assert.ok(summary.doctor.errors > 0);
+    assert.equal(summary.updateAvailable, true);
   });
 });
 

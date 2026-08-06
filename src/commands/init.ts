@@ -35,6 +35,7 @@ import {
   splitList,
 } from "../prompts.js";
 import { safeFileName, slugify } from "../util/text.js";
+import { renderTree } from "../util/tree.js";
 import { CLI_VERSION } from "../version.js";
 import { askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 import { reportDoctor } from "./doctor.js";
@@ -179,6 +180,26 @@ export interface InitOptions {
   yes?: boolean;
   /** `true` picks the AI path, a string also names the CLI to hand over to. */
   ai?: string | boolean;
+
+  // Every wizard question can be answered from a flag instead, so scripts and
+  // CI can run init without a TTY. A provided flag skips exactly its question.
+  name?: string;
+  fullName?: string;
+  tagline?: string;
+  naming?: NamingStyle;
+  profile?: VaultProfile;
+  operator?: string;
+  role?: string;
+  aliases?: string;
+  /** Comma-separated project names; also skips the import step. */
+  projects?: string;
+  /** `false` skips the import step without touching anything else. */
+  import?: boolean;
+  git?: boolean;
+  /** Answer every remaining question with its default (name is still required). */
+  defaults?: boolean;
+  /** Show the file tree that would be created, write nothing. */
+  dryRun?: boolean;
 }
 
 export async function initCommand(options: InitOptions = {}): Promise<number> {
@@ -188,7 +209,9 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
 
   p.intro(`${t.introTitle} v${CLI_VERSION} — ${t.introBody}`);
 
-  if (!options.locale) {
+  // --defaults keeps the detected locale instead of asking; a flag-driven run
+  // may have no TTY to ask on.
+  if (!options.locale && !options.defaults) {
     locale = await askSelect<Locale>({
       message: t.localeQuestion,
       options: [
@@ -202,8 +225,14 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   }
 
   // --- Step 1: import an existing AI history -------------------------------
-  p.log.info(t.importHint);
-  const imported = await runImport(locale);
+  // An explicit project list (or --no-import / --defaults) settles this step
+  // without a question.
+  const skipImport = options.import === false || options.projects !== undefined || options.defaults;
+  let imported: ImportOutcome = { candidates: [], record: null };
+  if (!skipImport) {
+    p.log.info(t.importHint);
+    imported = await runImport(locale);
+  }
 
   let selectedNames: string[] = [];
   if (imported.candidates.length > 0) {
@@ -230,12 +259,19 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   // One editable line instead of a fixed ticked list: imported names arrive with
   // whatever casing the source used ("acme", "sitetools"), and this is the
   // only chance to fix them before they become folder and note names.
-  const joined = selectedNames.join(", ");
-  const finalList = await askText({
-    message: selectedNames.length > 0 ? t.projectListQuestion : t.manualProjectsQuestion,
-    placeholder: selectedNames.length > 0 ? t.projectListHint : t.manualProjectsHint,
-    ...(joined ? { defaultValue: joined, initialValue: joined } : {}),
-  });
+  let finalList: string;
+  if (options.projects !== undefined) {
+    finalList = options.projects;
+  } else if (options.defaults) {
+    finalList = selectedNames.join(", ");
+  } else {
+    const joined = selectedNames.join(", ");
+    finalList = await askText({
+      message: selectedNames.length > 0 ? t.projectListQuestion : t.manualProjectsQuestion,
+      placeholder: selectedNames.length > 0 ? t.projectListHint : t.manualProjectsHint,
+      ...(joined ? { defaultValue: joined, initialValue: joined } : {}),
+    });
+  }
 
   const projectNames = [...new Set(splitList(finalList))];
   if (projectNames.length === 0) p.log.warn(t.noProjects);
@@ -302,56 +338,107 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
     p.log.info(t.derivedIdentity(vaultName, adminName));
   } else {
     // --- New vault: ask for its identity and operator ---------------------
+    // Each flag answers its own question; --defaults answers everything else.
+    // Optional text answers fall back to empty, but a new vault cannot default
+    // its name into existence.
+    const optionalText = async (
+      provided: string | undefined,
+      ask: () => Promise<string>,
+    ): Promise<string> => (provided ?? (options.defaults ? "" : await ask())).trim();
+
     p.log.step(t.vaultSection);
 
-    vaultName = (
-      await askText({ message: t.vaultNameQuestion, placeholder: t.vaultNameHint, required: true })
-    ).trim();
-    fullName = (await askText({ message: t.vaultFullNameQuestion })).trim();
-    tagline = (await askText({ message: t.vaultTaglineQuestion })).trim();
+    vaultName = (options.name ?? "").trim();
+    if (!vaultName && !options.defaults) {
+      vaultName = (
+        await askText({
+          message: t.vaultNameQuestion,
+          placeholder: t.vaultNameHint,
+          required: true,
+        })
+      ).trim();
+    }
+    if (!vaultName) {
+      p.log.error("A new vault needs a name. Pass --name, or run without --defaults.");
+      return 2;
+    }
 
-    naming = await askSelect<NamingStyle>({
-      message: t.namingQuestion,
-      options: [
-        { value: "branded", label: t.namingBranded(vaultName) },
-        { value: "generic", label: t.namingGeneric },
-      ],
-      initialValue: "branded",
-    });
+    fullName = await optionalText(options.fullName, () =>
+      askText({ message: t.vaultFullNameQuestion }),
+    );
+    tagline = await optionalText(options.tagline, () =>
+      askText({ message: t.vaultTaglineQuestion }),
+    );
 
-    profile = await askSelect<VaultProfile>({
-      message: t.profileQuestion,
-      options: [
-        { value: "core", label: t.profileCore, hint: t.profileCoreHint },
-        { value: "full", label: t.profileFull, hint: t.profileFullHint },
-      ],
-      initialValue: "core",
-    });
+    naming =
+      options.naming ??
+      (options.defaults
+        ? "branded"
+        : await askSelect<NamingStyle>({
+            message: t.namingQuestion,
+            options: [
+              { value: "branded", label: t.namingBranded(vaultName) },
+              { value: "generic", label: t.namingGeneric },
+            ],
+            initialValue: "branded",
+          }));
+
+    profile =
+      options.profile ??
+      (options.defaults
+        ? "core"
+        : await askSelect<VaultProfile>({
+            message: t.profileQuestion,
+            options: [
+              { value: "core", label: t.profileCore, hint: t.profileCoreHint },
+              { value: "full", label: t.profileFull, hint: t.profileFullHint },
+            ],
+            initialValue: "core",
+          }));
 
     p.log.step(t.adminSection);
-    adminName = (await askText({ message: t.adminNameQuestion, required: true })).trim();
-    adminRole = (
-      await askText({ message: t.adminRoleQuestion, placeholder: t.adminRoleHint })
-    ).trim();
+    adminName =
+      options.operator?.trim() ||
+      (options.defaults
+        ? await defaultAdminName(process.cwd(), vaultName)
+        : (await askText({ message: t.adminNameQuestion, required: true })).trim());
+    adminRole = await optionalText(options.role, () =>
+      askText({ message: t.adminRoleQuestion, placeholder: t.adminRoleHint }),
+    );
     adminAliases = splitList(
-      await askText({ message: t.adminAliasesQuestion, placeholder: t.adminAliasesHint }),
+      options.aliases ??
+        (options.defaults
+          ? ""
+          : await askText({ message: t.adminAliasesQuestion, placeholder: t.adminAliasesHint })),
     );
 
     // Default to the vault's own name so Obsidian shows the vault under that name.
+    // An explicit --target (or --defaults) is a decision, not a question.
     const defaultTarget = options.target ?? `./${safeFileName(vaultName) || "vault"}`;
-    const targetInput = await askText({
-      message: t.targetQuestion,
-      placeholder: t.targetHint,
-      defaultValue: defaultTarget,
-      initialValue: defaultTarget,
-    });
+    const targetInput =
+      options.target !== undefined || options.defaults
+        ? defaultTarget
+        : await askText({
+            message: t.targetQuestion,
+            placeholder: t.targetHint,
+            defaultValue: defaultTarget,
+            initialValue: defaultTarget,
+          });
     vaultRoot = resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
     if (!(await isEmptyDir(vaultRoot))) p.log.warn(t.overwriteWarning(vaultRoot));
   }
 
   // --- Step 4: project details --------------------------------------------
+  // Flag-driven runs default to empty seeds: nobody is at the keyboard to
+  // answer per-project questions.
   const requested: DetailMode =
-    projectNames.length === 0 ? "skip" : options.ai ? "ai" : await askDetailMode(locale);
+    projectNames.length === 0
+      ? "skip"
+      : options.ai
+        ? "ai"
+        : options.defaults || options.projects !== undefined
+          ? "skip"
+          : await askDetailMode(locale);
 
   // The handoff is planned now but runs after the vault exists, because the AI
   // is given the real note paths. No AI CLI means the questions get asked here.
@@ -372,7 +459,9 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
     mode,
   );
 
-  const wantsGit = await askConfirm({ message: t.gitQuestion, initialValue: true });
+  const wantsGit =
+    options.git ??
+    (options.defaults ? true : await askConfirm({ message: t.gitQuestion, initialValue: true }));
 
   // --- Step 6: generate ----------------------------------------------------
   const manifest: VaultManifest = {
@@ -407,6 +496,18 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   };
 
   const { files } = generateFiles(manifest);
+
+  if (options.dryRun) {
+    p.note(
+      renderTree(
+        basename(vaultRoot),
+        files.map((file) => file.path),
+      ),
+      `Dry run — ${files.length} files would be created in ${vaultRoot}`,
+    );
+    p.outro("Dry run — nothing was written.");
+    return 0;
+  }
 
   const proceed =
     options.yes ||
