@@ -105,6 +105,69 @@ export async function applyProjects(
     }
   }
 
+  // Group hubs and the Index are seed files — the operator writes in them — so
+  // a new project is linked in surgically rather than by regenerating them.
+  for (const groupPlan of plan.groups) {
+    const members = groupPlan.members.filter((member) => newIds.has(member.project.id));
+    if (members.length === 0) continue;
+
+    const hubPath = resolve(vaultRoot, groupPlan.hub.path);
+    if (!existsSync(hubPath)) continue;
+
+    let content = await readFile(hubPath, "utf8");
+    let changed = false;
+    for (const member of members) {
+      const result = ensureBulletUnderHeading(content, "## Projects", `- [[${member.hub.name}]]`);
+      content = result.content;
+      changed = changed || result.changed;
+    }
+    if (changed) {
+      await writeFile(hubPath, content, "utf8");
+      patched.push(groupPlan.hub.path);
+    }
+  }
+
+  const indexPath = resolve(vaultRoot, plan.index.path);
+  if (existsSync(indexPath)) {
+    let content = await readFile(indexPath, "utf8");
+    let changed = false;
+
+    for (const projectPlan of plan.allProjects) {
+      if (!newIds.has(projectPlan.project.id)) continue;
+
+      // Only top-level, ungrouped projects are hubs the Index links directly;
+      // the rest are reachable through their parent or group hub.
+      if (!projectPlan.project.parent && !projectPlan.project.group) {
+        const result = ensureBulletUnderHeading(
+          content,
+          "## Main Hubs",
+          `- [[${projectPlan.hub.name}]]`,
+        );
+        content = result.content;
+        changed = changed || result.changed;
+      }
+
+      // The overview is prose the operator edits, so add a heading and the
+      // summary they just gave, and never touch an entry that already exists.
+      const heading = `### ${projectPlan.project.name}`;
+      if (!content.includes(`\n${heading}\n`)) {
+        const summary = projectPlan.project.summary || "_Summary not recorded yet._";
+        const result = insertSectionBefore(
+          content,
+          "## Current Vault Tree",
+          `${heading}\n\n${summary}\n`,
+        );
+        content = result.content;
+        changed = changed || result.changed;
+      }
+    }
+
+    if (changed) {
+      await writeFile(indexPath, content, "utf8");
+      patched.push(plan.index.path);
+    }
+  }
+
   const report = await runDoctor(vaultRoot, merged);
   if (!report.ok) reportDoctor(report);
 

@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## 0.4.1 — 2026-08-07
+
+### Fixed — `update` and `doctor --repair` deleted operator-written memory
+
+0.4.0 regenerated four files that hold real content: the Index, the System Hub,
+navigation group hubs, and the Import Log. On a vault where the operator had
+written in them — a project overview, extra hub links, an import's provenance —
+`vulcanus update` replaced all of it with a fresh template. That is the one
+thing a memory tool must never do, and it shipped.
+
+Those four are now `seed` files: written once, never rewritten. The graph is
+kept correct by inserting what is missing instead:
+
+- `add project` links a new project into its group hub and into the Index
+  (`Main Hubs` and the project overview), the way it already patched the Recall
+  Map and parent hubs.
+- A new wiring pass adds any link a hub is missing — after a profile change
+  deepens the system layer, for instance — without touching the rest of the
+  file. `doctor --repair` runs it too, so hub coverage can now be repaired
+  without regenerating the hub.
+
+**`AGENTS.md` is merged rather than rewritten.** It has to be both: the protocol
+every agent reads, so a new required step must reach existing vaults, and a file
+operators extend with their own instructions. An update now keeps every section
+already present, inserts the ones the protocol added, and refreshes the version
+stamp. The trade-off is stated plainly: wording improvements to a section you
+have customized will not reach you — losing your customization would be worse.
+`--force` still rewrites everything, as it always has.
+
+If you ran `vulcanus update` on 0.4.0 and lost content, it is in your Git
+history: `git diff HEAD~1 -- <file>` and restore what was removed.
+
 ## 0.4.0 — 2026-08-07
 
 ### MCP server

@@ -373,7 +373,8 @@ function groupHubNote(plan: VaultPlan, group: GroupPlan): GeneratedFile {
     ["## Parent", "", bulletList([wiki(plan.index.name)])].join("\n"),
   ]);
 
-  return { path: group.hub.path, content, kind: "managed" };
+  // Seed, like project hubs: `add project` links new members in surgically.
+  return { path: group.hub.path, content, kind: "seed" };
 }
 
 export function generateProjectNotes(plan: VaultPlan): GeneratedFile[] {

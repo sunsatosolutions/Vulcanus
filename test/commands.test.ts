@@ -285,24 +285,35 @@ describe("doctor command", () => {
     assert.equal(await doctorCommand({ cwd: empty, json: true }), 2);
   });
 
-  it("repairs a tampered managed note before validating", async () => {
+  it("repairs a tampered managed file before validating", async () => {
     const input = manifest({ projects: [project("meridian", "Meridian")] });
     const root = await scaffold(input);
 
-    // The Index is CLI-owned ("managed"), so repair may rewrite it — unlike
-    // seed notes, which belong to the operator once written.
-    const hubPath = resolve(root, "00_System/ATLAS Index.md");
-    const generated = await readFile(hubPath, "utf8");
-    await writeFile(hubPath, "tampered\n", "utf8");
+    // A generated skill is CLI-owned ("managed"), so repair rewrites it. Notes
+    // and hubs are seed or merge files and belong to the operator once written.
+    const skillPath = resolve(root, ".claude/skills/atlas-recall/SKILL.md");
+    const generated = await readFile(skillPath, "utf8");
+    await writeFile(skillPath, "tampered\n", "utf8");
 
-    const broken = await captureStdout(() => doctorCommand({ cwd: root, json: true }));
-    assert.equal(broken.result, 1);
+    await captureStdout(() => doctorCommand({ cwd: root, repair: true, json: true }));
+    assert.equal(await readFile(skillPath, "utf8"), generated);
+  });
+
+  it("leaves a hand-edited Index alone, even on repair", async () => {
+    const input = manifest({ projects: [project("meridian", "Meridian")] });
+    const root = await scaffold(input);
+
+    // The Index carries the operator's own project overview. Regenerating it
+    // used to delete that, which is the one thing a memory tool must not do.
+    const indexPath = resolve(root, "00_System/ATLAS Index.md");
+    const edited = `${await readFile(indexPath, "utf8")}\n## My Own Section\n\nKeep me.\n`;
+    await writeFile(indexPath, edited, "utf8");
 
     const repaired = await captureStdout(() =>
       doctorCommand({ cwd: root, repair: true, json: true }),
     );
     assert.equal(repaired.result, 0);
-    assert.equal(await readFile(hubPath, "utf8"), generated);
+    assert.equal(await readFile(indexPath, "utf8"), edited);
   });
 
   it("emits a machine-readable report with --json", async () => {

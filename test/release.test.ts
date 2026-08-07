@@ -11,6 +11,11 @@ import { CLI_VERSION } from "../src/version.js";
 const run = promisify(execFile);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+/** The CHANGELOG as the scripts read it: LF, whatever the checkout did. */
+async function changelog(): Promise<string> {
+  return (await readFile(resolve(root, "CHANGELOG.md"), "utf8")).replace(/\r\n/g, "\n");
+}
+
 async function packageVersion(): Promise<string> {
   const raw = await readFile(resolve(root, "package.json"), "utf8");
   return (JSON.parse(raw) as { version: string }).version;
@@ -25,11 +30,11 @@ describe("release metadata", () => {
   });
 
   it("documents the published version in the changelog", async () => {
-    const changelog = await readFile(resolve(root, "CHANGELOG.md"), "utf8");
+    const text = await changelog();
     const published = await packageVersion();
     // The version under development lives under `## Unreleased` until the
     // release script stamps it, so either heading counts as documented.
-    const documented = changelog.includes(`## ${published}`) || /^## Unreleased$/m.test(changelog);
+    const documented = text.includes(`## ${published}`) || /^## Unreleased$/m.test(text);
     assert.ok(documented, `CHANGELOG.md mentions neither ${published} nor an Unreleased section`);
   });
 
@@ -46,8 +51,7 @@ describe("release metadata", () => {
   // release nothing. Both states are correct, so the test asserts whichever one
   // the CHANGELOG is actually in rather than pinning the repository to one.
   it("refuses to cut a release the changelog does not describe", async () => {
-    const changelog = await readFile(resolve(root, "CHANGELOG.md"), "utf8");
-    const unreleased = /^## Unreleased\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(changelog);
+    const unreleased = /^## Unreleased\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(await changelog());
     assert.ok(unreleased, "CHANGELOG.md must keep an `## Unreleased` section");
 
     const dryRun = run(
@@ -69,8 +73,7 @@ describe("release metadata", () => {
   });
 
   it("extracts a changelog section for the release notes", async () => {
-    const changelog = await readFile(resolve(root, "CHANGELOG.md"), "utf8");
-    const released = /^## (\d+\.\d+\.\d+)/m.exec(changelog);
+    const released = /^## (\d+\.\d+\.\d+)/m.exec(await changelog());
     assert.ok(released, "CHANGELOG.md has no released version section");
 
     const { stdout } = await run(

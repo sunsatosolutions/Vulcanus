@@ -238,7 +238,7 @@ The graph view doubles as a health check: projects appear as clusters, hubs at t
 - creates notes a newer version added (including a `--profile full` upgrade)
 - re-stamps the generator version and validates the result
 
-Your own notes are never rewritten — `update` reports how many it left untouched. `--dry-run` shows the plan first, and notes the manifest no longer describes are listed rather than deleted. A vault written by a *newer* CLI is refused outright instead of being downgraded.
+Your own notes are never rewritten — `update` reports how many it left untouched. That includes the Index, the hubs, and the Import Log: they hold what you wrote, so a new project or a deeper system layer is *linked in* rather than regenerated. `AGENTS.md` is merged — sections you added stay, sections the protocol adds arrive. `--dry-run` shows the plan first, and notes the manifest no longer describes are listed rather than deleted. A vault written by a *newer* CLI is refused outright instead of being downgraded.
 
 After a command, the CLI checks npm at most once a day and prints a one-line notice when a newer release exists. Set `VULCANUS_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER`, or run in CI) to turn it off; it fails silently offline.
 

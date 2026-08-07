@@ -45,10 +45,15 @@ than lowering the floor.
   `vulcanus doctor` passing on a freshly generated vault, in both `core` and
   `full` profiles and both languages. The test suite does this for you; keep it
   that way.
-- **Never destroy memory.** Files the operator writes are `seed`; files the CLI
-  owns are `managed`. Only `managed` files may be rewritten without `--force`.
-  When in doubt, archive instead of deleting — `project remove` moves notes to
-  `_archive/` and that is the pattern to follow.
+- **Never destroy memory.** A generated file is one of three kinds: `seed` is
+  the operator's once it exists and is never rewritten; `managed` is the CLI's
+  and is refreshed on repair; `merge` is both, so an update adds what is missing
+  and keeps what is there. If a file can hold something the operator wrote, it
+  is not `managed` — 0.4.0 shipped four that were, and `update` deleted real
+  memory. Keep the graph correct by inserting what is missing (`generate/wire.ts`,
+  `generate/patch.ts`), not by regenerating the note around it. When in doubt,
+  archive instead of deleting — `project remove` moves notes to `_archive/` and
+  that is the pattern to follow.
 - **Report what happened, not what you hoped.** A command that could not push
   says so. A command that skipped a step says which. This is a memory system:
   a false success is worse than a visible failure.

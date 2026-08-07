@@ -1,4 +1,5 @@
 import type { VaultPlan } from "../manifest/derive.js";
+import { mergeProtocol } from "./merge.js";
 import { PROTOCOL_VERSION } from "../version.js";
 import { bulletList, joinSections } from "../util/text.js";
 import { renderTree } from "../util/tree.js";
@@ -100,7 +101,9 @@ function agentsFile(plan: VaultPlan): GeneratedFile {
     ].join("\n"),
   ]);
 
-  return { path: "AGENTS.md", content, kind: "managed" };
+  // The protocol has to reach existing vaults, and operators extend it with
+  // their own steps. Merging is what makes both true; see generate/merge.ts.
+  return { path: "AGENTS.md", content, kind: "merge", merge: mergeProtocol };
 }
 
 function readmeFile(plan: VaultPlan): GeneratedFile {

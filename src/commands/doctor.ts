@@ -1,5 +1,7 @@
 import * as p from "../ui.js";
 import { generateFiles, writeFiles } from "../generate/index.js";
+import { wireHubs } from "../generate/wire.js";
+import { buildPlan } from "../manifest/derive.js";
 import { runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
@@ -42,13 +44,18 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
   if (options.repair) {
     const { files } = generateFiles(manifest);
     const results = await writeFiles(vaultRoot, files, { repair: true });
-    const touched = results.filter(
-      (entry) => entry.action !== "skipped" && entry.action !== "unchanged",
-    );
+    const touched = results
+      .filter((entry) => entry.action !== "skipped" && entry.action !== "unchanged")
+      .map((entry) => entry.path);
+
+    // Hubs are the operator's to write, so a hub missing a link is repaired by
+    // inserting the link, never by regenerating the note around it.
+    touched.push(...(await wireHubs(vaultRoot, buildPlan(manifest))));
+
     if (!options.json) {
       p.log.info(
         touched.length
-          ? `Repaired ${touched.length} generated file(s): ${touched.map((entry) => entry.path).join(", ")}`
+          ? `Repaired ${touched.length} file(s): ${touched.join(", ")}`
           : "Nothing to repair.",
       );
     }
