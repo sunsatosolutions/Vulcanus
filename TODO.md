@@ -11,9 +11,12 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 > + artımlı import, 140 test, CONTRIBUTING + şablonlar, docs sitesi ve benchmark
 > yazısı.
 >
-> **Sıradaki:** 0.4.0 yayını. Sürüm damgalandı (package.json, `src/version.ts`,
-> CHANGELOG), `NPM_TOKEN` ve `npm-publish` environment'ı hazır; kalan tek adım
-> `v0.4.0` tag'ini push etmek. npm'deki son sürüm hâlâ 0.3.3.
+> **Yayınlandı:** 0.4.0 ve ardından 0.4.1 (2026-08-07). npm'de `latest: 0.4.1`.
+>
+> **0.4.0 bozuktu ve geri çekilmeli:** `update` ile `doctor --repair`, Index'i,
+> System Hub'ı, grup hub'larını ve Import Log'u yeniden üretip operatörün
+> yazdığını siliyordu. MIRA'da gerçek hafıza kaybı yaşandı (git'ten geri alındı).
+> 0.4.1 bunu düzeltti; o dört dosya artık `seed`, AGENTS.md `merge`.
 >
 > Aşağıdaki liste yalnızca **kalan** işlerdir. Bilerek yapılmayanlar en altta,
 > gerekçeleriyle.
@@ -116,6 +119,9 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   Environment'ta onay kuralı yok: tag push'lanır push'lanmaz yayın başlar. *(S)*
 - [ ] **Homebrew tap** — ayrı repo gerekiyor. *(M)*
 - [ ] **Sürüm duyuru otomasyonu** *(S)*
+- [ ] **0.4.0'ı npm'de deprecate et** — `npm deprecate "@sunsato/vulcanus@0.4.0"
+  "..."`; sürüm hâlâ kurulabilir ve `update` çalıştıran herkeste hafıza siler.
+  npm oturumu gerekiyor. *(S)*
 - [x] **Benchmark yazısı** — [`docs/token-budget.md`](docs/token-budget.md):
   6 projelik vault'ta ölçüm, yöntem ve **neyi kanıtlamadığı** açıkça yazılı. *(M)*
 
@@ -137,6 +143,7 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 1. ~~Merge + coverage + Dependabot + `exports`~~ — **bitti**
 2. ~~Release otomasyonu, Windows CI, stats, CLI UX, MCP derinleştirme,
    importer'lar, testler, docs~~ — **bitti**
-3. **0.4.0'ı yayınla** — `git tag v0.4.0 && git push --follow-tags`
-4. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
-5. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
+3. ~~0.4.0 + 0.4.1 yayını~~ — **bitti**
+4. **npm'de 0.4.0'ı deprecate et** — hâlâ kurulabilir ve hafıza siliyor
+5. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
+6. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su

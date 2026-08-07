@@ -114,10 +114,14 @@ release script stamps that section, so a release with an empty one is refused.
 Maintainers only:
 
 ```bash
-npm run release -- minor      # bumps package.json, src/version.ts, CHANGELOG
-git add -A && git commit -m "Release 0.4.0"
-git tag v0.4.0 && git push --follow-tags
+npm run release -- minor      # or: patch | major | an explicit version
+git add -A && git commit -m "Release 0.5.0"
+git tag -a v0.5.0 -m "Release 0.5.0" && git push --follow-tags
 ```
 
 Pushing the tag runs `.github/workflows/release.yml`, which re-runs every check
 and publishes to npm with provenance.
+
+Tag with `-a`. `git push --follow-tags` pushes annotated tags only, so a
+lightweight `git tag v0.5.0` silently never reaches the remote and the publish
+workflow never fires.
