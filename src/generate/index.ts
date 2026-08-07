@@ -67,19 +67,25 @@ export async function writeFiles(
       continue;
     }
 
-    const mayOverwrite = options.force || (options.repair && file.kind === "managed");
+    const mergeable = file.kind === "merge" && file.merge !== undefined;
+    const mayOverwrite =
+      options.force || (options.repair && (file.kind === "managed" || mergeable));
     if (!mayOverwrite) {
       results.push({ path: file.path, action: "skipped" });
       continue;
     }
 
     const current = await readFile(target, "utf8");
-    if (current === file.content) {
+    // A merge keeps what the operator wrote and adds only what is missing.
+    // `--force` still means "rewrite it", including here.
+    const next = mergeable && !options.force ? file.merge!(current, file.content) : file.content;
+
+    if (current === next) {
       results.push({ path: file.path, action: "unchanged" });
       continue;
     }
 
-    if (!options.dryRun) await writeFile(target, file.content, "utf8");
+    if (!options.dryRun) await writeFile(target, next, "utf8");
     results.push({ path: file.path, action: "updated" });
   }
 

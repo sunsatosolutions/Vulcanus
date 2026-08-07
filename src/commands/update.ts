@@ -1,6 +1,7 @@
 import * as p from "../ui.js";
 import { runDoctor } from "../doctor/index.js";
 import { generateFiles, writeFiles, type WriteResult } from "../generate/index.js";
+import { wireHubs } from "../generate/wire.js";
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest, writeManifest } from "../manifest/io.js";
 import { migrateManifest } from "../manifest/migrate.js";
@@ -32,6 +33,8 @@ export interface UpdateSummary {
   preserved: number;
   /** Notes on disk that the manifest no longer describes. */
   orphans: string[];
+  /** Hubs that gained a missing link instead of being regenerated. */
+  wired: string[];
   ok: boolean;
   dryRun: boolean;
 }
@@ -82,6 +85,10 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<number
   });
   const { created, updated, unchanged, preserved } = partition(results);
 
+  // Hubs are seed files, so a deeper system layer or a new project has to be
+  // linked in rather than regenerated.
+  const wired = options.dryRun ? [] : await wireHubs(vaultRoot, buildPlan(manifest));
+
   if (!options.dryRun) await writeManifest(vaultRoot, manifest);
 
   // Anything still on disk but no longer planned is reported, never deleted.
@@ -100,6 +107,7 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<number
     unchanged,
     preserved,
     orphans,
+    wired,
     ok: report.ok,
     dryRun: Boolean(options.dryRun),
   };

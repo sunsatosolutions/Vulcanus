@@ -267,13 +267,20 @@ describe("update", () => {
     await updateCommand({ cwd: root, json: true });
     assert.match(await readFile(contextPath, "utf8"), /Own memory\./);
 
-    const beforeDryRun = await readFile(resolve(root, "AGENTS.md"), "utf8");
-    await writeFile(resolve(root, "AGENTS.md"), "tampered\n", "utf8");
+    // AGENTS.md is merged rather than rewritten: an operator's own step survives
+    // the update, and the protocol's sections are still added.
+    const agentsPath = resolve(root, "AGENTS.md");
+    const withOwnStep = `${await readFile(agentsPath, "utf8")}\n## Our House Rule\n\nAlways run the health check.\n`;
+    await writeFile(agentsPath, withOwnStep, "utf8");
+
     await updateCommand({ cwd: root, dryRun: true, json: true });
-    assert.equal(await readFile(resolve(root, "AGENTS.md"), "utf8"), "tampered\n");
+    assert.equal(await readFile(agentsPath, "utf8"), withOwnStep);
 
     await updateCommand({ cwd: root, json: true });
-    assert.equal(await readFile(resolve(root, "AGENTS.md"), "utf8"), beforeDryRun);
+    const merged = await readFile(agentsPath, "utf8");
+    assert.match(merged, /## Our House Rule/);
+    assert.match(merged, /Always run the health check\./);
+    assert.match(merged, /## Required workflow/);
   });
 
   it("refuses a vault written by a newer manifest version", async () => {

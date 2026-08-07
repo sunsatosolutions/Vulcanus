@@ -135,7 +135,10 @@ function indexNote(plan: VaultPlan): GeneratedFile {
     ].join("\n"),
   ]);
 
-  return { path: plan.index.path, content, kind: "managed" };
+  // Seed, not managed: operators write the project overview and their own
+  // sections here, and regenerating the file threw that away. New projects are
+  // linked in by `add project` instead.
+  return { path: plan.index.path, content, kind: "seed" };
 }
 
 function wiki(name: string): string {
@@ -418,7 +421,8 @@ function systemHubNote(plan: VaultPlan): GeneratedFile {
       ]),
     ].join("\n"),
   ]);
-  return { path: plan.systemHub.path, content, kind: "managed" };
+  // Seed: a hub is a navigation note operators extend with their own links.
+  return { path: plan.systemHub.path, content, kind: "seed" };
 }
 
 function vaultContextNote(plan: VaultPlan): GeneratedFile {
@@ -751,7 +755,8 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
       ]),
     ].join("\n"),
   ]);
-  return { path: note.path, content, kind: "managed" };
+  // Seed: the import log is provenance the operator and their agents write to.
+  return { path: note.path, content, kind: "seed" };
 }
 
 function brainOsNote(plan: VaultPlan): GeneratedFile {
