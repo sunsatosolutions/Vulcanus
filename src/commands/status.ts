@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -9,6 +9,7 @@ import { buildPlan, type VaultPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { compareVersions } from "../util/semver.js";
 import { CLI_VERSION } from "../version.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 const run = promisify(execFile);
 
@@ -184,10 +185,7 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
   const start = options.cwd ?? process.cwd();
   const vaultRoot = findVaultRoot(start);
   if (!vaultRoot) {
-    process.stderr.write(
-      `No vulcanus.json found in ${start} or any parent directory.\nRun \`vulcanus init\` to create a vault.\n`,
-    );
-    return 2;
+    return reportProblem(noVaultProblem(start, "vulcanus status"));
   }
 
   const summary = await collectStatus(vaultRoot);

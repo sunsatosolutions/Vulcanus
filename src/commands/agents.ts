@@ -1,7 +1,8 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { enforcementSnippet } from "../generate/agents.js";
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 const TARGETS: Array<{ tool: string; where: string }> = [
   { tool: "Claude Code", where: "~/.claude/CLAUDE.md" },
@@ -20,8 +21,7 @@ export interface AgentsOptions {
 export async function agentsCommand(options: AgentsOptions = {}): Promise<number> {
   const vaultRoot = findVaultRoot(options.cwd ?? process.cwd());
   if (!vaultRoot) {
-    process.stderr.write("No vulcanus.json found. Run this inside a vault.\n");
-    return 2;
+    return reportProblem(noVaultProblem(options.cwd ?? process.cwd(), "vulcanus agents"));
   }
 
   const manifest = await readManifest(vaultRoot);

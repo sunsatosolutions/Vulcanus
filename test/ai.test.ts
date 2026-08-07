@@ -15,6 +15,23 @@ after(async () => {
   for (const dir of tempDirs) await cleanup(dir);
 });
 
+/**
+ * PATH probing is platform-shaped: Windows resolves against a drive and appends
+ * a PATHEXT suffix, POSIX does neither. The fixtures are built the same way the
+ * production code builds its candidates, so the test asserts the behaviour
+ * rather than the platform it happens to run on.
+ */
+const EXE = process.platform === "win32" ? ".EXE" : "";
+
+function pathEnv(dirs: string[]): NodeJS.ProcessEnv {
+  return { PATH: dirs.join(delimiter), ...(EXE ? { PATHEXT: EXE } : {}) };
+}
+
+/** Where `findOnPath` would look for `command` inside `dir`. */
+function bin(dir: string, command: string): string {
+  return resolve(dir, `${command}${EXE}`);
+}
+
 /** Stand in for the filesystem so PATH probing is testable on any machine. */
 function fakePath(present: string[]) {
   const installed = new Set(present);
@@ -23,46 +40,47 @@ function fakePath(present: string[]) {
 
 describe("AI CLI detection", () => {
   it("finds a command in the first PATH entry that holds it", () => {
-    const env = { PATH: ["/opt/bin", "/usr/local/bin"].join(delimiter) };
-    const executable = fakePath(["/usr/local/bin/claude", "/opt/bin/codex"]);
+    const env = pathEnv(["/opt/bin", "/usr/local/bin"]);
+    const executable = fakePath([bin("/usr/local/bin", "claude"), bin("/opt/bin", "codex")]);
 
-    assert.equal(findOnPath("claude", env, executable), "/usr/local/bin/claude");
-    assert.equal(findOnPath("codex", env, executable), "/opt/bin/codex");
+    assert.equal(findOnPath("claude", env, executable), bin("/usr/local/bin", "claude"));
+    assert.equal(findOnPath("codex", env, executable), bin("/opt/bin", "codex"));
     assert.equal(findOnPath("gemini", env, executable), null);
   });
 
   it("reports only the CLIs that are really installed", () => {
-    const env = { PATH: "/usr/local/bin" };
-    const detected = detectAiClis(env, fakePath(["/usr/local/bin/claude"]));
+    const env = pathEnv(["/usr/local/bin"]);
+    const detected = detectAiClis(env, fakePath([bin("/usr/local/bin", "claude")]));
 
     assert.deepEqual(
       detected.map((cli) => cli.id),
       ["claude"],
     );
-    assert.equal(detected[0].path, "/usr/local/bin/claude");
+    assert.equal(detected[0].path, bin("/usr/local/bin", "claude"));
   });
 
   it("detects nothing when PATH is empty, so the caller can fall back", () => {
-    assert.deepEqual(detectAiClis({ PATH: "" }, fakePath(["/usr/local/bin/claude"])), []);
-    assert.deepEqual(detectAiClis({}, fakePath(["/usr/local/bin/claude"])), []);
+    const installed = fakePath([bin("/usr/local/bin", "claude")]);
+    assert.deepEqual(detectAiClis({ PATH: "" }, installed), []);
+    assert.deepEqual(detectAiClis({}, installed), []);
   });
 
   it("accepts a renamed binary, and reports the name that actually resolved", () => {
-    const env = { PATH: "/usr/local/bin" };
-    const detected = detectAiClis(env, fakePath(["/usr/local/bin/agent"]));
+    const env = pathEnv(["/usr/local/bin"]);
+    const detected = detectAiClis(env, fakePath([bin("/usr/local/bin", "agent")]));
 
     assert.deepEqual(
       detected.map((cli) => cli.id),
       ["cursor-agent"],
     );
     assert.equal(detected[0].command, "agent");
-    assert.equal(detected[0].path, "/usr/local/bin/agent");
+    assert.equal(detected[0].path, bin("/usr/local/bin", "agent"));
   });
 
   it("prefers the primary name when both are installed, so it resolves once", () => {
     const detected = detectAiClis(
-      { PATH: "/usr/local/bin" },
-      fakePath(["/usr/local/bin/cursor-agent", "/usr/local/bin/agent"]),
+      pathEnv(["/usr/local/bin"]),
+      fakePath([bin("/usr/local/bin", "cursor-agent"), bin("/usr/local/bin", "agent")]),
     );
 
     assert.equal(detected.length, 1);
@@ -158,7 +176,10 @@ describe("handoff prompt", () => {
       notes.map((note) => note.kind),
       ["Capsule", "Hub", "Context", "Decisions", "Rules", "Architecture"],
     );
-    assert.equal(notes[0].path, "/Users/ada/ATLAS/02_Projects/Northwind/Kiln/Kiln Capsule.md");
+    assert.equal(
+      notes[0].path,
+      resolve("/Users/ada/ATLAS", "02_Projects/Northwind/Kiln/Kiln Capsule.md"),
+    );
     for (const note of notes) assert.ok(prompt.includes(note.path), `${note.kind} path is missing`);
   });
 

@@ -847,7 +847,7 @@
       </section>
 
       <section id="commands">
-        <h2>Eight commands</h2>
+        <h2>Thirteen commands</h2>
         <p class="section-lede">
           The vault is plain Markdown you can edit by hand in Obsidian or any editor. These keep it
           consistent as it grows.
@@ -886,7 +886,59 @@
             <h3><code>sync</code></h3>
             <p>Validate, then commit and push. It refuses to commit a broken vault.</p>
           </div>
+          <div class="card">
+            <h3><code>status</code></h3>
+            <p>One screen: projects, notes, doctor result, git state, and stale capsules.</p>
+          </div>
+          <div class="card">
+            <h3><code>stats</code></h3>
+            <p>What a cold-start agent must read, and how much task-scoped recall saves.</p>
+          </div>
+          <div class="card">
+            <h3><code>serve</code></h3>
+            <p>Expose the vault to MCP clients as typed tools instead of raw file reads.</p>
+          </div>
+          <div class="card">
+            <h3><code>project</code></h3>
+            <p>Remove, rename, or archive a project — every link and route follows.</p>
+          </div>
+          <div class="card">
+            <h3><code>hooks</code></h3>
+            <p>A pre-commit hook that keeps a broken memory graph out of your history.</p>
+          </div>
         </div>
+      </section>
+
+      <section id="mcp">
+        <h2>Memory as tools, not file reads</h2>
+        <p class="section-lede">
+          <code>vulcanus serve</code> exposes the vault over MCP, so an agent asks for what it needs
+          instead of guessing which file to open.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h3><code>recall</code></h3>
+            <p>
+              One project's Capsule plus the order to read deeper. The call an agent makes before
+              touching anything — and it says so when the Capsule has fallen behind.
+            </p>
+          </div>
+          <div class="card">
+            <h3><code>search</code></h3>
+            <p>Layer-aware: Capsule and Recall Map hits rank above everything else.</p>
+          </div>
+          <div class="card">
+            <h3><code>append_decision</code> · <code>append_rule</code></h3>
+            <p>Confirmed outcomes go back into the right note, in the vault's own format.</p>
+          </div>
+          <div class="card">
+            <h3><code>update_capsule</code></h3>
+            <p>Refresh one section of a summary — never a blind whole-file rewrite.</p>
+          </div>
+        </div>
+
+        <pre><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
       </section>
 
       <section>

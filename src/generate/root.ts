@@ -1,4 +1,5 @@
 import type { VaultPlan } from "../manifest/derive.js";
+import { PROTOCOL_VERSION } from "../version.js";
 import { bulletList, joinSections } from "../util/text.js";
 import { renderTree } from "../util/tree.js";
 import type { GeneratedFile } from "./types.js";
@@ -13,6 +14,7 @@ function agentsFile(plan: VaultPlan): GeneratedFile {
 
   const content = joinSections([
     `# ${vault.name} Protocol for AI Agents`,
+    `<!-- vulcanus:protocol ${PROTOCOL_VERSION} -->`,
     `This repository is ${vault.name}${
       vault.fullName ? ` (${vault.fullName})` : ""
     }, a living, AI-readable second brain. These instructions apply to every task in this repository.`,

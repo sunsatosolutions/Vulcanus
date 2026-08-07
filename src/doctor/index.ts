@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
   buildPlan,
   hubExpectations,
@@ -10,8 +10,10 @@ import {
 } from "../manifest/derive.js";
 import { MANIFEST_VERSION, validateManifest, type VaultManifest } from "../manifest/schema.js";
 import { parseNote, wikiTargets } from "../util/markdown.js";
+import { vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
-import { CLI_VERSION } from "../version.js";
+import { SKILL_DIRS } from "../generate/skills.js";
+import { CLI_VERSION, PROTOCOL_VERSION } from "../version.js";
 
 export type FindingLevel = "error" | "warning" | "info";
 
@@ -44,7 +46,7 @@ async function collectMarkdown(root: string, dir: string): Promise<string[]> {
       if (entry.isDirectory()) {
         await walk(full);
       } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
-        out.push(relative(root, full));
+        out.push(vaultRelative(root, full));
       }
     }
   };
@@ -249,6 +251,69 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     const hubTargets = targetsOf.get(project.hub.path);
     if (hubTargets && !hubTargets.has(project.capsule.name)) {
       add("error", "CAPSULE", `hub does not link to ${project.capsule.name}`, project.hub.path);
+    }
+  }
+
+  // --- Agent protocol version ---------------------------------------------
+  // AGENTS.md is what every agent reads before touching the vault. A vault
+  // still carrying an older protocol is not broken, but its agents are
+  // following superseded instructions, and only `update` fixes that.
+  const agentsPath = resolve(vaultRoot, "AGENTS.md");
+  if (existsSync(agentsPath)) {
+    const agentsText = await readFile(agentsPath, "utf8");
+    const stamp = /<!--\s*vulcanus:protocol\s+(\d+)\s*-->/.exec(agentsText);
+    const found = stamp ? Number(stamp[1]) : 0;
+    if (found > PROTOCOL_VERSION) {
+      add(
+        "error",
+        "PROTOCOL",
+        `AGENTS.md describes agent protocol ${found}, but this CLI writes ${PROTOCOL_VERSION}; upgrade with \`npm i -g @sunsato/vulcanus@latest\``,
+        "AGENTS.md",
+      );
+    } else if (found < PROTOCOL_VERSION) {
+      add(
+        "warning",
+        "PROTOCOL",
+        `AGENTS.md describes agent protocol ${found || "0 (unstamped)"}; this CLI writes ${PROTOCOL_VERSION}. Run \`vulcanus update\` so agents follow the current protocol`,
+        "AGENTS.md",
+      );
+    }
+  }
+
+  // --- Skill copies stay identical ----------------------------------------
+  // The same skills are written into every directory the supported tools read.
+  // If one copy is edited, agents behave differently depending on which tool
+  // loaded it — a divergence that is invisible until it misfires.
+  const skillDirs = SKILL_DIRS.map((dir) => resolve(vaultRoot, dir)).filter((dir) =>
+    existsSync(dir),
+  );
+  if (skillDirs.length > 1) {
+    const [reference, ...others] = skillDirs;
+    const skillNames = (await readdir(reference, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+
+    for (const name of skillNames) {
+      const referenceFile = resolve(reference, name, "SKILL.md");
+      if (!existsSync(referenceFile)) continue;
+      const expected = await readFile(referenceFile, "utf8");
+
+      for (const other of others) {
+        const copy = resolve(other, name, "SKILL.md");
+        const shown = `${vaultRelative(vaultRoot, other)}/${name}/SKILL.md`;
+        if (!existsSync(copy)) {
+          add("warning", "SKILLS", `skill copy is missing: ${shown}`, shown);
+          continue;
+        }
+        if ((await readFile(copy, "utf8")) !== expected) {
+          add(
+            "warning",
+            "SKILLS",
+            `skill differs from ${vaultRelative(vaultRoot, reference)}/${name}/SKILL.md; run \`vulcanus doctor --repair\``,
+            shown,
+          );
+        }
+      }
     }
   }
 

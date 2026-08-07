@@ -1,0 +1,29 @@
+name: Feature request
+description: Something the CLI should be able to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that the CLI makes hard or impossible today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: A command, a flag, a check — however rough.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Which part
+      options:
+        - label: The CLI itself (commands, flags, output)
+        - label: What a generated vault contains
+        - label: Agent integration (skills, MCP, AGENTS.md)
+        - label: Importers (ChatGPT, Claude, Codex, Gemini, Cursor, Markdown)

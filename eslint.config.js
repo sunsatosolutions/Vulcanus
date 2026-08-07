@@ -29,6 +29,16 @@ export default tseslint.config(
     },
   },
   {
+    // Release and test-runner helpers: plain Node scripts, outside the TypeScript
+    // project, so the type-aware rules have nothing to work from.
+    files: ["scripts/**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      parserOptions: { project: false, projectService: false },
+      globals: { process: "readonly", console: "readonly" },
+    },
+  },
+  {
     files: ["test/**"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",

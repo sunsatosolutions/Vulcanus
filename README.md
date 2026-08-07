@@ -49,8 +49,13 @@ Before anything else, Vulcanus offers to read an existing AI history and propose
 | Claude.ai data export | `conversations.json` + `projects.json` |
 | Claude Code | `~/.claude/projects/**/*.jsonl` |
 | Codex | `~/.codex/**/rollout-*.jsonl` |
+| Gemini CLI | `~/.gemini/tmp/**/logs.json` and saved `checkpoint-<tag>.json` chats |
+| Cursor | per-workspace chat history (`state.vscdb`); needs Node 22.5+ for SQLite |
+| Markdown folder | any directory of notes — the folder names become the project signal |
 
-Locations are auto-detected, so usually you just pick one from a list.
+Locations are auto-detected, so usually you just pick one from a list. A Markdown folder is the exception: it is never probed on its own, and only scanned when you name the path.
+
+Re-running `import` on the same source proposes only what is new — conversation ids already read are remembered in the vault's state directory. `--all` re-reads everything. `--json` prints the candidates with their evidence and writes nothing.
 
 **Nothing from your history is copied into the vault.** Conversations are read locally, reduced to candidate project names with evidence counts, and discarded. Only the names you tick become notes; the Import Log records how many conversations were scanned, never their content.
 
@@ -64,6 +69,10 @@ vulcanus init            # create a vault, or add memory to an existing Obsidian
 
 ```bash
 vulcanus status          # one-screen vault health: projects, notes, doctor result, git state
+```
+
+```bash
+vulcanus stats           # token budget: what a cold-start agent reads, what recall saves
 ```
 
 ```bash
@@ -81,7 +90,7 @@ vulcanus project archive "Name"       # mark it archived (--restore undoes it)
 ```
 
 ```bash
-vulcanus import          # propose more projects from an AI export
+vulcanus import          # propose more projects from an AI export or a notes folder
 ```
 
 ```bash
@@ -102,9 +111,22 @@ vulcanus update          # bring the vault up to date with a newer CLI
 
 ```bash
 vulcanus sync "topic"    # validate, then commit and push
+vulcanus sync --watch    # regenerate and revalidate on every edit; never commits
 ```
 
-`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` accepts `--json`; `doctor` accepts `--repair` and `--json`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `skills` accepts `--raw`, `--install`, and `--force`.
+```bash
+vulcanus hooks install   # a pre-commit hook that refuses to commit a broken graph
+```
+
+```bash
+vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
+```
+
+`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+
+`--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
+
+Exit codes are part of the contract: `0` the command did what it said, `1` the vault or the operation failed validation, `2` the command was used wrongly (no vault, bad flag), `130` cancelled at a prompt. Every failure prints what happened, why, and what to do next.
 
 ### Scripting `init`
 
@@ -182,6 +204,8 @@ That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault
 | `search` | layer-aware text search; Capsule and Recall Map hits rank first |
 | `list_projects` | the routing table: names, statuses, trigger words, capsule paths |
 | `append_decision` | records a confirmed decision in the Decision/Details format |
+| `append_rule` | records a standing rule in the project's Rules note |
+| `update_capsule` | replaces one section of a Capsule — never a blind whole-file rewrite |
 | `vault_status` | the `vulcanus status` summary, as JSON |
 | `doctor` | full structural validation with every finding |
 
@@ -191,7 +215,9 @@ Register it the way your client expects, e.g. for Claude Code:
 claude mcp add vulcanus -- vulcanus serve
 ```
 
-Run it from inside the vault (or any subdirectory). The manifest is re-read on every call, so edits made while the server runs are always visible.
+Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. The manifest is re-read on every call, so edits made while the server runs are always visible.
+
+`recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current.
 
 ## Obsidian
 
@@ -253,7 +279,9 @@ npm install && npm run build && npm test
 npm run dev -- doctor
 ```
 
-Source layout: `manifest/` derives every path and link expectation, `generate/` turns that plan into Markdown, `doctor/` validates the result against the same plan, `importers/` normalizes AI exports, and `commands/` wires it to the CLI.
+Source layout: `manifest/` derives every path and link expectation, `generate/` turns that plan into Markdown, `doctor/` validates the result against the same plan, `importers/` normalizes AI exports, `mcp/` holds the transport-free vault operations `serve` exposes, and `commands/` wires it to the CLI.
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) covers the checks, the review bar, and how to add an importer or a language. [`docs/token-budget.md`](docs/token-budget.md) measures what the layered structure actually saves, and how that was measured.
 
 The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed by Cloudflare Pages from `site/` on every push to `main`.
 
