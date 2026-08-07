@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import { chatgptAdapter } from "./chatgpt.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { claudeExportAdapter } from "./claude-export.js";
@@ -20,10 +23,6 @@ export function adapterFor(id: ImportSourceId): ImportAdapter | undefined {
  * lands in ~/Downloads as a dated folder, so those are scanned one level deep.
  */
 export async function detectSources(extraPaths: string[] = []): Promise<DetectedSource[]> {
-  const { readdir } = await import("node:fs/promises");
-  const { existsSync } = await import("node:fs");
-  const { resolve } = await import("node:path");
-
   const found: DetectedSource[] = [];
   const seen = new Set<string>();
 

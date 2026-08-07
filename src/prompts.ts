@@ -19,7 +19,7 @@ function bail(): never {
 
 function unwrap<T>(value: T | symbol): T {
   if (p.isCancel(value)) bail();
-  return value as T;
+  return value;
 }
 
 export interface Choice<T extends string> {
@@ -82,7 +82,7 @@ const clackDriver: PromptDriver = {
     return unwrap(
       await p.select({
         message: request.message,
-        options: request.options as StringChoice[],
+        options: request.options,
         initialValue: request.initialValue,
       }),
     );
@@ -91,7 +91,7 @@ const clackDriver: PromptDriver = {
     return unwrap(
       await p.multiselect({
         message: request.message,
-        options: request.options as StringChoice[],
+        options: request.options,
         initialValues: request.initialValues ?? [],
         required: false,
       }),
@@ -122,17 +122,12 @@ export async function askText(options: TextRequest): Promise<string> {
   return driver.text(options);
 }
 
-// clack's `Option<Value>` is a conditional type that cannot resolve against an
-// unresolved generic, so the wrappers talk to it in plain `string` terms and
-// restore the caller's literal union on the way out.
-type StringChoice = { value: string; label: string; hint?: string };
-
 export async function askSelect<T extends string>(options: {
   message: string;
   options: Array<Choice<T>>;
   initialValue?: T;
 }): Promise<T> {
-  return (await driver.select(options as SelectRequest)) as T;
+  return (await driver.select(options)) as T;
 }
 
 export async function askMultiselect<T extends string>(options: {
@@ -140,7 +135,7 @@ export async function askMultiselect<T extends string>(options: {
   options: Array<Choice<T>>;
   initialValues?: T[];
 }): Promise<T[]> {
-  return (await driver.multiselect(options as MultiselectRequest)) as T[];
+  return (await driver.multiselect(options)) as T[];
 }
 
 export async function askConfirm(options: ConfirmRequest): Promise<boolean> {

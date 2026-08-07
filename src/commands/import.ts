@@ -85,7 +85,7 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   reading.start(t.reading);
   let analysis;
   try {
-    analysis = await analyzeConversations(() => adapter.load(path!));
+    analysis = await analyzeConversations(() => adapter.load(path));
   } catch (error) {
     reading.stop(t.readFailed((error as Error).message));
     return 1;

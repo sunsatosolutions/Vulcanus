@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased
+
+### MCP server
+
+`vulcanus serve` exposes the vault to MCP clients over stdio: `recall` (Capsule
+plus read order), layer-aware `search`, `list_projects`, `append_decision`,
+`vault_status`, and `doctor`. The manifest is re-read on every call, so edits
+made while the server runs are always visible.
+
+### Project lifecycle
+
+- `vulcanus project remove` unlinks a project and moves its notes to
+  `_archive/` — never deletes them. Refuses while sub-projects exist.
+- `vulcanus project rename` renames the folder, note files, and every
+  wikilink, heading, and frontmatter reference in one move; name-derived
+  trigger words follow.
+- `vulcanus project archive [--restore]` flips the status without touching
+  notes.
+
+### New commands and flags
+
+- `vulcanus status`: one-screen vault health — projects by status, notes on
+  disk vs planned, doctor result, generator drift, git state — with `--json`.
+  It also warns when a Capsule is older than the Decisions/Rules/Context it
+  summarizes, judged by git history (file mtimes outside a repository).
+- `init` now runs without a TTY: every question has a flag (`--name`,
+  `--operator`, `--projects`, `--naming`, `--profile`, `--no-import`,
+  `--git`/`--no-git`, …), `--defaults` answers the rest, and `--dry-run`
+  prints the would-be file tree without writing. An explicit target no longer
+  re-asks the destination.
+
+### Quality
+
+- CI on GitHub Actions: typecheck, lint, format check, and the test suite
+  across Node 18/20/22 on Linux, macOS, and Windows.
+- ESLint (type-checked) added and the codebase cleaned against it.
+- Test suite grown from 59 to 93: end-to-end init, doctor `--repair` and
+  `--json`, manifest migrations, project lifecycle, capsule freshness, i18n
+  message integrity, and the MCP tool layer.
+
 ## 0.3.3
 
 Continuing in an existing Obsidian vault no longer asks for a vault name or the

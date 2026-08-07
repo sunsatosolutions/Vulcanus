@@ -32,8 +32,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --import tsx test/*.test.ts",
     "prepublishOnly": "npm run build",
-    "format": "prettier --write src test",
-    "format:check": "prettier --check src test"
+    "format": "prettier --write src test eslint.config.js",
+    "format:check": "prettier --check src test eslint.config.js",
+    "lint": "eslint .",
+    "coverage": "node --test --experimental-test-coverage --import tsx test/*.test.ts"
   },
   "keywords": [
     "second-brain",
@@ -44,12 +46,18 @@
   ],
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "commander": "^12.1.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "commander": "^12.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.14.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.66.0"
   }
 }

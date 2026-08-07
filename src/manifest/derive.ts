@@ -1,5 +1,4 @@
 import {
-  CORE_PROJECT_NOTES,
   CORE_SYSTEM_NOTES,
   FULL_SYSTEM_NOTES,
   type ProjectGroup,

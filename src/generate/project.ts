@@ -7,12 +7,7 @@ function wiki(name: string): string {
   return `[[${name}]]`;
 }
 
-function projectFrontmatter(
-  plan: VaultPlan,
-  project: ProjectPlan,
-  type: string,
-  extraTags: string[] = [],
-): string {
+function projectFrontmatter(plan: VaultPlan, project: ProjectPlan, type: string): string {
   const parentName = project.ancestors.at(-1)?.name;
   return renderFrontmatter({
     type,

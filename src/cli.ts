@@ -5,12 +5,17 @@ import { agentsCommand } from "./commands/agents.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
+import {
+  archiveProjectCommand,
+  removeProjectCommand,
+  renameProjectCommand,
+} from "./commands/project.js";
+import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
+import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
 import type { ImportSourceId } from "./importers/index.js";
-import type { Locale } from "./i18n.js";
-import type { VaultProfile } from "./manifest/schema.js";
 import { updateNotice } from "./update-check.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -29,21 +34,86 @@ async function main(): Promise<void> {
     .option("-l, --lang <locale>", "wizard language: tr or en")
     .option("-y, --yes", "skip the final confirmation")
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
+    .option("--name <name>", "vault name (skips the question)")
+    .option("--full-name <text>", "what the vault name stands for")
+    .option("--tagline <text>", "one-line description")
+    .option("--naming <style>", "system note naming: branded or generic")
+    .option("--profile <profile>", "system layer depth: core or full")
+    .option("--operator <name>", "operator name (skips the question)")
+    .option("--role <text>", "operator working identity")
+    .option("--aliases <list>", "comma-separated operator aliases")
+    .option("--projects <list>", "comma-separated project names; skips the import step")
+    .option("--no-import", "skip the AI-history import step")
+    .option("--git", "initialize a Git repository without asking")
+    .option("--no-git", "skip Git initialization without asking")
+    .option("--defaults", "answer every remaining question with its default (needs --name)")
+    .option("--dry-run", "show the file tree that would be created, write nothing")
     .action(
       async (
         target: string | undefined,
-        options: { lang?: string; yes?: boolean; ai?: string | boolean },
+        options: {
+          lang?: string;
+          yes?: boolean;
+          ai?: string | boolean;
+          name?: string;
+          fullName?: string;
+          tagline?: string;
+          naming?: string;
+          profile?: string;
+          operator?: string;
+          role?: string;
+          aliases?: string;
+          projects?: string;
+          import?: boolean;
+          git?: boolean;
+          defaults?: boolean;
+          dryRun?: boolean;
+        },
       ) => {
-        const locale =
-          options.lang === "tr" || options.lang === "en" ? (options.lang as Locale) : undefined;
+        const locale = options.lang === "tr" || options.lang === "en" ? options.lang : undefined;
+        const naming =
+          options.naming === "branded" || options.naming === "generic" ? options.naming : undefined;
+        if (options.naming && !naming) {
+          process.stderr.write("--naming must be 'branded' or 'generic'.\n");
+          process.exitCode = 2;
+          return;
+        }
+        const profile =
+          options.profile === "core" || options.profile === "full" ? options.profile : undefined;
+        if (options.profile && !profile) {
+          process.stderr.write("--profile must be 'core' or 'full'.\n");
+          process.exitCode = 2;
+          return;
+        }
         process.exitCode = await initCommand({
           target,
           locale,
           yes: options.yes,
           ai: options.ai,
+          name: options.name,
+          fullName: options.fullName,
+          tagline: options.tagline,
+          naming,
+          profile,
+          operator: options.operator,
+          role: options.role,
+          aliases: options.aliases,
+          projects: options.projects,
+          import: options.import,
+          git: options.git,
+          defaults: options.defaults,
+          dryRun: options.dryRun,
         });
       },
     );
+
+  program
+    .command("status")
+    .description("One-screen vault health: projects, notes, doctor result, git state")
+    .option("--json", "print the summary as JSON")
+    .action(async (options: { json?: boolean }) => {
+      process.exitCode = await statusCommand(options);
+    });
 
   program
     .command("doctor")
@@ -62,6 +132,33 @@ async function main(): Promise<void> {
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
     .action(async (names: string[], options: { ai?: string | boolean }) => {
       process.exitCode = await addProjectCommand({ names, ai: options.ai });
+    });
+
+  const projectCmd = program
+    .command("project")
+    .description("Manage existing projects: remove, rename, archive");
+  projectCmd
+    .command("remove")
+    .description("Remove a project from the graph; its notes move to _archive/")
+    .argument("<name>", "project name or id")
+    .action(async (name: string) => {
+      process.exitCode = await removeProjectCommand(name);
+    });
+  projectCmd
+    .command("rename")
+    .description("Rename a project everywhere: folder, notes, and links")
+    .argument("<old>", "current project name or id")
+    .argument("<new>", "new project name")
+    .action(async (oldName: string, newName: string) => {
+      process.exitCode = await renameProjectCommand(oldName, newName);
+    });
+  projectCmd
+    .command("archive")
+    .description("Mark a project archived without touching its notes")
+    .argument("<name>", "project name or id")
+    .option("--restore", "set the project active again")
+    .action(async (name: string, options: { restore?: boolean }) => {
+      process.exitCode = await archiveProjectCommand(name, options);
     });
 
   program
@@ -97,6 +194,13 @@ async function main(): Promise<void> {
     });
 
   program
+    .command("serve")
+    .description("Serve the vault to MCP clients over stdio: recall, search, append_decision, …")
+    .action(async () => {
+      process.exitCode = await serveCommand();
+    });
+
+  program
     .command("update")
     .description("Bring an existing vault up to date with this CLI version")
     .option("--dry-run", "show what would change without writing")
@@ -106,9 +210,7 @@ async function main(): Promise<void> {
     .action(
       async (options: { dryRun?: boolean; force?: boolean; profile?: string; json?: boolean }) => {
         const profile =
-          options.profile === "core" || options.profile === "full"
-            ? (options.profile as VaultProfile)
-            : undefined;
+          options.profile === "core" || options.profile === "full" ? options.profile : undefined;
         if (options.profile && !profile) {
           process.stderr.write("--profile must be 'core' or 'full'.\n");
           process.exitCode = 2;
