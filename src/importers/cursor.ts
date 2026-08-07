@@ -19,9 +19,10 @@ import {
  * the strongest project signal any importer gets.
  *
  * Reading it needs SQLite. Rather than pull in a native dependency for one
- * adapter, this uses `node:sqlite`, which is built in from Node 22.5. On older
- * runtimes the adapter reports itself as unavailable with a reason instead of
- * silently finding nothing.
+ * adapter, this uses the built-in `node:sqlite`. Every supported Node has it,
+ * but it is still loaded defensively: the module is behind an experimental flag
+ * on some builds, and an adapter that throws on import would take the whole
+ * source list down with it. When it is missing, the adapter says so.
  */
 
 interface SqliteRow {
@@ -48,8 +49,8 @@ let sqliteCache: SqliteModule | null | undefined;
 async function sqlite(): Promise<SqliteModule | null> {
   if (sqliteCache !== undefined) return sqliteCache;
   try {
-    // Not statically importable: @types/node for the supported floor (18) has
-    // no declaration for it, and the module is absent below Node 22.5.
+    // Indirect specifier: a static import would make a runtime without SQLite
+    // fail at module load rather than at the one call that needs it.
     const specifier = "node:sqlite";
     sqliteCache = (await import(/* @vite-ignore */ specifier)) as SqliteModule;
   } catch {
@@ -191,7 +192,7 @@ export const cursorAdapter: ImportAdapter = {
       return {
         source: "cursor",
         path,
-        detail: `${dirs.length} workspaces — needs Node 22.5+ for SQLite; this is ${process.version}`,
+        detail: `${dirs.length} workspaces — this Node build has no SQLite (${process.version})`,
       };
     }
     return { source: "cursor", path, detail: `${dirs.length} workspaces with chat history` };

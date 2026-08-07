@@ -14,7 +14,8 @@ npm install
 npm test
 ```
 
-Node 18.17 or newer. The CLI runs straight from source while you work:
+Node 22.12 or newer; 24 is the LTS the project is developed against. The CLI runs
+straight from source while you work:
 
 ```bash
 npx tsx src/cli.ts init /tmp/scratch-vault --name SCRATCH --operator You --defaults --no-git
@@ -25,7 +26,7 @@ Point it at a throwaway directory — never at your own vault.
 ## The checks
 
 Run these before opening a pull request. CI runs the same four, plus the test
-matrix on Linux, macOS, and Windows across Node 18, 20, and 22.
+matrix on Linux, macOS, and Windows across Node 22, 24, and 26.
 
 ```bash
 npm run typecheck
