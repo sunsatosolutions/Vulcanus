@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -7,6 +7,7 @@ import { PERSONAL_SKILL_DIRS, SKILL_DIRS, buildSkills, renderSkill } from "../ge
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { messages, type Locale } from "../i18n.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 const TARGETS: Array<{ tool: string; where: string }> = [
   { tool: "Claude Code", where: "~/.claude/skills/" },
@@ -28,8 +29,7 @@ export interface SkillsOptions {
 export async function skillsCommand(options: SkillsOptions = {}): Promise<number> {
   const vaultRoot = findVaultRoot(options.cwd ?? process.cwd());
   if (!vaultRoot) {
-    process.stderr.write("No vulcanus.json found. Run this inside a vault.\n");
-    return 2;
+    return reportProblem(noVaultProblem(options.cwd ?? process.cwd(), "vulcanus skills"));
   }
 
   const manifest = await readManifest(vaultRoot);

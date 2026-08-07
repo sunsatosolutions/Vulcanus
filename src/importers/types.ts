@@ -1,4 +1,5 @@
-export type ImportSourceId = "chatgpt" | "claude" | "claude-code" | "codex";
+export type ImportSourceId =
+  "chatgpt" | "claude" | "claude-code" | "codex" | "gemini" | "cursor" | "markdown";
 
 export type MessageRole = "user" | "assistant" | "other";
 

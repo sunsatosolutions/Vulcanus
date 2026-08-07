@@ -3,9 +3,19 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { runDoctor } from "../doctor/index.js";
 import { findVaultRoot } from "../manifest/io.js";
-import { appendDecision, listProjects, openVault, recall, search } from "../mcp/tools.js";
+import {
+  appendDecision,
+  appendRule,
+  CAPSULE_SECTIONS,
+  listProjects,
+  openVault,
+  recall,
+  search,
+  updateCapsule,
+} from "../mcp/tools.js";
 import { CLI_VERSION } from "../version.js";
 import { collectStatus } from "./status.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 export interface ServeOptions {
   cwd?: string;
@@ -27,16 +37,13 @@ function failure(message: string) {
  * The manifest is re-read on every call: the operator and other agents keep
  * editing the vault while the server runs, and stale plans must never answer.
  */
-export async function serveCommand(options: ServeOptions = {}): Promise<number> {
-  const start = options.cwd ?? process.cwd();
-  const vaultRoot = findVaultRoot(start);
-  if (!vaultRoot) {
-    process.stderr.write(
-      `No vulcanus.json found in ${start} or any parent directory.\nRun \`vulcanus serve\` inside a vault.\n`,
-    );
-    return 2;
-  }
-
+/**
+ * Build the server with every vault tool registered, without connecting it to
+ * a transport. Keeping construction separate is what lets the registration
+ * itself be tested over an in-memory transport instead of only the functions
+ * behind it.
+ */
+export function buildVaultServer(vaultRoot: string): McpServer {
   const server = new McpServer({ name: "vulcanus", version: CLI_VERSION });
 
   server.registerTool(
@@ -112,6 +119,46 @@ export async function serveCommand(options: ServeOptions = {}): Promise<number> 
   );
 
   server.registerTool(
+    "update_capsule",
+    {
+      title: "Refresh a capsule section",
+      description:
+        "Replace one section of a project's Capsule — the compressed summary every recall reads first. Use it after the operator confirms something that makes the summary wrong or incomplete; never to record a guess. `Read Next` is generated and cannot be written here.",
+      inputSchema: {
+        project: z.string().describe("Project name, id, or trigger word"),
+        section: z.enum(CAPSULE_SECTIONS).describe("Which capsule section to replace"),
+        body: z.string().describe("The section's new Markdown body, without the heading itself"),
+      },
+    },
+    async ({ project, section, body }) => {
+      const handle = await openVault(vaultRoot);
+      const result = await updateCapsule(handle, project, section, body);
+      if (!result) return failure(`No project matches "${project}", or its Capsule is missing.`);
+      return json(result);
+    },
+  );
+
+  server.registerTool(
+    "append_rule",
+    {
+      title: "Record a rule",
+      description:
+        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation.",
+      inputSchema: {
+        project: z.string().describe("Project name, id, or trigger word"),
+        name: z.string().describe('Short name for the rule, e.g. "Naming"'),
+        rule: z.string().describe("The rule itself, in one or two sentences"),
+      },
+    },
+    async ({ project, name, rule }) => {
+      const handle = await openVault(vaultRoot);
+      const result = await appendRule(handle, project, name, rule);
+      if (!result) return failure(`No project matches "${project}", or its Rules note is missing.`);
+      return json(result);
+    },
+  );
+
+  server.registerTool(
     "vault_status",
     {
       title: "Vault status",
@@ -135,6 +182,17 @@ export async function serveCommand(options: ServeOptions = {}): Promise<number> 
     },
   );
 
+  return server;
+}
+
+export async function serveCommand(options: ServeOptions = {}): Promise<number> {
+  const start = options.cwd ?? process.cwd();
+  const vaultRoot = findVaultRoot(start);
+  if (!vaultRoot) {
+    return reportProblem(noVaultProblem(start, "vulcanus serve"));
+  }
+
+  const server = buildVaultServer(vaultRoot);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   process.stderr.write(`vulcanus mcp server ready — vault: ${vaultRoot}\n`);

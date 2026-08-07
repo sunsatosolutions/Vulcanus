@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";

@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -20,6 +20,7 @@ import { messages, type Locale } from "../i18n.js";
 import { askMultiselect, askSelect, askText, setPromptLocale, splitList } from "../prompts.js";
 import { slugify } from "../util/text.js";
 import { reportDoctor } from "./doctor.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 export interface ApplyResult {
   created: string[];
@@ -262,8 +263,7 @@ export interface AddOptions {
 export async function addProjectCommand(options: AddOptions = {}): Promise<number> {
   const vaultRoot = findVaultRoot(options.cwd ?? process.cwd());
   if (!vaultRoot) {
-    process.stderr.write("No vulcanus.json found. Run `vulcanus init` first.\n");
-    return 2;
+    return reportProblem(noVaultProblem(options.cwd ?? process.cwd(), "vulcanus add project"));
   }
 
   const manifest = await readManifest(vaultRoot);

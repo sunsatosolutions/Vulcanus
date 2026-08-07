@@ -1,7 +1,8 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { generateFiles, writeFiles } from "../generate/index.js";
 import { runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 const SYMBOL: Record<string, string> = { error: "✖", warning: "▲", info: "·" };
 
@@ -33,10 +34,7 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
   const vaultRoot = findVaultRoot(start);
 
   if (!vaultRoot) {
-    process.stderr.write(
-      `No vulcanus.json found in ${start} or any parent directory.\nRun \`vulcanus init\` to create a vault.\n`,
-    );
-    return 2;
+    return reportProblem(noVaultProblem(start, "vulcanus doctor"));
   }
 
   const manifest = await readManifest(vaultRoot);

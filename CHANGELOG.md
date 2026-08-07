@@ -6,8 +6,54 @@
 
 `vulcanus serve` exposes the vault to MCP clients over stdio: `recall` (Capsule
 plus read order), layer-aware `search`, `list_projects`, `append_decision`,
-`vault_status`, and `doctor`. The manifest is re-read on every call, so edits
-made while the server runs are always visible.
+`append_rule`, `update_capsule`, `vault_status`, and `doctor`. The manifest is
+re-read on every call, so edits made while the server runs are always visible.
+
+`recall` reports its own freshness: when a Capsule is older than the Decisions,
+Rules, or Context beneath it, the answer carries a staleness warning instead of
+presenting an outdated summary as current. `update_capsule` replaces a single
+named section rather than rewriting the file, so an agent cannot quietly drop
+memory it did not think was important, and `Read Next` — the generated routing —
+is not writable at all.
+
+`serve` accepts `--cwd` for clients started outside the vault. Generated vaults
+now document the server themselves, in `USING-WITH-AI.md` and a `<vault>-serve`
+agent skill.
+
+### Token budget
+
+`vulcanus stats` reports what the structure actually costs: the cold-start read
+(`AGENTS.md`, Recall Map, Admin Profile), a typical task-scoped recall, and the
+whole vault, plus per-project capsule and cluster sizes. `--json` for scripts.
+
+Counts are estimated at ~4 characters per token and labelled as estimates
+everywhere they are printed — the ratio is the measurement, not the absolute
+number. [`docs/token-budget.md`](docs/token-budget.md) records a reproducible
+run and is explicit about what it does not prove.
+
+### Importers
+
+- **Gemini CLI** — `~/.gemini/tmp/**/logs.json` and saved `checkpoint-<tag>.json`
+  chats. A `/chat save` tag is treated as a real title; a rolling log is not.
+- **Cursor** — per-workspace chat history from `state.vscdb`, with the workspace
+  folder as the project signal. Uses the built-in `node:sqlite`, so it reports
+  itself unavailable below Node 22.5 rather than silently finding nothing.
+- **Markdown folder** — any directory of notes. Never probed automatically; only
+  scanned when the path is named, because scanning a home directory uninvited is
+  not something an importer should do.
+- **Incremental by default** — re-running `import` on the same source proposes
+  only what is new. Ids already read are remembered in the vault's state
+  directory; `--all` re-reads everything.
+- `import --json` prints candidates with their evidence and writes nothing.
+
+### Git hooks and watch mode
+
+- `vulcanus hooks install` writes a pre-commit hook that runs `doctor` and
+  refuses to commit a broken graph. It honours `core.hooksPath`, and it will not
+  overwrite or remove a hook it did not write without `--force`.
+- `vulcanus sync --watch` regenerates managed files and revalidates on every
+  edit. It never commits or pushes — a commit per keystroke would bury the
+  vault's history, and a push stays an explicit act.
 
 ### Project lifecycle
 
@@ -30,15 +76,56 @@ made while the server runs are always visible.
   `--git`/`--no-git`, …), `--defaults` answers the rest, and `--dry-run`
   prints the would-be file tree without writing. An explicit target no longer
   re-asks the destination.
+- `--verbose` and `--quiet` on every command. `--json` implies quiet, so
+  machine-readable output owns stdout.
+- `sync --json` reports the doctor result, the pending changes, the commit hash,
+  and whether the push actually happened.
+- `vulcanus completion bash|zsh|fish|pwsh` prints a completion script, generated
+  from one description of the CLI so a new command cannot reach three shells and
+  miss the fourth.
+
+### Errors and exit codes
+
+Every failure now says what happened, why, and what to do about it, and the exit
+codes are documented as a contract: `0` success, `1` failed validation, `2`
+misuse (no vault, bad flag), `130` cancelled at a prompt.
+
+### Agent protocol versioning
+
+`AGENTS.md` carries a protocol stamp. `doctor` warns when a vault still
+describes an older protocol — its agents are following superseded instructions —
+and refuses a vault whose protocol is newer than the CLI understands. `doctor`
+also catches the skill copies in `.claude/skills/` and `.agents/skills/` drifting
+apart, which would otherwise make an agent behave differently depending on which
+tool loaded it.
 
 ### Quality
 
 - CI on GitHub Actions: typecheck, lint, format check, and the test suite
   across Node 18/20/22 on Linux, macOS, and Windows.
 - ESLint (type-checked) added and the codebase cleaned against it.
-- Test suite grown from 59 to 93: end-to-end init, doctor `--repair` and
+- Test suite grown from 59 to 140: end-to-end init, doctor `--repair` and
   `--json`, manifest migrations, project lifecycle, capsule freshness, i18n
-  message integrity, and the MCP tool layer.
+  message integrity, the MCP tool layer and its registration over an in-memory
+  transport, importer edge cases (empty exports, corrupt batches, truncated
+  session logs, exotic unicode titles), stats, completion, hooks, and the error
+  format.
+- Coverage thresholds enforced in CI: lines 85%, branches 75%, functions 80%.
+- **Windows CI fixed.** `node --test test/*.test.ts` relies on shell glob
+  expansion, which PowerShell does not do, so every Windows leg was failing
+  before it ran a single test. The file list is expanded in JavaScript now.
+- Vault-internal paths are normalized to forward slashes on every platform, so a
+  path read from the filesystem can never fail to match a planned path on
+  Windows.
+- Release automation: `npm run release -- <version|major|minor|patch>` bumps
+  `package.json`, `src/version.ts`, and the CHANGELOG heading together, and
+  pushing the `v*` tag publishes to npm with provenance and drafts the GitHub
+  release from the hand-written notes. A test fails if `CLI_VERSION` and
+  `package.json` ever drift apart.
+- Dependabot for npm and GitHub Actions, weekly and grouped.
+- `exports` map and generated type declarations, so the vault operations can be
+  used programmatically and not only through the CLI.
+- `CONTRIBUTING.md`, issue forms, and a pull request template.
 
 ## 0.3.3
 

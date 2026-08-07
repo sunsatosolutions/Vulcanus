@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { runDoctor } from "../doctor/index.js";
 import { generateFiles, writeFiles, type WriteResult } from "../generate/index.js";
 import { buildPlan } from "../manifest/derive.js";
@@ -8,6 +8,7 @@ import { MANIFEST_VERSION, type VaultManifest, type VaultProfile } from "../mani
 import { compareVersions } from "../util/semver.js";
 import { CLI_VERSION } from "../version.js";
 import { reportDoctor } from "./doctor.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 export interface UpdateOptions {
   cwd?: string;
@@ -47,8 +48,7 @@ function partition(results: WriteResult[]) {
 export async function updateCommand(options: UpdateOptions = {}): Promise<number> {
   const vaultRoot = findVaultRoot(options.cwd ?? process.cwd());
   if (!vaultRoot) {
-    process.stderr.write("No vulcanus.json found. Run `vulcanus init` first.\n");
-    return 2;
+    return reportProblem(noVaultProblem(options.cwd ?? process.cwd(), "vulcanus update"));
   }
 
   const existing = await readManifest(vaultRoot);
@@ -56,15 +56,11 @@ export async function updateCommand(options: UpdateOptions = {}): Promise<number
 
   const migration = migrateManifest(existing);
   if (migration.fromFuture) {
-    process.stderr.write(
-      [
-        `This vault uses manifest version ${existing.manifestVersion}, but this CLI understands ${MANIFEST_VERSION}.`,
-        `It was written by Vulcanus ${fromVersion}; you are running ${CLI_VERSION}.`,
-        "Upgrade the CLI first: npm i -g vulcanus@latest",
-        "",
-      ].join("\n"),
-    );
-    return 2;
+    return reportProblem({
+      what: `This vault is newer than the CLI reading it.`,
+      why: `The vault's manifest is version ${existing.manifestVersion}; this CLI (${CLI_VERSION}) understands ${MANIFEST_VERSION}. It was written by Vulcanus ${fromVersion}.`,
+      fix: "npm i -g @sunsato/vulcanus@latest",
+    });
   }
 
   const manifest: VaultManifest = {

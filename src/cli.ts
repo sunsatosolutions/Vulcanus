@@ -2,7 +2,9 @@
 import { Command } from "commander";
 import { addProjectCommand } from "./commands/add.js";
 import { agentsCommand } from "./commands/agents.js";
+import { completionCommand, SHELLS } from "./commands/completion.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
 import {
@@ -12,10 +14,13 @@ import {
 } from "./commands/project.js";
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
+import { statsCommand } from "./commands/stats.js";
 import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
 import type { ImportSourceId } from "./importers/index.js";
+import { badChoiceProblem, CliError, EXIT, formatProblem, reportProblem } from "./errors.js";
+import { setLogLevel } from "./ui.js";
 import { updateNotice } from "./update-check.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -25,7 +30,29 @@ async function main(): Promise<void> {
   program
     .name("vulcanus")
     .description("Scaffold and maintain an AI-readable second-brain vault.")
-    .version(CLI_VERSION);
+    .version(CLI_VERSION)
+    .option("--verbose", "print the per-file detail commands normally summarize")
+    .option("-q, --quiet", "print only errors; exit codes still carry the result")
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Exit codes:",
+        "  0    the command did what it said",
+        "  1    the vault or the operation failed validation",
+        "  2    the command was used wrongly (no vault, bad flag)",
+        "  130  cancelled at a prompt",
+      ].join("\n"),
+    );
+
+  // Global volume is resolved once, before any command body runs.
+  program.hook("preAction", (_program, action) => {
+    const global = program.opts<{ verbose?: boolean; quiet?: boolean }>();
+    const local = action.opts<{ json?: boolean }>();
+    // Machine-readable output owns stdout: spinners and notes would corrupt it.
+    if (global.quiet || local.json) setLogLevel("quiet");
+    else if (global.verbose) setLogLevel("verbose");
+  });
 
   program
     .command("init", { isDefault: true })
@@ -74,15 +101,17 @@ async function main(): Promise<void> {
         const naming =
           options.naming === "branded" || options.naming === "generic" ? options.naming : undefined;
         if (options.naming && !naming) {
-          process.stderr.write("--naming must be 'branded' or 'generic'.\n");
-          process.exitCode = 2;
+          process.exitCode = reportProblem(
+            badChoiceProblem("--naming", options.naming, ["branded", "generic"]),
+          );
           return;
         }
         const profile =
           options.profile === "core" || options.profile === "full" ? options.profile : undefined;
         if (options.profile && !profile) {
-          process.stderr.write("--profile must be 'core' or 'full'.\n");
-          process.exitCode = 2;
+          process.exitCode = reportProblem(
+            badChoiceProblem("--profile", options.profile, ["core", "full"]),
+          );
           return;
         }
         process.exitCode = await initCommand({
@@ -113,6 +142,14 @@ async function main(): Promise<void> {
     .option("--json", "print the summary as JSON")
     .action(async (options: { json?: boolean }) => {
       process.exitCode = await statusCommand(options);
+    });
+
+  program
+    .command("stats")
+    .description("Token budget: what a cold-start agent reads, and what recall saves")
+    .option("--json", "print the report as JSON")
+    .action(async (options: { json?: boolean }) => {
+      process.exitCode = await statsCommand(options);
     });
 
   program
@@ -164,16 +201,28 @@ async function main(): Promise<void> {
   program
     .command("import")
     .description("Propose projects from an AI conversation export")
-    .option("-s, --source <source>", "chatgpt | claude | claude-code | codex")
+    .option(
+      "-s, --source <source>",
+      "chatgpt | claude | claude-code | codex | gemini | cursor | markdown",
+    )
     .option("-p, --path <path>", "path to the export or session directory")
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
-    .action(async (options: { source?: string; path?: string; ai?: string | boolean }) => {
-      process.exitCode = await importCommand({
-        source: options.source as ImportSourceId | undefined,
-        path: options.path,
-        ai: options.ai,
-      });
-    });
+    .option("--json", "analyze and print the candidates as JSON; writes nothing")
+    .action(
+      async (options: {
+        source?: string;
+        path?: string;
+        ai?: string | boolean;
+        json?: boolean;
+      }) => {
+        process.exitCode = await importCommand({
+          source: options.source as ImportSourceId | undefined,
+          path: options.path,
+          ai: options.ai,
+          json: options.json,
+        });
+      },
+    );
 
   program
     .command("agents")
@@ -196,8 +245,9 @@ async function main(): Promise<void> {
   program
     .command("serve")
     .description("Serve the vault to MCP clients over stdio: recall, search, append_decision, …")
-    .action(async () => {
-      process.exitCode = await serveCommand();
+    .option("--cwd <dir>", "vault directory to serve, for clients started elsewhere")
+    .action(async (options: { cwd?: string }) => {
+      process.exitCode = await serveCommand(options);
     });
 
   program
@@ -212,8 +262,9 @@ async function main(): Promise<void> {
         const profile =
           options.profile === "core" || options.profile === "full" ? options.profile : undefined;
         if (options.profile && !profile) {
-          process.stderr.write("--profile must be 'core' or 'full'.\n");
-          process.exitCode = 2;
+          process.exitCode = reportProblem(
+            badChoiceProblem("--profile", options.profile, ["core", "full"]),
+          );
           return;
         }
         process.exitCode = await updateCommand({ ...options, profile });
@@ -225,8 +276,45 @@ async function main(): Promise<void> {
     .description("Validate, then commit and push the vault")
     .argument("[topic]", "short topic for the commit message")
     .option("--dry-run", "validate and show pending changes without committing")
-    .action(async (topic: string | undefined, options: { dryRun?: boolean }) => {
-      process.exitCode = await syncCommand({ topic, dryRun: options.dryRun });
+    .option("--json", "print the result as JSON")
+    .option("--watch", "keep running: regenerate and revalidate on every edit, never commit")
+    .action(
+      async (
+        topic: string | undefined,
+        options: { dryRun?: boolean; json?: boolean; watch?: boolean },
+      ) => {
+        process.exitCode = await syncCommand({
+          topic,
+          dryRun: options.dryRun,
+          json: options.json,
+          watch: options.watch,
+        });
+      },
+    );
+
+  const hooks = program
+    .command("hooks")
+    .description("Git hooks that keep a broken memory graph out of history");
+  hooks
+    .command("install")
+    .description("Install a pre-commit hook that runs `vulcanus doctor`")
+    .option("--force", "replace a pre-commit hook this CLI did not write")
+    .action(async (options: { force?: boolean }) => {
+      process.exitCode = await installHooksCommand(options);
+    });
+  hooks
+    .command("uninstall")
+    .description("Remove the pre-commit hook")
+    .action(async () => {
+      process.exitCode = await uninstallHooksCommand();
+    });
+
+  program
+    .command("completion")
+    .description(`Print a shell completion script: ${SHELLS.join(" | ")}`)
+    .argument("[shell]", SHELLS.join(" | "))
+    .action((shell: string | undefined) => {
+      process.exitCode = completionCommand(shell);
     });
 
   await program.parseAsync(process.argv);
@@ -239,6 +327,19 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
+  if (error instanceof CliError) {
+    process.stderr.write(formatProblem(error.problem));
+    process.exitCode = error.exitCode;
+    return;
+  }
+  // An unexpected throw is a bug in the CLI, not operator error: say so, and
+  // point at the one place that can act on it.
+  process.stderr.write(
+    formatProblem({
+      what: error instanceof Error ? error.message : String(error),
+      why: "Vulcanus did not expect this failure.",
+      fix: "Report it: https://github.com/sunsatosolutions/Vulcanus/issues",
+    }),
+  );
+  process.exitCode = EXIT.failed;
 });

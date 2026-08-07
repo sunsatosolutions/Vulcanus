@@ -7,8 +7,9 @@
  * confirmed outcomes back (`append_decision`) so the next agent starts warmer.
  */
 import { existsSync } from "node:fs";
-import { appendFile, readFile, readdir } from "node:fs/promises";
+import { appendFile, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { findStaleCapsules } from "../commands/status.js";
 import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
@@ -57,6 +58,12 @@ export interface RecallResult {
   capsule: { name: string; path: string; content: string };
   /** Deeper notes in the order the vault protocol says to read them. */
   readNext: Array<{ name: string; path: string }>;
+  /**
+   * Set when the capsule is older than the notes it summarizes. An agent that
+   * recalls a stale capsule would otherwise answer confidently from a summary
+   * that no longer matches the decisions underneath it.
+   */
+  staleWarning?: string;
 }
 
 /**
@@ -70,11 +77,20 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
   const capsulePath = resolve(handle.vaultRoot, project.capsule.path);
   const content = existsSync(capsulePath) ? await readFile(capsulePath, "utf8") : "";
 
+  const stale = (await findStaleCapsules(handle.vaultRoot, handle.plan)).find(
+    (entry) => entry.project === project.project.name,
+  );
+
   return {
     project: project.project.name,
     summary: project.project.summary,
     status: project.project.status,
     capsule: { name: project.capsule.name, path: project.capsule.path, content },
+    ...(stale
+      ? {
+          staleWarning: `${stale.capsule} is older than ${stale.changedSince.join(", ")}. Read those before trusting the summary, and refresh the capsule once the operator confirms what changed.`,
+        }
+      : {}),
     readNext: [
       project.hub,
       project.decisions,
@@ -177,6 +193,99 @@ export async function appendDecision(
 
   await appendFile(path, section, "utf8");
   return { project: project.project.name, path: project.decisions.path };
+}
+
+export interface SectionUpdateResult {
+  project: string;
+  path: string;
+  section: string;
+  /** The heading existed and was replaced, rather than appended. */
+  replaced: boolean;
+}
+
+/**
+ * Replace one `## Section` in a note, keeping every other section untouched.
+ * Whole-file rewrites are what let an agent quietly drop memory it did not
+ * think was important, so writes are always scoped to a named section.
+ */
+export function replaceSection(content: string, heading: string, body: string): string | null {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^## ${escaped}\\s*$([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, "m");
+  if (!pattern.test(content)) return null;
+  return content.replace(pattern, `## ${heading}\n\n${body.trim()}\n\n`);
+}
+
+/** The capsule sections an agent may rewrite, in the order the note lists them. */
+export const CAPSULE_SECTIONS = [
+  "Identity",
+  "Current Scope",
+  "Must Remember",
+  "Do Not Assume",
+  "Needs Confirmation",
+] as const;
+
+export type CapsuleSection = (typeof CAPSULE_SECTIONS)[number];
+
+/**
+ * Refresh one section of a project's Capsule. `Read Next` is deliberately not
+ * writable: it is the routing the generator owns, and an agent editing it would
+ * break the link graph doctor validates.
+ */
+export async function updateCapsule(
+  handle: VaultHandle,
+  projectQuery: string,
+  section: CapsuleSection,
+  body: string,
+): Promise<SectionUpdateResult | null> {
+  const project = matchProject(handle.plan, projectQuery);
+  if (!project) return null;
+
+  const path = resolve(handle.vaultRoot, project.capsule.path);
+  if (!existsSync(path)) return null;
+
+  const current = await readFile(path, "utf8");
+  const updated = replaceSection(current, section, body);
+  if (updated === null) {
+    // A capsule from an older generator may not carry every section yet.
+    const appended = `${current.trimEnd()}\n\n## ${section}\n\n${body.trim()}\n`;
+    await writeFile(path, appended, "utf8");
+    return {
+      project: project.project.name,
+      path: project.capsule.path,
+      section,
+      replaced: false,
+    };
+  }
+
+  await writeFile(path, updated, "utf8");
+  return { project: project.project.name, path: project.capsule.path, section, replaced: true };
+}
+
+export interface AppendRuleResult {
+  project: string;
+  path: string;
+  rule: string;
+}
+
+/**
+ * Add a rule to a project's Rules note as its own `## <name> Rule` section, in
+ * the same shape the generated rules use.
+ */
+export async function appendRule(
+  handle: VaultHandle,
+  projectQuery: string,
+  name: string,
+  rule: string,
+): Promise<AppendRuleResult | null> {
+  const project = matchProject(handle.plan, projectQuery);
+  if (!project) return null;
+
+  const path = resolve(handle.vaultRoot, project.rules.path);
+  if (!existsSync(path)) return null;
+
+  const heading = /rule$/i.test(name.trim()) ? name.trim() : `${name.trim()} Rule`;
+  await appendFile(path, `\n## ${heading}\n\n${rule.trim()}\n`, "utf8");
+  return { project: project.project.name, path: project.rules.path, rule: heading };
 }
 
 export interface ProjectListing {

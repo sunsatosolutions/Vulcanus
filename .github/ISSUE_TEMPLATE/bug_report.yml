@@ -1,0 +1,48 @@
+name: Bug report
+description: Something the CLI did that it should not have
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a generated vault contains wrong or misleading content, say so plainly —
+        that is the most important class of bug here.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what it did.
+      placeholder: |
+        $ vulcanus doctor
+        …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `vulcanus --version`, `node --version`, and your OS.
+      placeholder: |
+        vulcanus 0.4.0
+        node v22.11.0
+        macOS 15.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: vulcanus doctor --json
+      description: Optional, but it answers most questions at once. Redact anything private.
+      render: json
+    validations:
+      required: false

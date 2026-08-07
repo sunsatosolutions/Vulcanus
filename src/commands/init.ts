@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";

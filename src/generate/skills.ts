@@ -287,6 +287,52 @@ function updateSkill(plan: VaultPlan, vaultPath: string | undefined): SkillDefin
   };
 }
 
+function serveSkill(plan: VaultPlan, vaultPath: string | undefined): SkillDefinition {
+  const { vault, admin } = plan.manifest;
+  const slug = slugify(vault.name) || "vault";
+
+  return {
+    name: `${slug}-serve`,
+    description: `Expose the ${vault.name} vault to MCP clients with \`vulcanus serve\`. Use when ${admin.name} asks to connect ${vault.name} to Claude Code, Cursor, or another MCP client, asks why the vulcanus MCP tools are missing, or wants recall available as tools instead of file reads. Registration changes the client's configuration, so it needs ${admin.name}'s confirmation.`,
+    body: joinSections([
+      `Serve ${vault.name} over MCP so recall, search, and confirmed writes are typed tool calls instead of improvised file reads.`,
+      ["## Where the vault is", "", workingDirectory(vault.name, vaultPath)].join("\n"),
+      [
+        "## Register it once",
+        "",
+        fence(
+          vaultPath
+            ? `claude mcp add vulcanus -- vulcanus serve --cwd "${vaultPath}"`
+            : "claude mcp add vulcanus -- vulcanus serve",
+        ),
+        "",
+        `This edits ${admin.name}'s MCP client configuration, so ask before running it. Any MCP client works — the transport is stdio and the server is \`vulcanus serve\` run inside the vault.`,
+      ].join("\n"),
+      [
+        "## The tools",
+        "",
+        bulletList([
+          "`recall` — the Capsule plus the read-next order. Call this before working on a project.",
+          "`search` — layer-aware search; Capsule and Recall Map hits rank first.",
+          "`list_projects` — the routing table.",
+          "`append_decision`, `append_rule` — record confirmed outcomes.",
+          "`update_capsule` — refresh one Capsule section when the summary no longer matches.",
+          "`vault_status`, `doctor` — health and full validation.",
+        ]),
+        "",
+        `Writes go in only after ${admin.name} confirms. A \`recall\` answer carrying a staleness warning means the Capsule is older than the notes beneath it: read those before trusting it.`,
+      ].join("\n"),
+      [
+        "## Report",
+        "",
+        REPORTING,
+        "",
+        "If the server exits with code 2, it was started outside a vault; run it from the vault directory.",
+      ].join("\n"),
+    ]),
+  };
+}
+
 /**
  * One skill per vault operation the CLI already exposes, plus the recall
  * routing. `vaultPath` is set only for skills installed outside the vault,
@@ -300,6 +346,7 @@ export function buildSkills(plan: VaultPlan, vaultPath?: string): SkillDefinitio
     addProjectSkill(plan, vaultPath),
     importSkill(plan, vaultPath),
     updateSkill(plan, vaultPath),
+    serveSkill(plan, vaultPath),
   ];
 }
 

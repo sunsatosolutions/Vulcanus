@@ -5,6 +5,9 @@ import { chatgptAdapter } from "./chatgpt.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { claudeExportAdapter } from "./claude-export.js";
 import { codexAdapter } from "./codex.js";
+import { cursorAdapter } from "./cursor.js";
+import { geminiAdapter } from "./gemini.js";
+import { markdownAdapter } from "./markdown.js";
 import type { DetectedSource, ImportAdapter, ImportSourceId } from "./types.js";
 
 export const ADAPTERS: ImportAdapter[] = [
@@ -12,6 +15,9 @@ export const ADAPTERS: ImportAdapter[] = [
   claudeExportAdapter,
   claudeCodeAdapter,
   codexAdapter,
+  geminiAdapter,
+  cursorAdapter,
+  markdownAdapter,
 ];
 
 export function adapterFor(id: ImportSourceId): ImportAdapter | undefined {

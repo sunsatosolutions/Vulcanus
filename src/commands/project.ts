@@ -1,4 +1,4 @@
-import * as p from "@clack/prompts";
+import * as p from "../ui.js";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -10,6 +10,7 @@ import { findVaultRoot, readManifest, writeManifest } from "../manifest/io.js";
 import { validateManifest, type VaultManifest } from "../manifest/schema.js";
 import { safeFileName } from "../util/text.js";
 import { reportDoctor } from "./doctor.js";
+import { noVaultProblem, reportProblem } from "../errors.js";
 
 export interface ProjectCommandOptions {
   cwd?: string;
@@ -34,17 +35,19 @@ async function locate(cwd: string | undefined, name: string): Promise<Located | 
   const start = cwd ?? process.cwd();
   const vaultRoot = findVaultRoot(start);
   if (!vaultRoot) {
-    process.stderr.write(`No vulcanus.json found in ${start} or any parent directory.\n`);
-    return 2;
+    return reportProblem(noVaultProblem(start, "vulcanus project"));
   }
 
   const manifest = await readManifest(vaultRoot);
   const project = findProject(manifest, name);
   if (!project) {
-    process.stderr.write(
-      `No project named "${name}". Projects: ${manifest.projects.map((entry) => entry.name).join(", ") || "none"}.\n`,
-    );
-    return 2;
+    return reportProblem({
+      what: `No project named "${name}" in ${manifest.vault.name}.`,
+      why: `Known projects: ${manifest.projects.map((entry) => entry.name).join(", ") || "none yet"}.`,
+      fix: manifest.projects.length
+        ? "Use the name or id exactly as `vulcanus status` lists it."
+        : "vulcanus add project <name>",
+    });
   }
 
   const plan = buildPlan(manifest).allProjects.find((entry) => entry.project.id === project.id)!;
@@ -94,12 +97,14 @@ export async function removeProjectCommand(
   const { vaultRoot, manifest, plan } = located;
 
   if (plan.children.length > 0) {
-    process.stderr.write(
-      `${plan.project.name} has sub-projects (${plan.children
-        .map((child) => child.project.name)
-        .join(", ")}). Remove or re-parent them first.\n`,
-    );
-    return 2;
+    return reportProblem({
+      what: `${plan.project.name} cannot be removed yet.`,
+      why: `It still has sub-projects: ${plan.children.map((child) => child.project.name).join(", ")}.`,
+      fix: [
+        "Remove them first, or re-parent them:",
+        `vulcanus project remove ${plan.children[0].project.name}`,
+      ],
+    });
   }
 
   p.intro(`remove project — ${plan.project.name}`);
@@ -164,7 +169,13 @@ export async function archiveProjectCommand(
 
   const status = options.restore ? "active" : "archived";
   if (plan.project.status === status) {
-    process.stderr.write(`${plan.project.name} is already ${status}.\n`);
+    reportProblem({
+      what: `${plan.project.name} is already ${status}.`,
+      why: "Nothing to change.",
+      fix: options.restore
+        ? `vulcanus project archive ${plan.project.name}   # to archive it instead`
+        : `vulcanus project archive ${plan.project.name} --restore   # to make it active again`,
+    });
     return 0;
   }
 
@@ -204,12 +215,18 @@ export async function renameProjectCommand(
 
   const trimmed = newName.trim();
   if (!trimmed || !safeFileName(trimmed)) {
-    process.stderr.write(`"${newName}" is not a usable project name.\n`);
-    return 2;
+    return reportProblem({
+      what: `"${newName}" is not a usable project name.`,
+      why: "A name must contain at least one letter or digit.",
+      fix: "Pick a name that reads the way you would say it out loud.",
+    });
   }
   if (findProject(manifest, trimmed)) {
-    process.stderr.write(`A project named "${trimmed}" already exists.\n`);
-    return 2;
+    return reportProblem({
+      what: `A project named "${trimmed}" already exists.`,
+      why: "Two clusters with one name would make every wikilink ambiguous.",
+      fix: "Pick a different name, or rename the existing project first.",
+    });
   }
 
   const next: VaultManifest = {
