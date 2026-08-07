@@ -99,6 +99,16 @@ also catches the skill copies in `.claude/skills/` and `.agents/skills/` driftin
 apart, which would otherwise make an agent behave differently depending on which
 tool loaded it.
 
+### Node baseline
+
+Supported Node moves to **22.12 or newer**, tested on 22, 24 (the LTS the
+project is developed against), and 26. The dependency majors this unlocks —
+commander 15 and @clack/prompts 1.x — set that floor themselves, and staying
+below it would have meant freezing both indefinitely.
+
+The Cursor importer no longer needs a version check for `node:sqlite`: every
+supported Node has it.
+
 ### Quality
 
 - CI on GitHub Actions: typecheck, lint, format check, and the test suite

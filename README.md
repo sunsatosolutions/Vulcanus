@@ -50,7 +50,7 @@ Before anything else, Vulcanus offers to read an existing AI history and propose
 | Claude Code | `~/.claude/projects/**/*.jsonl` |
 | Codex | `~/.codex/**/rollout-*.jsonl` |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` and saved `checkpoint-<tag>.json` chats |
-| Cursor | per-workspace chat history (`state.vscdb`); needs Node 22.5+ for SQLite |
+| Cursor | per-workspace chat history (`state.vscdb`), read through the built-in `node:sqlite` |
 | Markdown folder | any directory of notes — the folder names become the project signal |
 
 Locations are auto-detected, so usually you just pick one from a list. A Markdown folder is the exception: it is never probed on its own, and only scanned when you name the path.

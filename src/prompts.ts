@@ -72,8 +72,10 @@ const clackDriver: PromptDriver = {
       placeholder: request.placeholder,
       defaultValue: request.defaultValue,
       initialValue: request.initialValue,
+      // @clack/prompts 1.x hands the validator `undefined` when the field was
+      // submitted empty, which is exactly the case a required field must catch.
       validate: request.required
-        ? (value) => (value.trim() ? undefined : messages(activeLocale).required)
+        ? (value) => (value?.trim() ? undefined : messages(activeLocale).required)
         : undefined,
     });
     return unwrap(answer) ?? "";
