@@ -16,6 +16,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { nextVersion } from "./version-bump.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -38,16 +39,12 @@ const changelogPath = resolve(root, "CHANGELOG.md");
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const current = packageJson.version;
 
-function nextVersion(from, bump) {
-  if (/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(bump)) return bump;
-  const [major, minor, patch] = from.split(".").map(Number);
-  if (bump === "major") return `${major + 1}.0.0`;
-  if (bump === "minor") return `${major}.${minor + 1}.0`;
-  if (bump === "patch") return `${major}.${minor}.${patch + 1}`;
-  return fail(`Not a version or bump keyword: ${bump}`);
+let next;
+try {
+  next = nextVersion(current, requested);
+} catch (error) {
+  fail(error.message);
 }
-
-const next = nextVersion(current, requested);
 if (next === current) fail(`Already at ${current}.`);
 
 // The CHANGELOG must describe the release before it is cut: an empty

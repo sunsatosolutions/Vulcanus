@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { describe, it } from "node:test";
+import { nextVersion } from "../scripts/version-bump.mjs";
 import { CLI_VERSION } from "../src/version.js";
 
 const run = promisify(execFile);
@@ -32,15 +33,39 @@ describe("release metadata", () => {
     assert.ok(documented, `CHANGELOG.md mentions neither ${published} nor an Unreleased section`);
   });
 
-  it("bumps every version site in one pass", async () => {
-    const { stdout } = await run(
+  it("resolves a bump keyword or an explicit version", () => {
+    assert.equal(nextVersion("0.4.0", "patch"), "0.4.1");
+    assert.equal(nextVersion("0.4.1", "minor"), "0.5.0");
+    assert.equal(nextVersion("0.5.0", "major"), "1.0.0");
+    assert.equal(nextVersion("0.4.0", "1.2.3"), "1.2.3");
+    assert.equal(nextVersion("0.4.0", "1.0.0-rc.1"), "1.0.0-rc.1");
+    assert.throws(() => nextVersion("0.4.0", "bogus"), /Not a version or bump keyword/);
+  });
+
+  // Cutting a release empties the Unreleased section, and the script refuses to
+  // release nothing. Both states are correct, so the test asserts whichever one
+  // the CHANGELOG is actually in rather than pinning the repository to one.
+  it("refuses to cut a release the changelog does not describe", async () => {
+    const changelog = await readFile(resolve(root, "CHANGELOG.md"), "utf8");
+    const unreleased = /^## Unreleased\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(changelog);
+    assert.ok(unreleased, "CHANGELOG.md must keep an `## Unreleased` section");
+
+    const dryRun = run(
       process.execPath,
       [resolve(root, "scripts/release.mjs"), "minor", "--dry-run"],
-      { cwd: root },
+      {
+        cwd: root,
+      },
     );
-    const current = await packageVersion();
-    const [major, minor] = current.split(".").map(Number);
-    assert.match(stdout, new RegExp(`${current} -> ${major}\\.${minor + 1}\\.0`));
+
+    if (unreleased[1].trim()) {
+      const { stdout } = await dryRun;
+      const current = await packageVersion();
+      assert.match(stdout, new RegExp(`${current} -> ${nextVersion(current, "minor")}`));
+      return;
+    }
+
+    await assert.rejects(dryRun, /`## Unreleased` section is empty/);
   });
 
   it("extracts a changelog section for the release notes", async () => {

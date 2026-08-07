@@ -31,7 +31,7 @@ export default tseslint.config(
   {
     // Release and test-runner helpers: plain Node scripts, outside the TypeScript
     // project, so the type-aware rules have nothing to work from.
-    files: ["scripts/**/*.mjs"],
+    files: ["scripts/**/*.mjs", "scripts/**/*.d.mts"],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       parserOptions: { project: false, projectService: false },

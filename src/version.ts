@@ -1,5 +1,5 @@
 /** Kept in sync with package.json; used in the manifest's generator stamp. */
-export const CLI_VERSION = "0.3.3";
+export const CLI_VERSION = "0.4.0";
 
 /**
  * The published package name. The unscoped `vulcanus` on npm belongs to an

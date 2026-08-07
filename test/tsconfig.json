@@ -4,5 +4,7 @@
     "rootDir": "..",
     "noEmit": true
   },
-  "include": ["./**/*.ts", "../src/**/*.ts"]
+  // The release helper is plain JavaScript with a hand-written declaration; the
+  // test imports it, so the declaration has to be part of this project.
+  "include": ["./**/*.ts", "../src/**/*.ts", "../scripts/**/*.d.mts"]
 }

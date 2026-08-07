@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 — 2026-08-07
+
 ### MCP server
 
 `vulcanus serve` exposes the vault to MCP clients over stdio: `recall` (Capsule
