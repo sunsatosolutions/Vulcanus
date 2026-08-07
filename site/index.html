@@ -50,7 +50,7 @@
             "description": "A command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that humans and AI agents can both navigate.",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Linux, Windows",
-            "softwareVersion": "0.4.0",
+            "softwareVersion": "0.4.1",
             "license": "https://opensource.org/licenses/MIT",
             "downloadUrl": "https://www.npmjs.com/package/@sunsato/vulcanus",
             "codeRepository": "https://github.com/sunsatosolutions/Vulcanus",
@@ -1022,8 +1022,10 @@
               grows.
             </p>
             <div class="note">
-              <strong>Your writing is never overwritten.</strong> Generated scaffolding can be
-              refreshed; the notes holding actual memory are written once and left alone.
+              <strong>Your writing is never overwritten.</strong> Notes, hubs, and the index hold
+              what you wrote, so an upgrade links a new project in rather than regenerating the file
+              around it. The agent protocol is merged: sections you added stay, sections the
+              protocol gained arrive.
             </div>
           </div>
 
@@ -1035,6 +1037,7 @@
             <li>Every project is reachable from the routing layer</li>
             <li>No duplicate or case-colliding note names</li>
             <li>Raw exports are actually ignored by Git</li>
+            <li>Agents are following the current protocol, not a superseded one</li>
           </ul>
         </div>
       </section>

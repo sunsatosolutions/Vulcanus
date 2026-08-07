@@ -253,6 +253,8 @@ After a command, the CLI checks npm at most once a day and prints a one-line not
 - every project has a Capsule reachable from the Recall Map
 - no duplicate or case-colliding note names
 - raw exports and generated state are actually ignored by Git
+- `AGENTS.md` describes the agent protocol this CLI writes, not a superseded one
+- the skill copies in `.claude/skills/` and `.agents/skills/` have not drifted apart
 
 Missing structure is an error; extra hand-added links are a warning, because a vault is meant to be written in.
 
@@ -260,10 +262,13 @@ Missing structure is an error; extra hand-added links are a warning, because a v
 
 ## Editing safety
 
-Generated files fall into two classes:
+Generated files fall into three classes:
 
-- **managed** — `AGENTS.md`, the Index, hubs that are pure navigation, the Import Log, and the generated skills. `doctor --repair` rewrites these.
-- **seed** — everything holding actual memory, including the Recall Map and every project note. These are written once and never overwritten. Adding a project appends a route and a sub-project link surgically instead of regenerating the file.
+- **seed** — everything that can hold what you wrote: every project note, the Recall Map, the Index, every hub, and the Import Log. Written once, never overwritten. Adding a project or deepening the system layer inserts the missing links surgically instead of regenerating the file around them.
+- **managed** — files the CLI fully owns: `CLAUDE.md`, the Cursor rule, and the generated skills. `doctor --repair` rewrites these.
+- **merge** — `AGENTS.md` alone. It has to be both: the protocol every agent reads, so a new step must reach existing vaults, and a file you extend with instructions of your own. An update keeps every section you already have, inserts the ones the protocol added, and refreshes its version stamp. Wording changes to a section you customized will not reach you — losing your customization would be worse.
+
+`--force` still rewrites everything, including your own notes. It is the only flag that does.
 
 ## Vault naming
 
