@@ -50,7 +50,7 @@
             "description": "A command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that humans and AI agents can both navigate.",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Linux, Windows",
-            "softwareVersion": "0.3.0",
+            "softwareVersion": "0.4.0",
             "license": "https://opensource.org/licenses/MIT",
             "downloadUrl": "https://www.npmjs.com/package/@sunsato/vulcanus",
             "codeRepository": "https://github.com/sunsatosolutions/Vulcanus",
@@ -687,6 +687,8 @@
         <div class="nav-links">
           <a href="#how">How it works</a>
           <a href="#import">Import</a>
+          <a href="#mcp">MCP</a>
+          <a href="#budget">Token budget</a>
           <a href="#agents">Agents</a>
           <a href="#obsidian">Obsidian</a>
           <a
@@ -721,7 +723,7 @@
           <code id="install-cmd">npx @sunsato/vulcanus</code>
           <button class="copy" type="button" data-target="install-cmd">Copy</button>
         </div>
-        <p class="sub-install">No account. Nothing leaves your machine. Node 18+.</p>
+        <p class="sub-install">No account. Nothing leaves your machine. Node 22.12+.</p>
 
         <div class="terminal">
           <div class="terminal-bar">
@@ -834,6 +836,21 @@
                 <td>Codex</td>
                 <td>Local rollout sessions, grouped the same way</td>
               </tr>
+              <tr>
+                <td>Gemini CLI</td>
+                <td>Local sessions, plus chats you saved under a name with <code>/chat save</code></td>
+              </tr>
+              <tr>
+                <td>Cursor</td>
+                <td>Per-workspace chat history, with the workspace folder naming the project</td>
+              </tr>
+              <tr>
+                <td>Markdown folder</td>
+                <td>
+                  Notes you already keep — never scanned on its own, only when you name the
+                  directory
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -844,6 +861,11 @@
           names you confirm become notes, and the import log records how many conversations were
           scanned — never their content.
         </div>
+
+        <p class="section-lede">
+          Run it again later and it proposes only what is new: conversations already read are
+          remembered, so a second import is not a second pile of the same candidates.
+        </p>
       </section>
 
       <section id="commands">
@@ -939,6 +961,55 @@
         </div>
 
         <pre><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
+      </section>
+
+      <section id="budget">
+        <h2>The saving, measured</h2>
+        <p class="section-lede">
+          The claim is that a layered vault is cheaper to read than a pile of notes.
+          <code>vulcanus stats</code> reports what your own vault costs, so the claim is something
+          you can check rather than something you have to believe.
+        </p>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>What an agent reads</th>
+                <th>Tokens</th>
+                <th>Share of the vault</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Cold start — protocol, routing, operator profile</td>
+                <td>3,167</td>
+                <td>24%</td>
+              </tr>
+              <tr>
+                <td>Cold start + one project capsule</td>
+                <td>3,370</td>
+                <td>26%</td>
+              </tr>
+              <tr>
+                <td>The whole vault</td>
+                <td>13,202</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          A six-project vault, freshly generated. A capsule costs about a fifth of its cluster, and
+          the entry layer is paid once per session — so each further task costs roughly 200 tokens
+          to route instead of a full re-read. Counts are estimated at ~4 characters per token: the
+          ratio is the measurement, not the absolute number, and
+          <a href="https://github.com/sunsatosolutions/Vulcanus/blob/main/docs/token-budget.md"
+            >the write-up</a
+          >
+          is explicit about what it does not prove.
+        </div>
       </section>
 
       <section>

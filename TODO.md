@@ -11,8 +11,9 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 > + artımlı import, 140 test, CONTRIBUTING + şablonlar, docs sitesi ve benchmark
 > yazısı.
 >
-> **Sıradaki:** 0.4.0 yayını — `npm run release -- minor`, sonra `v0.4.0` tag'i.
-> Yayınlanan sürüm hâlâ 0.3.3; MCP server npm'de yok.
+> **Sıradaki:** 0.4.0 yayını. Sürüm damgalandı (package.json, `src/version.ts`,
+> CHANGELOG), `NPM_TOKEN` ve `npm-publish` environment'ı hazır; kalan tek adım
+> `v0.4.0` tag'ini push etmek. npm'deki son sürüm hâlâ 0.3.3.
 >
 > Aşağıdaki liste yalnızca **kalan** işlerdir. Bilerek yapılmayanlar en altta,
 > gerekçeleriyle.
@@ -111,8 +112,8 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 
 - [x] **npm provenance** — release workflow `--provenance` ile yayınlıyor
   (OIDC). *(S)*
-- [ ] **2FA publish + `NPM_TOKEN` secret'ı** — release workflow'un çalışması için
-  repo'da `NPM_TOKEN` ve `npm-publish` environment'ı tanımlanmalı. *(S)*
+- [x] **`NPM_TOKEN` secret'ı + `npm-publish` environment'ı** — tanımlandı.
+  Environment'ta onay kuralı yok: tag push'lanır push'lanmaz yayın başlar. *(S)*
 - [ ] **Homebrew tap** — ayrı repo gerekiyor. *(M)*
 - [ ] **Sürüm duyuru otomasyonu** *(S)*
 - [x] **Benchmark yazısı** — [`docs/token-budget.md`](docs/token-budget.md):
@@ -128,13 +129,14 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 - **Asciinema demo, örnek vault repo'su, Homebrew tap, duyuru otomasyonu** —
   terminal kaydı, ayrı repo veya hesap erişimi gerekiyor; kod tarafında
   yapılabilecek bir şey yok.
-- **`NPM_TOKEN` / npm 2FA** — hesap ayarı.
+- **npm 2FA** — hesap ayarı. Granular token CI için 2FA'yı baypas eder,
+  hesaptaki 2FA açık kalır.
 
 ## Önerilen sıra
 
 1. ~~Merge + coverage + Dependabot + `exports`~~ — **bitti**
 2. ~~Release otomasyonu, Windows CI, stats, CLI UX, MCP derinleştirme,
    importer'lar, testler, docs~~ — **bitti**
-3. **0.4.0'ı yayınla** (`NPM_TOKEN` secret'ı + `npm run release -- minor` + tag)
+3. **0.4.0'ı yayınla** — `git tag v0.4.0 && git push --follow-tags`
 4. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
 5. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su

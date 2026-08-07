@@ -101,6 +101,12 @@ also catches the skill copies in `.claude/skills/` and `.agents/skills/` driftin
 apart, which would otherwise make an agent behave differently depending on which
 tool loaded it.
 
+### Site
+
+[vulcanus.sunsato.com](https://vulcanus.sunsato.com) documents this release: the
+full thirteen-command list, the MCP tool surface, the three new import sources,
+and a token-budget section carrying the measured numbers rather than the claim.
+
 ### Node baseline
 
 Supported Node moves to **22.12 or newer**, tested on 22, 24 (the LTS the
@@ -114,9 +120,9 @@ supported Node has it.
 ### Quality
 
 - CI on GitHub Actions: typecheck, lint, format check, and the test suite
-  across Node 18/20/22 on Linux, macOS, and Windows.
+  across Node 22/24/26 on Linux, macOS, and Windows.
 - ESLint (type-checked) added and the codebase cleaned against it.
-- Test suite grown from 59 to 140: end-to-end init, doctor `--repair` and
+- Test suite grown from 59 to 141: end-to-end init, doctor `--repair` and
   `--json`, manifest migrations, project lifecycle, capsule freshness, i18n
   message integrity, the MCP tool layer and its registration over an in-memory
   transport, importer edge cases (empty exports, corrupt batches, truncated

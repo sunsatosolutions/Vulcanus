@@ -10,6 +10,8 @@ A [Sunsato](https://sunsato.com) product · [vulcanus.sunsato.com](https://vulca
 npx @sunsato/vulcanus
 ```
 
+Requires Node 22.12 or newer. Nothing leaves your machine: no account, no network call beyond an optional once-a-day version check.
+
 ## What it creates
 
 ```txt
