@@ -119,9 +119,8 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   Environment'ta onay kuralı yok: tag push'lanır push'lanmaz yayın başlar. *(S)*
 - [ ] **Homebrew tap** — ayrı repo gerekiyor. *(M)*
 - [ ] **Sürüm duyuru otomasyonu** *(S)*
-- [ ] **0.4.0'ı npm'de deprecate et** — `npm deprecate "@sunsato/vulcanus@0.4.0"
-  "..."`; sürüm hâlâ kurulabilir ve `update` çalıştıran herkeste hafıza siler.
-  npm oturumu gerekiyor. *(S)*
+- [x] **0.4.0'ı npm'de deprecate et** — 2026-08-07'de yapıldı; kuranlar artık
+  uyarı görüyor. *(S)*
 - [x] **Benchmark yazısı** — [`docs/token-budget.md`](docs/token-budget.md):
   6 projelik vault'ta ölçüm, yöntem ve **neyi kanıtlamadığı** açıkça yazılı. *(M)*
 
@@ -144,6 +143,5 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 2. ~~Release otomasyonu, Windows CI, stats, CLI UX, MCP derinleştirme,
    importer'lar, testler, docs~~ — **bitti**
 3. ~~0.4.0 + 0.4.1 yayını~~ — **bitti**
-4. **npm'de 0.4.0'ı deprecate et** — hâlâ kurulabilir ve hafıza siliyor
-5. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
-6. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
+4. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
+5. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
