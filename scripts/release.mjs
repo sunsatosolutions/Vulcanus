@@ -52,7 +52,9 @@ if (next === current) fail(`Already at ${current}.`);
 
 // The CHANGELOG must describe the release before it is cut: an empty
 // Unreleased section means the work was never written up.
-const changelog = readFileSync(changelogPath, "utf8");
+// Checked out with CRLF on Windows; matched and rewritten as LF, which is what
+// the file uses in the repository.
+const changelog = readFileSync(changelogPath, "utf8").replace(/\r\n/g, "\n");
 const unreleased = /^## Unreleased\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(changelog);
 if (!unreleased) fail("CHANGELOG.md has no `## Unreleased` section.");
 if (!unreleased[1].trim())

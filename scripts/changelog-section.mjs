@@ -17,7 +17,7 @@ if (!version) {
   process.exit(1);
 }
 
-const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
+const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8").replace(/\r\n/g, "\n");
 const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // `$(?![\s\S])` is end-of-input even under the `m` flag, where a bare `$`
 // would match the first line break and cut the section off after one line.
