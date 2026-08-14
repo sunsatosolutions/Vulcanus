@@ -35,6 +35,7 @@ if (!requested) {
 const packagePath = resolve(root, "package.json");
 const versionPath = resolve(root, "src/version.ts");
 const changelogPath = resolve(root, "CHANGELOG.md");
+const sitePath = resolve(root, "site/index.html");
 
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const current = packageJson.version;
@@ -68,6 +69,12 @@ const updates = [
     ),
   ],
   [changelogPath, changelog.replace(/^## Unreleased$/m, `## Unreleased\n\n## ${next} — ${today}`)],
+  // The landing page states the version in its structured data, where a stale
+  // number is invisible in review and visible to search engines.
+  [
+    sitePath,
+    readFileSync(sitePath, "utf8").replace(/("softwareVersion":\s*")[^"]+(")/, `$1${next}$2`),
+  ],
 ];
 
 if (dryRun) {
