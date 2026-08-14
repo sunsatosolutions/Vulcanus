@@ -15,7 +15,6 @@ import {
 } from "../mcp/tools.js";
 import { CLI_VERSION } from "../version.js";
 import { collectStatus } from "./status.js";
-import { noVaultProblem, reportProblem } from "../errors.js";
 
 export interface ServeOptions {
   cwd?: string;
@@ -27,6 +26,21 @@ function json(value: unknown) {
 
 function failure(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/**
+ * The answer when a tool is called somewhere that is not a vault. It is a tool
+ * result rather than a startup refusal because a client that registered the
+ * server globally starts it in whatever directory the operator is working in,
+ * and one of those directories having no vault must not take the server down.
+ */
+function noVaultFailure(start: string) {
+  return failure(
+    [
+      `No vault here: looked in ${start} and every parent directory for a vulcanus.json.`,
+      "Create one with `vulcanus init`, or start the server against an existing vault with `vulcanus serve --cwd <vault>`.",
+    ].join("\n"),
+  );
 }
 
 /**
@@ -43,8 +57,13 @@ function failure(message: string) {
  * itself be tested over an in-memory transport instead of only the functions
  * behind it.
  */
-export function buildVaultServer(vaultRoot: string): McpServer {
+export function buildVaultServer(start: string): McpServer {
   const server = new McpServer({ name: "vulcanus", version: CLI_VERSION });
+
+  // Resolved per call, not once at construction: the vault can be created,
+  // moved, or left behind while the server is running, and every tool already
+  // re-reads the manifest for the same reason.
+  const vault = () => findVaultRoot(start);
 
   server.registerTool(
     "recall",
@@ -55,6 +74,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       inputSchema: { project: z.string().describe("Project name, id, or trigger word") },
     },
     async ({ project }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       const result = await recall(handle, project);
       if (!result) {
@@ -80,6 +101,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       },
     },
     async ({ query, limit }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       return json(await search(handle, query, limit ?? 20));
     },
@@ -93,7 +116,11 @@ export function buildVaultServer(vaultRoot: string): McpServer {
         "The routing table: every project with its status, summary, trigger words, and capsule path.",
       inputSchema: {},
     },
-    async () => json(listProjects(await openVault(vaultRoot))),
+    async () => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
+      return json(listProjects(await openVault(vaultRoot)));
+    },
   );
 
   server.registerTool(
@@ -110,6 +137,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       },
     },
     async ({ project, title, decision, details }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       const result = await appendDecision(handle, project, title, decision, details);
       if (!result)
@@ -131,6 +160,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       },
     },
     async ({ project, section, body }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       const result = await updateCapsule(handle, project, section, body);
       if (!result) return failure(`No project matches "${project}", or its Capsule is missing.`);
@@ -151,6 +182,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       },
     },
     async ({ project, name, rule }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       const result = await appendRule(handle, project, name, rule);
       if (!result) return failure(`No project matches "${project}", or its Rules note is missing.`);
@@ -166,7 +199,11 @@ export function buildVaultServer(vaultRoot: string): McpServer {
         "One-shot health summary: projects, note counts, doctor result, stale capsules, git state.",
       inputSchema: {},
     },
-    async () => json(await collectStatus(vaultRoot)),
+    async () => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
+      return json(await collectStatus(vaultRoot));
+    },
   );
 
   server.registerTool(
@@ -177,6 +214,8 @@ export function buildVaultServer(vaultRoot: string): McpServer {
       inputSchema: {},
     },
     async () => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       return json(await runDoctor(vaultRoot, handle.manifest));
     },
@@ -187,15 +226,21 @@ export function buildVaultServer(vaultRoot: string): McpServer {
 
 export async function serveCommand(options: ServeOptions = {}): Promise<number> {
   const start = options.cwd ?? process.cwd();
-  const vaultRoot = findVaultRoot(start);
-  if (!vaultRoot) {
-    return reportProblem(noVaultProblem(start, "vulcanus serve"));
-  }
 
-  const server = buildVaultServer(vaultRoot);
+  // Starting without a vault is deliberate. MCP clients register this server
+  // once and launch it in whatever directory the operator opened, so refusing
+  // to start would take the tools away everywhere except inside the vault —
+  // and the client reports that as a broken server rather than a missing
+  // vault. Introspection answers either way; the tools say what is wrong.
+  const server = buildVaultServer(start);
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  process.stderr.write(`vulcanus mcp server ready — vault: ${vaultRoot}\n`);
+  const vaultRoot = findVaultRoot(start);
+  process.stderr.write(
+    vaultRoot
+      ? `vulcanus mcp server ready — vault: ${vaultRoot}\n`
+      : `vulcanus mcp server ready — no vault under ${start}; tools will report that until one exists\n`,
+  );
 
   // Stay alive until the client closes stdin.
   await new Promise<void>((resolvePromise) => {

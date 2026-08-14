@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.4.4 — 2026-08-14
+
+### Fixed — `serve` refused to start outside a vault
+
+`vulcanus serve` exited with the no-vault error before it ever spoke MCP. That
+is wrong for a server clients register once and launch wherever the operator
+happens to be working: registered globally with `claude mcp add vulcanus --
+vulcanus serve`, it came up only inside the vault and died in every other
+repository — which a client reports as a broken server, not as a missing vault.
+
+The server now starts anywhere and answers introspection. The vault is resolved
+per tool call instead of once at construction, so calling a tool outside a vault
+returns an error result naming the directory searched and how to fix it, and a
+vault created or moved while the server runs is picked up without a restart.
+
 ## 0.4.3 — 2026-08-14
 
 ### Added — the MCP server is publishable to the official registry

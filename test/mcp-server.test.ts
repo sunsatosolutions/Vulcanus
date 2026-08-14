@@ -68,6 +68,26 @@ describe("mcp server registration", () => {
     }
   });
 
+  it("serves outside a vault, and says so when a tool is called", async () => {
+    // A client that registered the server globally starts it wherever the
+    // operator is working. Introspection has to answer there, or the client
+    // reports a broken server instead of a missing vault.
+    const empty = await tempDir();
+    tempDirs.push(empty);
+    const { client, close } = await connect(empty);
+    try {
+      const { tools } = await client.listTools();
+      assert.equal(tools.length, 8);
+
+      const result = await client.callTool({ name: "recall", arguments: { project: "Meridian" } });
+      assert.equal(result.isError, true);
+      assert.match(textOf(result), /No vault here/);
+      assert.match(textOf(result), /vulcanus init/);
+    } finally {
+      await close();
+    }
+  });
+
   it("answers recall over the transport", async () => {
     const { client, close } = await connect(await scaffold());
     try {

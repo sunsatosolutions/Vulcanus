@@ -245,7 +245,7 @@ Register it the way your client expects, e.g. for Claude Code:
 claude mcp add vulcanus -- vulcanus serve
 ```
 
-Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. The manifest is re-read on every call, so edits made while the server runs are always visible.
+Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. Registering it globally is fine: the server starts anywhere, and in a directory with no vault the tools say so instead of the server failing to come up. The manifest and the vault location are both resolved on every call, so a vault created — or edited — while the server runs is visible immediately.
 
 `recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current.
 
