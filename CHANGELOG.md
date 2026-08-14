@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.4.2 — 2026-08-14
+
+### Changed — the README leads with the problem, and shows the CLI running
+
+No behavior changes in this release; the CLI is byte-for-byte what 0.4.1 was.
+What changed is how the package presents itself, which was doing the product no
+favors.
+
+The README opened by naming the artifact — an AI-readable second brain — a term
+crowded enough that it tells a reader nothing about what breaks without it. It
+now opens with the failure: an agent that starts every session cold, and a
+`CLAUDE.md` that grows forever without anything checking whether it is still
+true. The MCP server is stated in the first screen instead of two hundred lines
+down, since that is what connects the vault to a coding agent at all.
+
+It also carries a recorded demo — `vulcanus init`, then `status`, then `stats` —
+where before there was no image of any kind. `docs/demo.tape` records it, so the
+GIF can be regenerated rather than reconstructed by hand when output changes.
+
+The npm keywords covered five terms and none of the ones this package is
+actually looked for under: `mcp`, `model-context-protocol`, `claude-code`,
+`cursor`, `codex`, `agent-memory`, `context-engineering`. A published package's
+keywords and README only reach the registry on a release, which is what this
+release is for.
+
 ## 0.4.1 — 2026-08-07
 
 ### Fixed — `update` and `doctor --repair` deleted operator-written memory
