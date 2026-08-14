@@ -51,3 +51,20 @@ jobs:
         run: |
           notes="$(node scripts/changelog-section.mjs "${GITHUB_REF_NAME#v}")"
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "$notes"
+
+      # The registry listing pins one version, so a release that does not
+      # re-publish leaves MCP clients discovering an older Vulcanus than the
+      # one on npm. server.json is stamped by scripts/release.mjs, and the
+      # registry verifies ownership against the package that was just
+      # published — so this has to run after the npm publish above.
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      # OIDC rather than a token: the workflow's own identity proves it runs in
+      # this repository, which is what grants the io.github.sunsatosolutions
+      # namespace. Nothing to store, nothing to rotate.
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

@@ -1,10 +1,11 @@
 {
   "name": "@sunsato/vulcanus",
-  "version": "0.4.1",
+  "version": "0.4.4",
   "publishConfig": {
     "access": "public"
   },
   "description": "Scaffold and maintain an AI-readable second-brain vault for you and your AI agents.",
+  "mcpName": "io.github.sunsatosolutions/vulcanus",
   "type": "module",
   "license": "MIT",
   "author": "Sunsato",
@@ -53,7 +54,18 @@
     "vault",
     "obsidian",
     "ai-memory",
-    "cli"
+    "cli",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-memory",
+    "ai-agents",
+    "context-engineering",
+    "claude-code",
+    "cursor",
+    "codex",
+    "knowledge-management",
+    "markdown"
   ],
   "dependencies": {
     "@clack/prompts": "^1.7.0",

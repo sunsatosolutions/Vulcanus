@@ -1,0 +1,10 @@
+{
+  "name": "vulcanus",
+  "compatibility_date": "2026-08-13",
+  // The marketing site is hand-written static HTML under site/ — there is no
+  // Worker script, so Cloudflare serves the assets directly.
+  "assets": {
+    "directory": "./site",
+    "html_handling": "auto-trailing-slash"
+  }
+}

@@ -1,16 +1,44 @@
 # Vulcanus
 
-Vulcanus builds and maintains an **AI-readable second brain** — a Git-versioned vault of linked Markdown that humans and AI agents can both read, so an agent can resume work with reliable context instead of starting cold.
+**Your coding agent starts every session cold.** You re-explain the architecture, repeat decisions you already made, and watch it break a rule you set last week. The context lives in your head and in a scrollback buffer that is already gone.
 
-You answer a few questions, and Vulcanus writes the whole vault — routing layer, operator profile, agent protocol, and one memory cluster per project — then validates that the graph actually holds together. Already keep an Obsidian vault? It adds the memory structure to that vault instead of creating a separate one.
-
-A [Sunsato](https://sunsato.com) product · [vulcanus.sunsato.com](https://vulcanus.sunsato.com)
+Vulcanus fixes that at the source. It builds an **AI-readable second brain** — a Git-versioned vault of linked Markdown that you and your agents both read — and serves it over MCP, so an agent can `recall` a project instead of guessing at it.
 
 ```bash
 npx @sunsato/vulcanus
 ```
 
+![Creating a vault with vulcanus init, then checking it with status and stats](https://raw.githubusercontent.com/sunsatosolutions/Vulcanus/main/docs/demo.gif)
+
+You answer a few questions, and Vulcanus writes the whole vault — routing layer, operator profile, agent protocol, and one memory cluster per project — then validates that the graph actually holds together. Already keep an Obsidian vault? It adds the memory structure to that vault instead of creating a separate one.
+
 Requires Node 22.12 or newer. Nothing leaves your machine: no account, no network call beyond an optional once-a-day version check.
+
+A [Sunsato](https://sunsato.com) product · [vulcanus.sunsato.com](https://vulcanus.sunsato.com)
+
+## Why a vault and not a prompt
+
+A `CLAUDE.md` that grows forever is the thing this replaces. It gets read in full on every task, it drifts out of date silently, and nothing checks that what it claims is still true.
+
+A vault is layered instead, so recall is scoped: an agent reads the Recall Map, then the one Capsule its task needs, and goes deeper only for authority or detail. `vulcanus stats` measures that on your own vault — in the demo above, a task-scoped recall reads 59% less than the whole vault. `vulcanus doctor` then enforces that every link resolves and every project is reachable, so the memory fails loudly instead of rotting quietly.
+
+## Wire it to your agent
+
+The vault is only worth as much as the recall it gives your tools, so that is one command each:
+
+```bash
+claude mcp add vulcanus -- vulcanus serve   # Claude Code, or any MCP client
+```
+
+```bash
+vulcanus skills --install   # skills that run the real commands, in every repo
+```
+
+```bash
+vulcanus agents             # the block to paste into a tool's global instructions
+```
+
+[MCP server](#mcp-server), [Skills](#skills), and [Making agents actually use it](#making-agents-actually-use-it) below cover what each one exposes.
 
 ## What it creates
 
@@ -217,7 +245,7 @@ Register it the way your client expects, e.g. for Claude Code:
 claude mcp add vulcanus -- vulcanus serve
 ```
 
-Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. The manifest is re-read on every call, so edits made while the server runs are always visible.
+Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. Registering it globally is fine: the server starts anywhere, and in a directory with no vault the tools say so instead of the server failing to come up. The manifest and the vault location are both resolved on every call, so a vault created — or edited — while the server runs is visible immediately.
 
 `recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current.
 
@@ -290,7 +318,7 @@ Source layout: `manifest/` derives every path and link expectation, `generate/` 
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the checks, the review bar, and how to add an importer or a language. [`docs/token-budget.md`](docs/token-budget.md) measures what the layered structure actually saves, and how that was measured.
 
-The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed by Cloudflare Pages from `site/` on every push to `main`.
+The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed to Cloudflare Workers as static assets (`wrangler.jsonc`) on every push to `main`.
 
 ## License
 

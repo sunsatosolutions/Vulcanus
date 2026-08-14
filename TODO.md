@@ -11,7 +11,10 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 > + artımlı import, 140 test, CONTRIBUTING + şablonlar, docs sitesi ve benchmark
 > yazısı.
 >
-> **Yayınlandı:** 0.4.0 ve ardından 0.4.1 (2026-08-07). npm'de `latest: 0.4.1`.
+> **Yayınlandı:** 0.4.0 → 0.4.1 (2026-08-07), ardından 0.4.2 → 0.4.4
+> (2026-08-14). npm'de `latest: 0.4.4`. 0.4.2 konumlandırma ve demo, 0.4.3 MCP
+> Registry kaydı, 0.4.4 ise `serve`'ün vault dışında hiç başlamaması hatasının
+> düzeltilmesi.
 >
 > **0.4.0 bozuktu ve geri çekilmeli:** `update` ile `doctor --repair`, Index'i,
 > System Hub'ı, grup hub'larını ve Import Log'u yeniden üretip operatörün
@@ -108,7 +111,10 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 - [x] **CONTRIBUTING.md + issue/PR şablonları** *(S)*
 - [x] **Docs sitesi genişletme** — 13 komut, MCP bölümü. *(L → kısmi: SSS ve tam
   komut referansı hâlâ yok)*
-- [ ] **Asciinema/VHS demo** — `init` akışının kaydı. *(S)*
+- [x] **Asciinema/VHS demo** — `docs/demo.gif`: `init` → `status` → `stats`.
+  Kaydı üreten `docs/demo.tape` repoda, repo kökünden `vhs docs/demo.tape` ile
+  yeniden üretiliyor; vault `/tmp` altında kuruluyor ki görüntüde ev dizini
+  geçmesin. README'ye eklendi. *(S)*
 - [ ] **Örnek vault repo'su** — `vulcanus-example-vault`. *(S)*
 
 ## 7. Dağıtım & Görünürlük (P2)
@@ -117,7 +123,23 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   (OIDC). *(S)*
 - [x] **`NPM_TOKEN` secret'ı + `npm-publish` environment'ı** — tanımlandı.
   Environment'ta onay kuralı yok: tag push'lanır push'lanmaz yayın başlar. *(S)*
+- [x] **Resmî MCP Registry** — `server.json` +`package.json`'da `mcpName`;
+  `io.github.sunsatosolutions/vulcanus` yayında. `release.yml` her tag'de OIDC
+  ile yeniden yayınlıyor, saklanan secret yok. *(M)*
+  *(Not: `mcp-publisher login github` device flow'u `read:org` scope'u almıyor,
+  bu yüzden org namespace'i 403 veriyor; elle yayın gerekirse `read:org`
+  scope'lu PAT ile `login github -token` şart.)*
+- [x] **Dizin/liste gönderimleri** — punkpeye/awesome-mcp-servers PR #12142
+  (Glama listelemesi ve badge'i bekliyor), awesome-claude-code #2523
+  (bot doğrulaması geçti, bakımcı incelemesinde). wong2/awesome-mcp-servers
+  dışarıdan gönderim almıyor: PR, issue ve discussion kapalı. *(S)*
+- [x] **Konumlandırma** — README artık ürünü değil sorunu ile açılıyor; npm
+  keyword'leri 5'ten 16'ya çıktı (`mcp`, `claude-code`, `cursor`, `codex`,
+  `agent-memory` …); site meta/paylaşım kartları aranan terimleri içeriyor. *(S)*
 - [ ] **Homebrew tap** — ayrı repo gerekiyor. *(M)*
+- [ ] **Show HN / Reddit duyurusu** — asıl eksik kanal. 14 Ağustos 2026
+  itibarıyla repo trafiği 14 günde 5 görüntülenme; ürün değil bilinirlik
+  sorunu. Yasin'in kendi sesiyle gitmeli. *(S)*
 - [ ] **Sürüm duyuru otomasyonu** *(S)*
 - [x] **0.4.0'ı npm'de deprecate et** — 2026-08-07'de yapıldı; kuranlar artık
   uyarı görüyor. *(S)*
@@ -131,9 +153,9 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 - **i18n JSON'a çıkarma ve de/es** — üretilen notlar henüz yerelleştirilmediği
   için yeni bir sihirbaz dili yarım bir deneyim üretir (Almanca sihirbaz,
   İngilizce notlar). Doğru sıra: önce üretimi yerelleştir.
-- **Asciinema demo, örnek vault repo'su, Homebrew tap, duyuru otomasyonu** —
-  terminal kaydı, ayrı repo veya hesap erişimi gerekiyor; kod tarafında
-  yapılabilecek bir şey yok.
+- **Örnek vault repo'su, Homebrew tap, duyuru otomasyonu** — ayrı repo veya
+  hesap erişimi gerekiyor; kod tarafında yapılabilecek bir şey yok.
+  *(Asciinema/VHS demo bu listeden çıktı: 14 Ağustos 2026'da kaydedildi.)*
 - **npm 2FA** — hesap ayarı. Granular token CI için 2FA'yı baypas eder,
   hesaptaki 2FA açık kalır.
 

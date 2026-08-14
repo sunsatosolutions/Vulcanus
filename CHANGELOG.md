@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+## 0.4.4 — 2026-08-14
+
+### Fixed — `serve` refused to start outside a vault
+
+`vulcanus serve` exited with the no-vault error before it ever spoke MCP. That
+is wrong for a server clients register once and launch wherever the operator
+happens to be working: registered globally with `claude mcp add vulcanus --
+vulcanus serve`, it came up only inside the vault and died in every other
+repository — which a client reports as a broken server, not as a missing vault.
+
+The server now starts anywhere and answers introspection. The vault is resolved
+per tool call instead of once at construction, so calling a tool outside a vault
+returns an error result naming the directory searched and how to fix it, and a
+vault created or moved while the server runs is picked up without a restart.
+
+## 0.4.3 — 2026-08-14
+
+### Added — the MCP server is publishable to the official registry
+
+`server.json` describes `vulcanus serve` for the MCP Registry at
+`registry.modelcontextprotocol.io`, which is where MCP clients discover servers
+now that the `modelcontextprotocol/servers` README has retired its third-party
+list. The registry verifies that whoever publishes a listing actually owns the
+npm package, by requiring `mcpName` in `package.json` to match the server name —
+so the field is now there, and this release is what puts it on the registry.
+
+No CLI behavior changes. `release.mjs` stamps the version into `server.json`
+alongside the other places it is written down, because a listing whose package
+version is not the one on npm is rejected.
+
+## 0.4.2 — 2026-08-14
+
+### Changed — the README leads with the problem, and shows the CLI running
+
+No behavior changes in this release; the CLI is byte-for-byte what 0.4.1 was.
+What changed is how the package presents itself, which was doing the product no
+favors.
+
+The README opened by naming the artifact — an AI-readable second brain — a term
+crowded enough that it tells a reader nothing about what breaks without it. It
+now opens with the failure: an agent that starts every session cold, and a
+`CLAUDE.md` that grows forever without anything checking whether it is still
+true. The MCP server is stated in the first screen instead of two hundred lines
+down, since that is what connects the vault to a coding agent at all.
+
+It also carries a recorded demo — `vulcanus init`, then `status`, then `stats` —
+where before there was no image of any kind. `docs/demo.tape` records it, so the
+GIF can be regenerated rather than reconstructed by hand when output changes.
+
+The npm keywords covered five terms and none of the ones this package is
+actually looked for under: `mcp`, `model-context-protocol`, `claude-code`,
+`cursor`, `codex`, `agent-memory`, `context-engineering`. A published package's
+keywords and README only reach the registry on a release, which is what this
+release is for.
+
 ## 0.4.1 — 2026-08-07
 
 ### Fixed — `update` and `doctor --repair` deleted operator-written memory
