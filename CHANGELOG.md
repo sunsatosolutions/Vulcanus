@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.4.3 — 2026-08-14
+
+### Added — the MCP server is publishable to the official registry
+
+`server.json` describes `vulcanus serve` for the MCP Registry at
+`registry.modelcontextprotocol.io`, which is where MCP clients discover servers
+now that the `modelcontextprotocol/servers` README has retired its third-party
+list. The registry verifies that whoever publishes a listing actually owns the
+npm package, by requiring `mcpName` in `package.json` to match the server name —
+so the field is now there, and this release is what puts it on the registry.
+
+No CLI behavior changes. `release.mjs` stamps the version into `server.json`
+alongside the other places it is written down, because a listing whose package
+version is not the one on npm is rejected.
+
 ## 0.4.2 — 2026-08-14
 
 ### Changed — the README leads with the problem, and shows the CLI running

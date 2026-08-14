@@ -1,10 +1,11 @@
 {
   "name": "@sunsato/vulcanus",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "publishConfig": {
     "access": "public"
   },
   "description": "Scaffold and maintain an AI-readable second-brain vault for you and your AI agents.",
+  "mcpName": "io.github.sunsatosolutions/vulcanus",
   "type": "module",
   "license": "MIT",
   "author": "Sunsato",

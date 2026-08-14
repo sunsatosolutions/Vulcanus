@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.sunsatosolutions/vulcanus",
+  "title": "Vulcanus",
+  "description": "A validated Markdown memory vault your coding agent can recall, project by project.",
+  "websiteUrl": "https://vulcanus.sunsato.com",
+  "repository": {
+    "url": "https://github.com/sunsatosolutions/Vulcanus",
+    "source": "github"
+  },
+  "version": "0.4.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@sunsato/vulcanus",
+      "version": "0.4.3",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "serve",
+          "valueHint": "serve",
+          "description": "Serves the vault in the current directory; pass --cwd when the client starts elsewhere."
+        }
+      ]
+    }
+  ]
+}
