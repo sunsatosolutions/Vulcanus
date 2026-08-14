@@ -53,7 +53,18 @@
     "vault",
     "obsidian",
     "ai-memory",
-    "cli"
+    "cli",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-memory",
+    "ai-agents",
+    "context-engineering",
+    "claude-code",
+    "cursor",
+    "codex",
+    "knowledge-management",
+    "markdown"
   ],
   "dependencies": {
     "@clack/prompts": "^1.7.0",
