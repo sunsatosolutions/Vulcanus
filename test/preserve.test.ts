@@ -53,43 +53,54 @@ after(async () => {
  * telling an agent not to treat them as public.
  */
 describe("hand-added manifest fields survive", () => {
-  it("keeps unknown keys through a read and write round trip", async () => {
-    const input = manifest({ projects: [project("meridian", "Meridian")] });
-    const root = await scaffold(input);
+  /** The manifest as JSON, so a test can look at keys the schema does not name. */
+  type RawManifest = Record<string, unknown> & {
+    projects: Array<Record<string, unknown>>;
+    generator: Record<string, unknown>;
+  };
 
-    const path = resolve(root, "vulcanus.json");
-    const raw = JSON.parse(await readFile(path, "utf8"));
+  async function readRaw(root: string): Promise<RawManifest> {
+    return JSON.parse(await readFile(resolve(root, "vulcanus.json"), "utf8")) as RawManifest;
+  }
+
+  async function writeRaw(root: string, raw: RawManifest): Promise<void> {
+    await writeFile(resolve(root, "vulcanus.json"), `${JSON.stringify(raw, null, 2)}\n`, "utf8");
+  }
+
+  it("keeps unknown keys through a read and write round trip", async () => {
+    const root = await scaffold(manifest({ projects: [project("meridian", "Meridian")] }));
+
+    const raw = await readRaw(root);
     raw.projects[0].kind = "product";
     raw.projects[0].visibility = "private";
     raw.retention = { policy: "keep-forever" };
-    await writeFile(path, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
+    await writeRaw(root, raw);
 
-    const reread = (await readManifest(root)) as unknown as Record<string, unknown>;
-    const projects = reread.projects as Array<Record<string, unknown>>;
-    assert.equal(projects[0].kind, "product");
-    assert.equal(projects[0].visibility, "private");
+    const reread = (await readManifest(root)) as unknown as RawManifest;
+    assert.equal(reread.projects[0].kind, "product");
+    assert.equal(reread.projects[0].visibility, "private");
     assert.deepEqual(reread.retention, { policy: "keep-forever" });
 
     // Defaults still get filled in for the fields the CLI does own.
-    assert.equal(projects[0].status, "active");
+    assert.equal(reread.projects[0].status, "active");
   });
 
   it("carries them through `update`", async () => {
-    const input = manifest({
-      generator: { name: "vulcanus", version: "0.0.1" },
-      projects: [project("meridian", "Meridian"), project("harbor", "Harbor")],
-    });
-    const root = await scaffold(input);
+    const root = await scaffold(
+      manifest({
+        generator: { name: "vulcanus", version: "0.0.1" },
+        projects: [project("meridian", "Meridian"), project("harbor", "Harbor")],
+      }),
+    );
 
-    const path = resolve(root, "vulcanus.json");
-    const before = JSON.parse(await readFile(path, "utf8"));
+    const before = await readRaw(root);
     before.projects[0].visibility = "private";
     before.projects[1].kind = "client";
-    await writeFile(path, `${JSON.stringify(before, null, 2)}\n`, "utf8");
+    await writeRaw(root, before);
 
     assert.equal(await quiet(() => updateCommand({ cwd: root, json: true })), 0);
 
-    const after = JSON.parse(await readFile(path, "utf8"));
+    const after = await readRaw(root);
     assert.equal(
       after.projects[0].visibility,
       "private",
