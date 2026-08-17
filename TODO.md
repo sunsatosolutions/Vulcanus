@@ -50,6 +50,29 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   test koşmuyordu. Dosya listesi artık `scripts/run-tests.mjs` içinde JavaScript
   tarafında genişliyor. Ayrıca dosya sisteminden gelen yollar `vaultRelative()`
   ile "/" formuna normalize ediliyor. *(M)*
+- [ ] **`update` manifest'teki tanımadığı alanları sessizce siliyor** — 0.4.0'ın
+  not silme hatasının manifest'teki karşılığı. MIRA 0.4.1 → 0.4.5 güncellemesinde
+  (17 Ağustos 2026) operatörün `vulcanus.json`'a elle eklediği `kind` ve
+  `visibility` alanları 13 projeden birden düştü; ikisi `visibility: private`
+  (MIRA OS, Crasyn) idi, yani kaybolan şey bir ajanın özel projeyi herkese açık
+  sanmasını önleyen işaretti. Ne `update` çıktısı ne `doctor` bunu söylemedi —
+  "your notes, left untouched: 100" yazdı, manifest'ten söz etmedi; `git diff`
+  olmasa fark edilmezdi. `update` manifest'i şemadan yeniden üretmek yerine
+  bilinmeyen alanları koruyup taşımalı; koruyamıyorsa çıktıda hangi anahtarları
+  düşürdüğünü tek tek saymalı, sessiz kalmamalı. En az bir test: bilinmeyen
+  anahtar içeren bir manifest `update` sonrası anahtarı hâlâ taşıyor. *(M)*
+
+## 1b. Manifest Şeması (P1)
+
+- [ ] **Projelere `kind` ve `visibility` ekseni** — bugün manifest'te bir projenin
+  ne olduğunu (`umbrella`, `product`, `lab`, `service-brand`, `client`,
+  `client-product`) ve paylaşılabilir olup olmadığını (`public` / `private`)
+  yazacak yer yok; MIRA bunu elle ekleyip yukarıdaki hatayla kaybetti. İkisi de
+  recall için sinyal: `visibility: private` bir ajanın projeyi dışarıya
+  açmamasını söyler, `kind` ise hangi hub'a ait olduğunu ve nasıl özetleneceğini
+  belirler. Şemaya opsiyonel alan olarak gir, `doctor` bilinmeyen değeri uyarsın,
+  `add project` sihirbazı sorsun, `recall` çıktısı `private` projede işareti
+  göstersin. *(M)*
 
 ## 2. Test Genişletme (P1)
 
@@ -180,5 +203,7 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 2. ~~Release otomasyonu, Windows CI, stats, CLI UX, MCP derinleştirme,
    importer'lar, testler, docs~~ — **bitti**
 3. ~~0.4.0 + 0.4.1 yayını~~ — **bitti**
-4. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
-5. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
+4. `update`'in bilinmeyen manifest alanlarını silmesi (P0, veri kaybı) → ardından
+   `kind`/`visibility` eksenini şemaya al
+5. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
+6. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
