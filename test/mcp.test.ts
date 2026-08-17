@@ -65,6 +65,32 @@ describe("mcp vault tools", () => {
     assert.equal(await recall(handle, "ghost"), null);
   });
 
+  it("recall tells an agent when a project is private", async () => {
+    const root = await scaffold(
+      manifest({
+        projects: [
+          project("crasyn", "Crasyn", { visibility: "private", kind: "client-product" }),
+          project("meridian", "Meridian", { visibility: "public" }),
+        ],
+      }),
+    );
+    const handle = await openVault(root);
+
+    const priv = await recall(handle, "crasyn");
+    assert.equal(priv?.visibility, "private");
+    assert.equal(priv?.kind, "client-product");
+    // Phrased as an instruction: a bare field is easy for a model to skim past.
+    assert.match(priv?.visibilityWarning ?? "", /Do not name it/);
+
+    const pub = await recall(handle, "meridian");
+    assert.equal(pub?.visibility, "public");
+    assert.equal(pub?.visibilityWarning, undefined);
+
+    const listed = listProjects(handle);
+    assert.equal(listed.find((entry) => entry.id === "crasyn")?.visibility, "private");
+    assert.equal(listed.find((entry) => entry.id === "crasyn")?.kind, "client-product");
+  });
+
   it("search ranks capsule and recall-map hits above depth notes", async () => {
     const root = await scaffold(INPUT);
     const handle = await openVault(root);

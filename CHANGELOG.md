@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+## 0.4.7 — 2026-08-17
+
+### Added — projects can record what they are and who may hear about them
+
+Two optional fields on each project in `vulcanus.json`. `kind` is one of
+`umbrella`, `product`, `lab`, `service-brand`, `client`, `client-product` and
+says what the project is, so an agent knows how to place and summarize it.
+`visibility` is `public` or `private` and answers the question an agent cannot
+otherwise answer: may I name this in a public repository, a commit message, an
+issue?
+
+Both are asked by `init` and `add project`. `visibility` is recorded even when
+the answer is public, because "nobody has said" and "the operator said public"
+are different states and only one of them is safe to act on. `recall` returns
+both fields, and for a private project adds an instruction not to name it
+outside the vault — phrased as an instruction rather than a flag, since the cost
+of a model skimming past it is a private project in something public.
+`list_projects` carries them too.
+
+`doctor` warns on a value it does not recognize instead of failing the vault:
+the axes are optional and operator-owned, but a typo like `privte` would
+otherwise read as public to every agent.
+
+This is a signal for agents, not access control — nothing here encrypts or hides
+a file. It exists because a real vault hand-added these fields, had them silently
+erased by the bug fixed in 0.4.6, and the two that mattered were the
+`visibility: private` markers.
+
+**Agent protocol 2.** `AGENTS.md` now carries the rule and, when a vault marks
+anything private, names those projects under a `Project visibility` heading —
+an agent reading the protocol instead of calling a tool would otherwise never
+learn it, and the tool path alone leaves the prose path unaware. A vault that
+marks nothing private gets no such section, only the general rule. `doctor`
+reports the older protocol stamp and `vulcanus update` merges the section in,
+keeping any sections the operator added.
+
 ## 0.4.6 — 2026-08-17
 
 ### Fixed — reading a manifest silently dropped hand-added fields

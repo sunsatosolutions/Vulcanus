@@ -50,6 +50,30 @@ export interface ProjectGroup {
   navigationOnly: boolean;
 }
 
+/**
+ * What a project *is*, when the operator wants that recorded. Optional: plenty
+ * of vaults never need the distinction, and a vault that does should not have
+ * to invent it in a note where nothing can read it.
+ */
+export const PROJECT_KINDS = [
+  "umbrella",
+  "product",
+  "lab",
+  "service-brand",
+  "client",
+  "client-product",
+] as const;
+export type ProjectKind = (typeof PROJECT_KINDS)[number];
+
+/**
+ * Whether a project may be spoken about outside the vault. This is a signal for
+ * agents, not access control: nothing here encrypts or hides a file. It answers
+ * the question an agent cannot otherwise answer — may I put this in a public
+ * README, a commit message, an issue?
+ */
+export const PROJECT_VISIBILITIES = ["public", "private"] as const;
+export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number];
+
 export interface ProjectNode {
   id: string;
   name: string;
@@ -65,6 +89,10 @@ export interface ProjectNode {
   specialized: string[];
   /** Folder name override; defaults to the project name. */
   dirName?: string;
+  /** What the project is; omitted when the vault does not track it. */
+  kind?: ProjectKind;
+  /** Whether an agent may reveal this project outside the vault. */
+  visibility?: ProjectVisibility;
 }
 
 export interface ImportRecord {
@@ -165,6 +193,22 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
   for (const project of manifest.projects) {
     if (projectIds.has(project.id)) error(`duplicate project id: ${project.id}`);
     projectIds.add(project.id);
+
+    // Warnings, not errors: both axes are optional and operator-owned, and a
+    // value this CLI does not know is more likely a vocabulary the operator is
+    // trying out than a mistake. Saying nothing would let a typo like
+    // `visibility: privte` read as public to every agent, which is the failure
+    // that matters.
+    if (project.kind !== undefined && !PROJECT_KINDS.includes(project.kind)) {
+      warn(
+        `project "${project.id}" has kind "${String(project.kind)}", which is not one of: ${PROJECT_KINDS.join(", ")}`,
+      );
+    }
+    if (project.visibility !== undefined && !PROJECT_VISIBILITIES.includes(project.visibility)) {
+      warn(
+        `project "${project.id}" has visibility "${String(project.visibility)}", which is not one of: ${PROJECT_VISIBILITIES.join(", ")}; agents will not treat it as private`,
+      );
+    }
 
     const nameKey = project.name.trim().toLowerCase();
     const existing = projectNames.get(nameKey);

@@ -9,6 +9,28 @@ function mdLink(note: { name: string; path: string }): string {
   return `[\`${note.name}\`](${encodeURI(note.path)})`;
 }
 
+/**
+ * The prose half of the visibility marker. `recall` warns an MCP client when it
+ * hands over a private project, but an agent reading this file instead of
+ * calling a tool would never learn the rule — and the private projects have to
+ * be named somewhere an agent will actually look. Omitted entirely when the
+ * vault marks nothing private, rather than shipping an empty heading.
+ */
+function projectVisibilitySection(plan: VaultPlan): string {
+  const priv = plan.manifest.projects.filter((project) => project.visibility === "private");
+  if (priv.length === 0) return "";
+
+  return [
+    "## Project visibility",
+    "",
+    "These projects are private. Do not name them, quote them, or describe their work outside this repository — not in public repositories, commit messages, issues, pull requests, or anything shared with someone other than the operator:",
+    "",
+    bulletList(priv.map((project) => project.name)),
+    "",
+    "Every other project in `vulcanus.json` is marked `public` or carries no marker. A project with no marker has not been cleared — ask before naming it outside.",
+  ].join("\n");
+}
+
 function agentsFile(plan: VaultPlan): GeneratedFile {
   const { manifest } = plan;
   const { admin, vault, structure } = manifest;
@@ -86,11 +108,13 @@ function agentsFile(plan: VaultPlan): GeneratedFile {
         "`vulcanus.json` — the manifest the structure and its validation are derived from.",
       ]),
     ].join("\n"),
+    projectVisibilitySection(plan),
     [
       "## Safety",
       "",
       bulletList([
         `Follow ${mdLink(plan.system.get("Rules")!)} and ${mdLink(plan.system.get("Update Format")!)}; this file supplements them and does not override them.`,
+        "Before naming a project outside this repository, check its `visibility` in `vulcanus.json`. Treat anything marked `private` as unmentionable elsewhere.",
         `Never commit raw AI exports or anything under \`${structure.importsDir}/\`.`,
         `Never commit generated state under \`${structure.stateDir}/\`.`,
         "Preserve ignored local and sensitive files.",

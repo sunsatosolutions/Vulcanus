@@ -257,11 +257,13 @@ describe("detail modes", () => {
       "",
       ["Architecture"],
       "kiln, firing",
+      "product",
+      "private",
     ]);
 
     assert.deepEqual(
       asked.map((question) => question.kind),
-      ["text", "select", "multiselect", "text"],
+      ["text", "select", "multiselect", "text", "select", "select"],
     );
     // Nothing to be a parent of yet, so only grouping is offered.
     assert.match(asked[1].message, /group/i);
@@ -274,11 +276,35 @@ describe("detail modes", () => {
       summary: "A pottery kiln controller.",
       triggers: ["kiln", "firing"],
       specialized: ["Architecture"],
+      kind: "product",
+      visibility: "private",
     });
   });
 
+  it("records the visibility answer even when it is public", async () => {
+    // "Nobody asked" and "the operator said public" must not look the same.
+    const { projects } = await collect(["Kiln"], "manual", [
+      "Controller.",
+      "",
+      [],
+      "kiln",
+      "",
+      "public",
+    ]);
+
+    assert.equal(projects[0].visibility, "public");
+    assert.equal(projects[0].kind, undefined);
+  });
+
   it("asks the AI path the same structural questions, so the graph is never left flat", async () => {
-    const answers = ["A pottery kiln controller.", "", ["Architecture"], "kiln, firing"];
+    const answers = [
+      "A pottery kiln controller.",
+      "",
+      ["Architecture"],
+      "kiln, firing",
+      "product",
+      "public",
+    ];
     const manual = await collect(["Kiln"], "manual", answers);
     const ai = await collect(["Kiln"], "ai", answers);
 
@@ -295,19 +321,23 @@ describe("detail modes", () => {
       "",
       [],
       "kiln",
+      "",
+      "public",
       "Glaze calculator.",
       "kiln",
       [],
       "glaze",
+      "",
+      "public",
     ]);
 
-    assert.deepEqual(asked[5].choices, ["", "kiln"]);
+    assert.deepEqual(asked[7].choices, ["", "kiln"]);
     assert.equal(projects[1].parent, "kiln");
     assert.equal(projects[1].group, null);
-    // Four questions for the first project, then parent replaces the group question.
+    // Six questions for the first project, then parent replaces the group question.
     assert.deepEqual(
-      asked.slice(4).map((question) => question.kind),
-      ["text", "select", "multiselect", "text"],
+      asked.slice(6).map((question) => question.kind),
+      ["text", "select", "multiselect", "text", "select", "select"],
     );
   });
 
@@ -318,6 +348,8 @@ describe("detail modes", () => {
       "Studio Tools",
       [],
       "kiln",
+      "",
+      "public",
     ]);
 
     assert.deepEqual(groups, [{ id: "studio-tools", name: "Studio Tools", navigationOnly: true }]);
@@ -325,7 +357,14 @@ describe("detail modes", () => {
   });
 
   it("falls back to the project name when no triggers are given", async () => {
-    const { projects } = await collect(["Kiln"], "manual", ["Controller.", "", [], "  ,  "]);
+    const { projects } = await collect(["Kiln"], "manual", [
+      "Controller.",
+      "",
+      [],
+      "  ,  ",
+      "",
+      "public",
+    ]);
 
     assert.deepEqual(projects[0].triggers, ["Kiln"]);
   });

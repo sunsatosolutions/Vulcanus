@@ -69,6 +69,19 @@ Each project cluster is five notes plus any specialized ones you ask for:
 
 The point of the layering is token economy: an agent reads the Recall Map, then one Capsule, and only goes deeper when the task actually needs authority or detail.
 
+### What a project is, and who may hear about it
+
+Two optional fields on each project in `vulcanus.json` carry what a note cannot enforce:
+
+| Field | Values | Answers |
+| --- | --- | --- |
+| `kind` | `umbrella`, `product`, `lab`, `service-brand`, `client`, `client-product` | what this project *is*, so an agent knows how to place and summarize it |
+| `visibility` | `public`, `private` | whether an agent may name this project outside the vault |
+
+`init` and `add project` ask for both, and `visibility` is recorded either way — "nobody has said" and "the operator said public" are different states, and only one of them is safe to act on. `recall` returns the marker and, for a private project, an instruction not to name it in anything public. `doctor` warns on a value it does not recognize rather than failing the vault, because a typo like `privte` would otherwise read as public to every agent.
+
+This is a signal, not access control: nothing here encrypts or hides a file.
+
 ## The first question is import
 
 Before anything else, Vulcanus offers to read an existing AI history and propose your project tree from it:

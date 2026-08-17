@@ -94,6 +94,11 @@ export interface Messages {
   specializedQuestion: (name: string) => string;
   triggersQuestion: (name: string) => string;
   triggersHint: string;
+  kindQuestion: (name: string) => string;
+  kindUnset: string;
+  visibilityQuestion: (name: string) => string;
+  visibilityPublic: string;
+  visibilityPrivate: string;
 
   targetQuestion: string;
   targetHint: string;
@@ -235,6 +240,11 @@ const en: Messages = {
   specializedQuestion: (name) => `Specialized notes for ${name}`,
   triggersQuestion: (name) => `Recall trigger words for ${name} (comma separated)`,
   triggersHint: "Words that should route an agent to this project",
+  kindQuestion: (name) => `What kind of project is ${name}?`,
+  kindUnset: "Not recorded",
+  visibilityQuestion: (name) => `May an agent mention ${name} outside this vault?`,
+  visibilityPublic: "Yes — it can be named publicly",
+  visibilityPrivate: "No — keep it private",
 
   targetQuestion: "Where should the vault be created?",
   targetHint: "Relative or absolute path",
@@ -391,6 +401,11 @@ const tr: Messages = {
   specializedQuestion: (name) => `${name} için özel notlar`,
   triggersQuestion: (name) => `${name} için recall trigger kelimeleri (virgülle ayır)`,
   triggersHint: "Bir ajanı bu projeye yönlendirmesi gereken kelimeler",
+  kindQuestion: (name) => `${name} ne tür bir proje?`,
+  kindUnset: "Kaydetme",
+  visibilityQuestion: (name) => `Bir ajan ${name} projesinden vault dışında söz edebilir mi?`,
+  visibilityPublic: "Evet — adı açıkça geçebilir",
+  visibilityPrivate: "Hayır — gizli kalsın",
 
   targetQuestion: "Vault nereye kurulsun?",
   targetHint: "Göreli ya da mutlak yol",

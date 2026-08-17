@@ -136,6 +136,34 @@ describe("doctor", () => {
   });
 });
 
+describe("the protocol names private projects", () => {
+  it("lists them in AGENTS.md, where an agent that never calls a tool will read it", async () => {
+    const { root } = await scaffold(
+      manifest({
+        projects: [
+          project("crasyn", "Crasyn", { visibility: "private" }),
+          project("meridian", "Meridian", { visibility: "public" }),
+        ],
+      }),
+    );
+
+    const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    assert.match(agents, /## Project visibility/);
+    assert.match(agents, /- Crasyn/);
+    assert.doesNotMatch(agents, /- Meridian/);
+    assert.match(agents, /not in public repositories, commit messages, issues/);
+  });
+
+  it("says nothing when the vault marks nothing private", async () => {
+    const { root } = await scaffold(manifest({ projects: [project("meridian", "Meridian")] }));
+
+    const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    assert.doesNotMatch(agents, /## Project visibility/);
+    // The general rule still ships, so the marker means something once one exists.
+    assert.match(agents, /check its `visibility` in `vulcanus\.json`/);
+  });
+});
+
 describe("manifest validation", () => {
   it("rejects projects whose note basenames would collide", () => {
     const issues = validateManifest(
@@ -160,6 +188,40 @@ describe("manifest validation", () => {
       manifest({ projects: [project("a", "A", { parent: "ghost" })] }),
     );
     assert.ok(issues.some((issue) => /unknown parent/.test(issue.message)));
+  });
+
+  it("warns about an unrecognized kind or visibility, without failing the vault", () => {
+    const issues = validateManifest(
+      manifest({
+        projects: [
+          project("a", "A", { kind: "sideline" as never }),
+          // The failure that matters: a typo here reads as public to every agent.
+          project("b", "B", { visibility: "privte" as never }),
+        ],
+      }),
+    );
+
+    const kind = issues.find((issue) => /kind "sideline"/.test(issue.message));
+    const visibility = issues.find((issue) => /visibility "privte"/.test(issue.message));
+    assert.equal(kind?.level, "warning");
+    assert.equal(visibility?.level, "warning");
+    assert.match(visibility?.message ?? "", /will not treat it as private/);
+    assert.equal(
+      issues.some((issue) => issue.level === "error"),
+      false,
+    );
+  });
+
+  it("accepts the recorded axes", () => {
+    const issues = validateManifest(
+      manifest({
+        projects: [project("a", "A", { kind: "client-product", visibility: "private" })],
+      }),
+    );
+    assert.deepEqual(
+      issues.filter((issue) => /kind|visibility/.test(issue.message)),
+      [],
+    );
   });
 });
 

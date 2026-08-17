@@ -1,5 +1,5 @@
 /** Kept in sync with package.json; used in the manifest's generator stamp. */
-export const CLI_VERSION = "0.4.6";
+export const CLI_VERSION = "0.4.7";
 
 /**
  * The published package name. The unscoped `vulcanus` on npm belongs to an
@@ -16,4 +16,4 @@ export const PACKAGE_NAME = "@sunsato/vulcanus";
  * AGENTS.md is a managed file, so `vulcanus update` rewrites it; the stamp is
  * what lets `doctor` notice that a vault is still carrying the old protocol.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;

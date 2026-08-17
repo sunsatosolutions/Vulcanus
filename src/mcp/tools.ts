@@ -55,6 +55,15 @@ export interface RecallResult {
   project: string;
   summary: string;
   status: string;
+  /** What the project is, when the vault records it. */
+  kind?: string;
+  visibility?: string;
+  /**
+   * Set when the project is marked private. Stated as an instruction rather
+   * than a field an agent has to interpret, because the cost of missing it is
+   * a private project named in something public.
+   */
+  visibilityWarning?: string;
   capsule: { name: string; path: string; content: string };
   /** Deeper notes in the order the vault protocol says to read them. */
   readNext: Array<{ name: string; path: string }>;
@@ -85,6 +94,13 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
     project: project.project.name,
     summary: project.project.summary,
     status: project.project.status,
+    ...(project.project.kind ? { kind: project.project.kind } : {}),
+    ...(project.project.visibility ? { visibility: project.project.visibility } : {}),
+    ...(project.project.visibility === "private"
+      ? {
+          visibilityWarning: `${project.project.name} is marked private. Do not name it, quote it, or describe its work outside this vault — not in public repositories, commit messages, issues, or anything shared with someone who is not the operator.`,
+        }
+      : {}),
     capsule: { name: project.capsule.name, path: project.capsule.path, content },
     ...(stale
       ? {
@@ -296,6 +312,9 @@ export interface ProjectListing {
   triggers: string[];
   parent: string | null;
   capsule: string;
+  kind?: string;
+  /** Present only when recorded; `private` means do not reveal this project. */
+  visibility?: string;
 }
 
 /** The routing table: everything an agent needs to pick the right recall. */
@@ -308,5 +327,7 @@ export function listProjects(handle: VaultHandle): ProjectListing[] {
     triggers: entry.project.triggers,
     parent: entry.ancestors.at(-1)?.name ?? null,
     capsule: entry.capsule.path,
+    ...(entry.project.kind ? { kind: entry.project.kind } : {}),
+    ...(entry.project.visibility ? { visibility: entry.project.visibility } : {}),
   }));
 }

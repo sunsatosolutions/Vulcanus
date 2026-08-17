@@ -8,6 +8,7 @@ import { findVaultRoot, readManifest, writeManifest } from "../manifest/io.js";
 import {
   KNOWN_SPECIALIZED_NOTES,
   makeProjectId,
+  PROJECT_KINDS,
   type ProjectGroup,
   type ProjectNode,
   type VaultManifest,
@@ -299,6 +300,27 @@ export async function collectProjectDetails(
       }),
     );
 
+    const kind = await askSelect({
+      message: t.kindQuestion(name),
+      options: [
+        { value: "", label: t.kindUnset },
+        ...PROJECT_KINDS.map((entry) => ({ value: entry, label: entry })),
+      ],
+      initialValue: "",
+    });
+
+    // Asked outright rather than defaulted, because the safe default is not
+    // obvious: assuming public leaks, assuming private makes an agent refuse to
+    // discuss work the operator is happy to talk about.
+    const visibility = await askSelect({
+      message: t.visibilityQuestion(name),
+      options: [
+        { value: "public", label: t.visibilityPublic },
+        { value: "private", label: t.visibilityPrivate },
+      ],
+      initialValue: "public",
+    });
+
     const project: ProjectNode = {
       id,
       name,
@@ -308,6 +330,10 @@ export async function collectProjectDetails(
       summary,
       triggers: triggers.length ? triggers : [name],
       specialized: [...specialized],
+      ...(kind ? { kind } : {}),
+      // Recorded either way. "Nobody has said" and "the operator said public"
+      // are different states, and only one of them is safe to act on.
+      visibility: visibility === "private" ? "private" : "public",
     };
     projects.push(project);
     selectable.push(project);
