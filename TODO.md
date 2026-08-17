@@ -11,10 +11,13 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 > + artımlı import, 140 test, CONTRIBUTING + şablonlar, docs sitesi ve benchmark
 > yazısı.
 >
-> **Yayınlandı:** 0.4.0 → 0.4.1 (2026-08-07), ardından 0.4.2 → 0.4.4
-> (2026-08-14). npm'de `latest: 0.4.4`. 0.4.2 konumlandırma ve demo, 0.4.3 MCP
-> Registry kaydı, 0.4.4 ise `serve`'ün vault dışında hiç başlamaması hatasının
-> düzeltilmesi.
+> **Yayınlandı:** 0.4.0 → 0.4.1 (2026-08-07), 0.4.2 → 0.4.4 (2026-08-14),
+> 0.4.5 (2026-08-17). npm'de `latest: 0.4.5`. 0.4.2 konumlandırma ve demo,
+> 0.4.3 MCP Registry kaydı, 0.4.4 `serve`'ün vault dışında hiç başlamaması
+> hatasının düzeltilmesi, 0.4.5 tool annotation'ları.
+>
+> **Dağıtım:** npm, resmî MCP Registry (`io.github.sunsatosolutions/vulcanus`,
+> her tag'de OIDC ile otomatik) ve Glama (claim + konteyner release'i).
 >
 > **0.4.0 bozuktu ve geri çekilmeli:** `update` ile `doctor --repair`, Index'i,
 > System Hub'ı, grup hub'larını ve Import Log'u yeniden üretip operatörün
@@ -85,6 +88,13 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   vault'larda `<vault>-serve` skill'i. *(S)*
 - [x] **AGENTS.md protokol versiyonlama** — AGENTS.md'de protokol damgası;
   `doctor` eski protokolü uyarıyor, CLI'dan yeni protokolü reddediyor. *(M)*
+- [x] **`serve` vault dışında da başlıyor** (0.4.4) — vault her tool çağrısında
+  çözülüyor, kurulumda değil. Global kaydedilen sunucu artık vault dışındaki
+  repolarda ölmüyor; introspection duruma bağlı olamaz. *(S)*
+- [x] **Tool annotation'ları** (0.4.5) — `readOnlyHint`, `destructiveHint`,
+  `idempotentHint`, `openWorldHint` sekiz aracın hepsinde. Client onay gerekip
+  gerekmediğini bayraktan okuyor, düzyazıdan değil; test okuma/yazma ayrımını
+  doğruluyor. *(S)*
 
 ## 5. Importer Genişletme (P1)
 
@@ -130,9 +140,14 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   bu yüzden org namespace'i 403 veriyor; elle yayın gerekirse `read:org`
   scope'lu PAT ile `login github -token` şart.)*
 - [x] **Dizin/liste gönderimleri** — punkpeye/awesome-mcp-servers PR #12142
-  (Glama listelemesi ve badge'i bekliyor), awesome-claude-code #2523
-  (bot doğrulaması geçti, bakımcı incelemesinde). wong2/awesome-mcp-servers
+  (badge eklendi, bot şartı karşılandı, merge bekliyor), awesome-claude-code
+  #2523 (bot doğrulaması geçti, bakımcı incelemesinde). wong2/awesome-mcp-servers
   dışarıdan gönderim almıyor: PR, issue ve discussion kapalı. *(S)*
+- [x] **Glama listelemesi** — `glama.json` ile claim edildi, konteyner release'i
+  yayında (0.4.4, ardından 0.4.5). Maintenance ve lisans A, sekiz aracın hepsi A.
+  Dockerfile repodan okunmuyor: Glama kendi panelindeki build spec'ten üretiyor
+  ve `CMD`'ye `serve` verilmesi şart — yoksa `init` sihirbazı açılıp
+  mcp-proxy zaman aşımına düşüyor. *(M)*
 - [x] **Konumlandırma** — README artık ürünü değil sorunu ile açılıyor; npm
   keyword'leri 5'ten 16'ya çıktı (`mcp`, `claude-code`, `cursor`, `codex`,
   `agent-memory` …); site meta/paylaşım kartları aranan terimleri içeriyor. *(S)*
