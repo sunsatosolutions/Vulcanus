@@ -65,13 +65,31 @@ export function buildVaultServer(start: string): McpServer {
   // re-reads the manifest for the same reason.
   const vault = () => findVaultRoot(start);
 
+  // Annotations, not just prose: a client gating on "may this tool write?"
+  // should not have to parse a sentence to find out. Every tool here touches
+  // local files in one vault, so none of them reaches an open world.
+  const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
+  const appends = {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: false,
+  } as const;
+  const replacesSection = {
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: false,
+  } as const;
+
   server.registerTool(
     "recall",
     {
       title: "Recall a project",
       description:
-        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context. Query by project name, id, or a trigger word.",
+        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context. Query by project name, id, or a trigger word. Read-only; when nothing matches, the error lists the projects that exist.",
       inputSchema: { project: z.string().describe("Project name, id, or trigger word") },
+      annotations: readOnly,
     },
     async ({ project }) => {
       const vaultRoot = vault();
@@ -94,11 +112,12 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Search the vault",
       description:
-        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top.",
+        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top. Read-only; prefer `recall` when you already know which project you need.",
       inputSchema: {
         query: z.string().describe("Text to look for"),
         limit: z.number().int().min(1).max(100).optional().describe("Max hits, default 20"),
       },
+      annotations: readOnly,
     },
     async ({ query, limit }) => {
       const vaultRoot = vault();
@@ -113,8 +132,9 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "List projects",
       description:
-        "The routing table: every project with its status, summary, trigger words, and capsule path.",
+        "The routing table: every project with its status, summary, trigger words, and capsule path. Read-only, and the cheapest way to see what exists before calling `recall` or `search`.",
       inputSchema: {},
+      annotations: readOnly,
     },
     async () => {
       const vaultRoot = vault();
@@ -128,13 +148,14 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a decision",
       description:
-        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed.",
+        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. Writes to disk: it adds to the end of the note and never edits what is already there, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing.",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         title: z.string().describe("Short heading for the decision"),
         decision: z.string().describe("The decision itself, one or two sentences"),
         details: z.string().optional().describe("Optional supporting details"),
       },
+      annotations: appends,
     },
     async ({ project, title, decision, details }) => {
       const vaultRoot = vault();
@@ -152,12 +173,13 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Refresh a capsule section",
       description:
-        "Replace one section of a project's Capsule — the compressed summary every recall reads first. Use it after the operator confirms something that makes the summary wrong or incomplete; never to record a guess. `Read Next` is generated and cannot be written here.",
+        "Replace one section of a project's Capsule — the compressed summary every recall reads first. Use it after the operator confirms something that makes the summary wrong or incomplete; never to record a guess. `Read Next` is generated and cannot be written here. Writes to disk and overwrites that section's previous contents, which are recoverable only from Git; every other section and the rest of the file are left untouched. Errors when the project or its Capsule is missing.",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         section: z.enum(CAPSULE_SECTIONS).describe("Which capsule section to replace"),
         body: z.string().describe("The section's new Markdown body, without the heading itself"),
       },
+      annotations: replacesSection,
     },
     async ({ project, section, body }) => {
       const vaultRoot = vault();
@@ -174,12 +196,13 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a rule",
       description:
-        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation.",
+        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation. Use `append_decision` instead for a choice that was made, and `update_capsule` when the summary itself is now wrong. Writes to disk: it appends and never edits existing rules, so calling it twice records the rule twice. Errors when the project or its Rules note is missing.",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         name: z.string().describe('Short name for the rule, e.g. "Naming"'),
         rule: z.string().describe("The rule itself, in one or two sentences"),
       },
+      annotations: appends,
     },
     async ({ project, name, rule }) => {
       const vaultRoot = vault();
@@ -196,8 +219,9 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Vault status",
       description:
-        "One-shot health summary: projects, note counts, doctor result, stale capsules, git state.",
+        "One-shot health summary: projects, note counts, doctor result, stale capsules, git state. Read-only — it inspects the working tree and reports, and writes nothing. Use `doctor` when you need every validation finding rather than the summary.",
       inputSchema: {},
+      annotations: readOnly,
     },
     async () => {
       const vaultRoot = vault();
@@ -210,8 +234,10 @@ export function buildVaultServer(start: string): McpServer {
     "doctor",
     {
       title: "Validate the vault",
-      description: "Run the full structural validation and return every finding.",
+      description:
+        "Run the full structural validation and return every finding: unresolved links, missing frontmatter, projects unreachable from the Recall Map, hubs that do not link what they own. Read-only — it reports and never repairs; repairing is `vulcanus doctor --repair` in a terminal. A finding is an error (structure the manifest requires is missing) or a warning (something added by hand that the manifest does not describe).",
       inputSchema: {},
+      annotations: readOnly,
     },
     async () => {
       const vaultRoot = vault();

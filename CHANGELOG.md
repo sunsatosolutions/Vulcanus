@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 0.4.5 — 2026-08-17
+
+### Added — MCP tools declare whether they write
+
+Every tool `serve` exposes now carries MCP annotations: `readOnlyHint`,
+`destructiveHint`, `idempotentHint`, and `openWorldHint`. A client deciding
+whether a call needs the operator's confirmation should read a flag rather than
+parse an English sentence, and until now there was nothing to read — the same
+gap Glama's tool-definition review flagged across the whole set.
+
+`recall`, `search`, `list_projects`, `vault_status`, and `doctor` are read-only.
+`append_decision` and `append_rule` write and are not idempotent — calling one
+twice records the entry twice. `update_capsule` is marked destructive, because
+replacing a section overwrites what was there and Git is the only way back.
+Nothing is open-world: every tool touches one local vault.
+
+The descriptions say the same things in prose, and now also cover what each tool
+returns, when it errors, and which sibling to prefer instead. A test asserts the
+annotations match the read/write split, so a tool added later cannot quietly
+ship without them.
+
 ## 0.4.4 — 2026-08-14
 
 ### Fixed — `serve` refused to start outside a vault

@@ -68,6 +68,34 @@ describe("mcp server registration", () => {
     }
   });
 
+  it("declares whether each tool writes, as annotations rather than prose", async () => {
+    // A client deciding whether a call needs confirmation should read a flag,
+    // not parse a sentence. Every tool works on one local vault, so none of
+    // them is open-world.
+    const writers = new Set(["append_decision", "append_rule", "update_capsule"]);
+    const { client, close } = await connect(await scaffold());
+    try {
+      const { tools } = await client.listTools();
+      for (const tool of tools) {
+        const annotations = tool.annotations ?? {};
+        assert.equal(
+          annotations.readOnlyHint,
+          !writers.has(tool.name),
+          `${tool.name} declares the wrong readOnlyHint`,
+        );
+        assert.equal(annotations.openWorldHint, false, `${tool.name} should not be open-world`);
+      }
+
+      // Replacing a capsule section overwrites what was there; appending does not.
+      const capsule = tools.find((tool) => tool.name === "update_capsule");
+      assert.equal(capsule?.annotations?.destructiveHint, true);
+      const decision = tools.find((tool) => tool.name === "append_decision");
+      assert.equal(decision?.annotations?.destructiveHint, false);
+    } finally {
+      await close();
+    }
+  });
+
   it("serves outside a vault, and says so when a tool is called", async () => {
     // A client that registered the server globally starts it wherever the
     // operator is working. Introspection has to answer there, or the client
