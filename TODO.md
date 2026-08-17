@@ -12,9 +12,10 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 > yazısı.
 >
 > **Yayınlandı:** 0.4.0 → 0.4.1 (2026-08-07), 0.4.2 → 0.4.4 (2026-08-14),
-> 0.4.5 (2026-08-17). npm'de `latest: 0.4.5`. 0.4.2 konumlandırma ve demo,
-> 0.4.3 MCP Registry kaydı, 0.4.4 `serve`'ün vault dışında hiç başlamaması
-> hatasının düzeltilmesi, 0.4.5 tool annotation'ları.
+> 0.4.5 → 0.4.7 (2026-08-17). npm'de `latest: 0.4.7`. 0.4.2 konumlandırma ve
+> demo, 0.4.3 MCP Registry kaydı, 0.4.4 `serve`'ün vault dışında hiç başlamaması
+> hatasının düzeltilmesi, 0.4.5 tool annotation'ları, 0.4.6 manifest alan
+> kaybının düzeltilmesi, 0.4.7 `kind`/`visibility` eksenleri ve protokol 2.
 >
 > **Dağıtım:** npm, resmî MCP Registry (`io.github.sunsatosolutions/vulcanus`,
 > her tag'de OIDC ile otomatik) ve Glama (claim + konteyner release'i).
@@ -50,29 +51,31 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   test koşmuyordu. Dosya listesi artık `scripts/run-tests.mjs` içinde JavaScript
   tarafında genişliyor. Ayrıca dosya sisteminden gelen yollar `vaultRelative()`
   ile "/" formuna normalize ediliyor. *(M)*
-- [ ] **`update` manifest'teki tanımadığı alanları sessizce siliyor** — 0.4.0'ın
-  not silme hatasının manifest'teki karşılığı. MIRA 0.4.1 → 0.4.5 güncellemesinde
-  (17 Ağustos 2026) operatörün `vulcanus.json`'a elle eklediği `kind` ve
-  `visibility` alanları 13 projeden birden düştü; ikisi `visibility: private`
-  (MIRA OS, Crasyn) idi, yani kaybolan şey bir ajanın özel projeyi herkese açık
-  sanmasını önleyen işaretti. Ne `update` çıktısı ne `doctor` bunu söylemedi —
-  "your notes, left untouched: 100" yazdı, manifest'ten söz etmedi; `git diff`
-  olmasa fark edilmezdi. `update` manifest'i şemadan yeniden üretmek yerine
-  bilinmeyen alanları koruyup taşımalı; koruyamıyorsa çıktıda hangi anahtarları
-  düşürdüğünü tek tek saymalı, sessiz kalmamalı. En az bir test: bilinmeyen
-  anahtar içeren bir manifest `update` sonrası anahtarı hâlâ taşıyor. *(M)*
+- [x] **`update` manifest'teki tanımadığı alanları sessizce siliyordu** (0.4.6) —
+  0.4.0'ın not silme hatasının manifest'teki karşılığı. Manifest'i okuyan her
+  komut dosyayı alan alan yeniden kuruyordu, yani CLI'ın tanımadığı her anahtar
+  bir sonraki yazımda gidiyordu. Gerçek bir vault'ta 13 projenin elle eklenmiş
+  `kind` ve `visibility` değerleri 0.4.1 → 0.4.5 güncellemesinde birden düştü;
+  kritik olan, kaybolanlar arasında `visibility: private` işaretlerinin
+  bulunmasıydı. Ne `update` çıktısı ne `doctor` bundan söz etti; `git diff`
+  olmasa görülmezdi. Okuma artık budamadan varsayılan dolduruyor, her katman
+  kendine verileni koruyor. `test/preserve.test.ts` bunu doğruluyor. *(M)*
 
 ## 1b. Manifest Şeması (P1)
 
-- [ ] **Projelere `kind` ve `visibility` ekseni** — bugün manifest'te bir projenin
-  ne olduğunu (`umbrella`, `product`, `lab`, `service-brand`, `client`,
-  `client-product`) ve paylaşılabilir olup olmadığını (`public` / `private`)
-  yazacak yer yok; MIRA bunu elle ekleyip yukarıdaki hatayla kaybetti. İkisi de
-  recall için sinyal: `visibility: private` bir ajanın projeyi dışarıya
-  açmamasını söyler, `kind` ise hangi hub'a ait olduğunu ve nasıl özetleneceğini
-  belirler. Şemaya opsiyonel alan olarak gir, `doctor` bilinmeyen değeri uyarsın,
-  `add project` sihirbazı sorsun, `recall` çıktısı `private` projede işareti
-  göstersin. *(M)*
+- [x] **Projelere `kind` ve `visibility` ekseni** (0.4.7) — projede opsiyonel iki
+  alan: `kind` (`umbrella`, `product`, `lab`, `service-brand`, `client`,
+  `client-product`) projenin ne olduğunu, `visibility` (`public` / `private`)
+  adının dışarıda anılıp anılamayacağını söyler. `init` ve `add project` ikisini
+  de soruyor; `visibility` cevap public olsa bile yazılıyor, çünkü "kimse bir şey
+  demedi" ile "operatör public dedi" farklı durumlar ve yalnız biri güvenli.
+  `recall` ve `list_projects` alanları döndürüyor, private projede bayrak değil
+  düpedüz talimat basıyor. `doctor` tanımadığı değeri uyarıyor — `privte` gibi
+  bir yazım hatası her ajana public diye okunurdu. Erişim denetimi değil, ajan
+  sinyali: hiçbir şey şifrelenmiyor. **Protokol 2:** `AGENTS.md` kuralı taşıyor
+  ve vault'ta private işaretli proje varsa onları `Project visibility` başlığı
+  altında sayıyor; sadece tool yolunu bilmek düzyazı yolunu okuyan ajanı
+  bilgisiz bırakıyordu. *(M)*
 
 ## 2. Test Genişletme (P1)
 
@@ -203,7 +206,7 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
 2. ~~Release otomasyonu, Windows CI, stats, CLI UX, MCP derinleştirme,
    importer'lar, testler, docs~~ — **bitti**
 3. ~~0.4.0 + 0.4.1 yayını~~ — **bitti**
-4. `update`'in bilinmeyen manifest alanlarını silmesi (P0, veri kaybı) → ardından
-   `kind`/`visibility` eksenini şemaya al
+4. ~~`update`'in bilinmeyen manifest alanlarını silmesi → `kind`/`visibility`
+   ekseni~~ — **bitti** (0.4.6 + 0.4.7)
 5. Üretilen notların yerelleştirilmesi → i18n dışa alma → yeni diller
 6. `--ai` ile akıllı kümeleme; demo kaydı ve örnek vault repo'su
