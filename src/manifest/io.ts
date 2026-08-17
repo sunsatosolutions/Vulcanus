@@ -48,7 +48,18 @@ export async function writeManifest(vaultRoot: string, manifest: VaultManifest):
   await writeFile(manifestPath(vaultRoot), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
-/** Fill in defaults so older or hand-edited manifests still load. */
+/**
+ * Fill in defaults so older or hand-edited manifests still load.
+ *
+ * Every level spreads what it was given before applying defaults, so a field
+ * this CLI has never heard of survives the read/write round trip. The manifest
+ * is the operator's file as much as the generator's: an unrecognized key is
+ * something someone wrote on purpose, not debris to tidy away. Rebuilding the
+ * object field by field is what silently erased hand-added `kind` and
+ * `visibility` markers from a real vault during an update — including the
+ * `visibility: private` flags that were the only thing telling an agent not to
+ * treat a project as public.
+ */
 export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest {
   if (!input || typeof input !== "object") {
     throw new ManifestError("manifest must be a JSON object");
@@ -57,19 +68,19 @@ export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest 
   if (!input.admin?.name) throw new ManifestError("manifest is missing admin.name");
 
   return {
+    ...input,
     manifestVersion: input.manifestVersion ?? MANIFEST_VERSION,
     generator: input.generator ?? { name: "vulcanus", version: "0.0.0" },
     vault: {
+      ...input.vault,
       name: input.vault.name,
-      fullName: input.vault.fullName,
-      tagline: input.vault.tagline,
       language: input.vault.language ?? "en",
       naming: input.vault.naming ?? "branded",
       profile: input.vault.profile ?? "core",
     },
     admin: {
+      ...input.admin,
       name: input.admin.name,
-      role: input.admin.role,
       aliases: input.admin.aliases ?? [],
       language: input.admin.language ?? input.vault.language ?? "en",
       workingStyle: input.admin.workingStyle ?? [],
@@ -78,21 +89,17 @@ export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest 
     },
     structure: { ...DEFAULT_STRUCTURE, ...(input.structure ?? {}) },
     groups: (input.groups ?? []).map((group) => ({
-      id: group.id,
-      name: group.name,
-      summary: group.summary,
+      ...group,
       navigationOnly: group.navigationOnly ?? true,
     })),
     projects: (input.projects ?? []).map((project) => ({
-      id: project.id,
-      name: project.name,
+      ...project,
       parent: project.parent ?? null,
       group: project.group ?? null,
       status: project.status ?? "active",
       summary: project.summary ?? "",
       triggers: project.triggers ?? [],
       specialized: project.specialized ?? [],
-      dirName: project.dirName,
     })),
     imports: input.imports ?? [],
   };

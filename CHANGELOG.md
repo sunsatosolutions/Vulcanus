@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 0.4.6 — 2026-08-17
+
+### Fixed — reading a manifest silently dropped hand-added fields
+
+Every command that read `vulcanus.json` rebuilt it field by field, so any key
+this CLI did not recognize was gone the next time the file was written. That is
+the manifest counterpart of the note-deleting bug 0.4.1 fixed, and it did real
+damage: updating a vault from 0.4.1 to 0.4.5 erased hand-added `kind` and
+`visibility` values from thirteen projects at once. Two of them were
+`visibility: private` — the only marker telling an agent not to treat those
+projects as public. Nothing in the output mentioned it. `update` reported the
+notes it had left untouched and said nothing about the manifest, so without a
+`git diff` the loss was invisible.
+
+Reading now fills in defaults without pruning: each level keeps what it was
+given and only supplies what is missing. A manifest is the operator's file as
+much as the generator's, and a key it has never heard of is something someone
+wrote on purpose. This covers every command, not just `update` — `add project`
+and the `project` lifecycle commands rewrote the manifest the same way.
+
+If a vault lost fields to this, they are in Git history:
+`git diff <commit-before-update> -- vulcanus.json` and restore what was removed.
+
 ## 0.4.5 — 2026-08-17
 
 ### Added — MCP tools declare whether they write

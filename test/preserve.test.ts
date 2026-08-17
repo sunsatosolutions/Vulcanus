@@ -45,6 +45,62 @@ after(async () => {
  * a file holding memory is never rewritten, and the graph is kept correct by
  * inserting what is missing instead.
  */
+/**
+ * The manifest is operator-writable too, and the same class of bug reached it:
+ * reading a manifest rebuilt it field by field, so hand-added keys were dropped
+ * on the next write with nothing in the output to say so. In a real vault that
+ * silently erased `visibility: private` from two projects — the only marker
+ * telling an agent not to treat them as public.
+ */
+describe("hand-added manifest fields survive", () => {
+  it("keeps unknown keys through a read and write round trip", async () => {
+    const input = manifest({ projects: [project("meridian", "Meridian")] });
+    const root = await scaffold(input);
+
+    const path = resolve(root, "vulcanus.json");
+    const raw = JSON.parse(await readFile(path, "utf8"));
+    raw.projects[0].kind = "product";
+    raw.projects[0].visibility = "private";
+    raw.retention = { policy: "keep-forever" };
+    await writeFile(path, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
+
+    const reread = (await readManifest(root)) as unknown as Record<string, unknown>;
+    const projects = reread.projects as Array<Record<string, unknown>>;
+    assert.equal(projects[0].kind, "product");
+    assert.equal(projects[0].visibility, "private");
+    assert.deepEqual(reread.retention, { policy: "keep-forever" });
+
+    // Defaults still get filled in for the fields the CLI does own.
+    assert.equal(projects[0].status, "active");
+  });
+
+  it("carries them through `update`", async () => {
+    const input = manifest({
+      generator: { name: "vulcanus", version: "0.0.1" },
+      projects: [project("meridian", "Meridian"), project("harbor", "Harbor")],
+    });
+    const root = await scaffold(input);
+
+    const path = resolve(root, "vulcanus.json");
+    const before = JSON.parse(await readFile(path, "utf8"));
+    before.projects[0].visibility = "private";
+    before.projects[1].kind = "client";
+    await writeFile(path, `${JSON.stringify(before, null, 2)}\n`, "utf8");
+
+    assert.equal(await quiet(() => updateCommand({ cwd: root, json: true })), 0);
+
+    const after = JSON.parse(await readFile(path, "utf8"));
+    assert.equal(
+      after.projects[0].visibility,
+      "private",
+      "update must not drop a hand-added visibility marker",
+    );
+    assert.equal(after.projects[1].kind, "client");
+    // The update still did its job: the generator stamp moved forward.
+    assert.notEqual(after.generator.version, "0.0.1");
+  });
+});
+
 describe("operator content survives an update", () => {
   const OPERATOR_FILES = [
     "00_System/ATLAS Index.md",
