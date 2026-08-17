@@ -77,6 +77,26 @@ Efor: S (saatler), M (1–2 gün), L (hafta+).
   altında sayıyor; sadece tool yolunu bilmek düzyazı yolunu okuyan ajanı
   bilgisiz bırakıyordu. *(M)*
 
+- [ ] **`doctor` düzyazı çapraz referansını fazlalık sayıyor** — `hubExpectations`
+  bir hub'ın beklenen çocuk kümesini üretiyor, `src/doctor/index.ts` ise dosyadaki
+  **her** wiki link'ini o kümeyle karşılaştırıp fazlasını uyarı basıyor. Ama bir
+  hub yalnız navigasyon listesi değil; düzyazısı da var ve o düzyazı doğal olarak
+  başka hub ve capsule'lere referans veriyor — "şu ürün müşterinin, X Hub altında
+  yaşıyor" cümlesi tam da operatörün yazmasını istediğimiz şey. Bugün bunun
+  cezası, vault sahibinin ya doğru cümleyi silmesi ya da uyarıyla yaşaması.
+  Navigasyon bölümündeki linkleri (liste öğesi, beklenen bölüm altında) düzyazı
+  içindekilerden ayır; ya da manifest'te bir izin listesi olsun. Uyarı ancak
+  navigasyon kümesi sapıyorsa çıkmalı. *(M)*
+- [ ] **Operatörün kendi sistem notu manifest'e yazılamıyor** — `schema.ts`'de
+  sistem notları profile göre sabit liste, `specialized` yalnız proje seviyesinde.
+  Vault sahibi `00_System` altına kendi notunu koyup System Hub'dan bağladığında
+  `doctor` hem notu UNMANAGED sayıyor hem de hub'ı "fazla link" diye uyarıyor —
+  gerçek bir vault'ta 648 satırlık dört aktif not bu durumda. Not silinecek bir
+  şey değil, manifest'in tanımadığı bir şey. `structure` yanına vault seviyesinde
+  bir `systemNotes` (ya da proje `specialized`'ının eşleniği) gerekiyor: operatör
+  yazsın, `update` üretmesin ama tanısın, hub link'i meşru sayılsın. Yukarıdaki
+  madde ile birlikte çözülürse ikisi de tek uyarı sınıfını kapatıyor. *(M)*
+
 ## 2. Test Genişletme (P1)
 
 - [x] **Importer edge-case'leri** — boş export, bozuk JSON batch, yarım yazılmış
