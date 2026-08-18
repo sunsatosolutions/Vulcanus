@@ -5,6 +5,7 @@ import {
   type ProjectNode,
   type VaultManifest,
 } from "./schema.js";
+import { headingVariants } from "../generate/text.js";
 import { safeFileName } from "../util/text.js";
 
 /** A generated note, addressable both as a file path and as a wikilink target. */
@@ -240,15 +241,18 @@ export function buildPlan(manifest: VaultManifest): VaultPlan {
  * The first heading is also where a missing link gets inserted.
  */
 export function hubNavigationSections(plan: VaultPlan): Map<string, string[]> {
+  const locale = plan.manifest.vault.language;
+  const named = (...names: string[]) => names.flatMap((name) => headingVariants(name, locale));
+
   const sections = new Map<string, string[]>();
-  sections.set(plan.index.path, ["## Main Hubs"]);
-  // "Core Files" is what older vaults wrote and some still carry; both name the
-  // same list, and a check that knows only the current spelling would silently
-  // stop checking the very hub it was written for.
-  sections.set(plan.systemHub.path, ["## System Notes", "## Core Files"]);
-  for (const group of plan.groups) sections.set(group.hub.path, ["## Projects", "## Parent"]);
+  sections.set(plan.index.path, named("Main Hubs"));
+  // "Core Files" is what older vaults wrote where new ones write "System Notes";
+  // both name the same list, and a check that knows only the current spelling
+  // would silently stop checking the very hub it was written for.
+  sections.set(plan.systemHub.path, named("System Notes", "Core Files"));
+  for (const group of plan.groups) sections.set(group.hub.path, named("Projects", "Parent"));
   for (const project of plan.allProjects) {
-    sections.set(project.hub.path, ["## Sub-Projects", "## Core Files", "## Parent"]);
+    sections.set(project.hub.path, named("Sub-Projects", "Core Files", "Parent"));
   }
   return sections;
 }
