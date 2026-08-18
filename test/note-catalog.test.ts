@@ -7,9 +7,10 @@ import { LOCALES, type Locale } from "../src/i18n.js";
 import { manifest, project } from "./helpers.js";
 
 function catalog(locale: Locale): NoteCatalog {
-  return JSON.parse(
+  const parsed: unknown = JSON.parse(
     readFileSync(new URL(`../src/locales/notes/${locale}.json`, import.meta.url), "utf8"),
   );
+  return parsed as NoteCatalog;
 }
 
 const CATALOGS = new Map<Locale, NoteCatalog>(LOCALES.map((locale) => [locale, catalog(locale)]));

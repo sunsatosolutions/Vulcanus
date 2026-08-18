@@ -24,10 +24,10 @@ export interface NoteCatalog {
 }
 
 const CATALOGS: Record<Locale, NoteCatalog> = {
-  en: enNotes as NoteCatalog,
-  tr: trNotes as NoteCatalog,
-  de: deNotes as NoteCatalog,
-  es: esNotes as NoteCatalog,
+  en: enNotes,
+  tr: trNotes,
+  de: deNotes,
+  es: esNotes,
 };
 
 function fill(template: string, values: Record<string, unknown>): string {
