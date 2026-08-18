@@ -8,13 +8,13 @@
     "url": "https://github.com/sunsatosolutions/Vulcanus",
     "source": "github"
   },
-  "version": "0.4.8",
+  "version": "0.5.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@sunsato/vulcanus",
-      "version": "0.4.8",
+      "version": "0.5.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

@@ -3,6 +3,11 @@
 
 export { CLI_VERSION, PACKAGE_NAME } from "./version.js";
 
+// The locale table, so a tool that reads or writes a manifest knows which
+// languages a vault may declare. The catalogs behind it are not exported: their
+// keys are an implementation detail and are expected to move.
+export { LOCALES, LOCALE_LABELS, type Locale } from "./i18n.js";
+
 export {
   MANIFEST_VERSION,
   MANIFEST_FILENAME,
@@ -39,9 +44,11 @@ export {
 
 export {
   systemNoteKinds,
+  operatorSystemNoteKinds,
   projectDirName,
   buildPlan,
   hubExpectations,
+  hubNavigationSections,
   returnLinkExpectations,
   recallRouteExpectations,
 } from "./manifest/derive.js";

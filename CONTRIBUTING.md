@@ -43,7 +43,7 @@ than lowering the floor.
 
 - **The vault must validate.** Any change to generation has to leave
   `vulcanus doctor` passing on a freshly generated vault, in both `core` and
-  `full` profiles and both languages. The test suite does this for you; keep it
+  `full` profiles and every language. The test suite does this for you; keep it
   that way.
 - **Never destroy memory.** A generated file is one of three kinds: `seed` is
   the operator's once it exists and is never rewritten; `managed` is the CLI's
@@ -79,13 +79,34 @@ Useful helpers in `test/helpers.ts`:
 
 ## Adding a language
 
-`src/i18n.ts` holds the wizard strings. Adding a locale means adding a full
-`Messages` object — the integrity test refuses partial locales, on purpose.
+A language is two JSON files and one line of TypeScript:
 
-Be aware of the current limit: **only the wizard is localized.** The generated
-notes themselves are English regardless of locale. A new wizard language on its
-own therefore produces a half-translated experience, so localizing generation is
-the prerequisite, and that is the more valuable contribution.
+- `src/locales/<locale>.json` — the wizard's strings.
+- `src/locales/notes/<locale>.json` — the prose and section headings written
+  into a generated vault, under `text` and `headings`.
+- An entry in `LOCALES` and `LOCALE_LABELS` in `src/i18n.ts`.
+
+`src/i18n.ts` still declares the `Messages` interface, which stays the source of
+truth for what a catalog must contain and which entries take arguments. Nothing
+else needs editing: the picker, the `--lang` flag and its help text, and the
+environment detection all read the same table.
+
+The tests refuse a partial or drifting locale on purpose — a key missing from
+one file, a `{placeholder}` translated away, a placeholder nothing passes. Both
+lookups fall back to English per key, so an unfinished language reads as English
+rather than as a note with a hole in it.
+
+Two things are deliberately **not** translated. `AGENTS.md`, the visibility rule
+inside it, and the `.gitignore` comments stay English — `isEnglishOnly` in
+`src/generate/text.ts` names those keys and a test holds every locale to the
+English text, because the protocol carries a version stamp that `doctor` checks.
+And a handful of entries are note names the vault links to by filename, CLI
+commands, or wikilink labels; translating those breaks the link rather than
+localizing it.
+
+Section headings are localized, and `headingVariants` returns every spelling
+with the vault's own language first — so a hub is written in the vault's
+language, and a vault written before a heading was translated still validates.
 
 ## Adding an importer
 

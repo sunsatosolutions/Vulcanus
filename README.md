@@ -82,6 +82,24 @@ Two optional fields on each project in `vulcanus.json` carry what a note cannot 
 
 This is a signal, not access control: nothing here encrypts or hides a file.
 
+### Notes you keep yourself
+
+The generated system layer is a fixed list, so a note you write under the system
+directory would otherwise read as unmanaged, and the System Hub linking it would
+read as over-linked — two findings for doing nothing wrong. `systemNotes` in
+`vulcanus.json` names those notes:
+
+```json
+{ "systemNotes": ["Release Notes", "Semantic Index Strategy"] }
+```
+
+They are branded like every other system note, so `Release Notes` resolves to
+`<Vault> Release Notes` in a branded vault. Declaring one only makes the vault
+aware of it: the note is never created, never rewritten, and `update` leaves it
+alone. The System Hub may link it, `sync` adds the bullet if it is missing, and
+a note declared but never written is reported so the declaration cannot quietly
+point at nothing. A system note nobody declared is still reported as unmanaged.
+
 ## The first question is import
 
 Before anything else, Vulcanus offers to read an existing AI history and propose your project tree from it:
@@ -165,7 +183,7 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang tr|en`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 

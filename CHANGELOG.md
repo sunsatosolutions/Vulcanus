@@ -2,7 +2,97 @@
 
 ## Unreleased
 
-## 0.4.8 — 2026-08-18
+## 0.5.0 — 2026-08-18
+
+### Added — the vault speaks the operator's language
+
+Generated notes are written in the language the vault records, not only the
+wizard. 501 pieces of prose across the three generators that write what a person
+reads come from `src/locales/notes/<locale>.json`, and the section headings with
+them. Turkish, German and Spanish ship alongside English; 360 of the 374 prose
+entries are translated in each, and the fourteen that are not are note names the
+vault links to by filename, CLI commands, and one wikilink label — translating
+those breaks the link rather than localizing it.
+
+Headings are the piece something else depends on, so they are handled separately:
+`wireHubs` inserts a missing link under one and `doctor` reads the navigation
+list from it. Both look a heading up by its English name, and `headingVariants`
+returns every spelling with the vault's own language first. A hub is written in
+the vault's language, a vault whose language changes still validates, and a vault
+generated before any of this keeps passing.
+
+`AGENTS.md`, the visibility rule inside it, and the `.gitignore` comments stay
+English on purpose, and a test holds every locale to that: the protocol carries a
+version stamp `doctor` checks and `update` merges against, so it stays one shape
+in one language.
+
+Nothing about the English output changed. 193 generated files across four vault
+shapes — both profiles, both naming modes, a group, nested projects, specialized
+notes — are byte-identical before and after the extraction, which is the only
+reason a rewrite this size was safe to make.
+
+### Added — German and Spanish, and one place that lists the languages
+
+`de.json` and `es.json` for the wizard, plus the plumbing that stops a language
+from arriving half-listed. `LOCALES` and `LOCALE_LABELS` drive the picker, the
+`--lang` flag and its help text, and the environment detection, which matches on
+the language tag rather than the region so `de_AT` and `es_MX` land on the right
+catalog. Adding a language is one entry and two files.
+
+Product vocabulary stays English in every catalog — vault, capsule, hub, recall,
+skill — because that is what the CLI output, the docs and the note filenames
+already call these things.
+
+### Changed — the message catalogs are data, not TypeScript
+
+The wizard's strings were two hand-written objects, so a translator had to edit
+code. They are `src/locales/<locale>.json` now, one entry per key, with `{name}`
+placeholders where a value is interpolated. The `Messages` interface stays the
+source of truth and no call site changed: the catalog is built from JSON at load
+time, so `t.readDone(12, 4)` still reads the same everywhere.
+
+Equivalence was checked rather than assumed — all 238 entries across both
+existing locales rendered from the old catalogs and the new ones with identical
+arguments and compared — and that comparison caught the one real bug in the
+migration.
+
+### Added — an import can be grouped by an AI CLI
+
+`vulcanus import --ai-group` asks a CLI already on PATH to read the conversation
+titles and say which project each belongs to. The word-frequency pass cannot tell
+that "the roastery site" and a brand name are one project; a model reading the
+titles can.
+
+It runs alongside the heuristic, not instead of it. Counts stay counted rather
+than judged: agreement promotes a candidate the analysis already found, and a
+name only the model proposed is added at medium confidence at best. Every way it
+can fail leaves the import as it would have been, with a line saying why — no CLI
+on PATH, the operator declining, a reply with no JSON in it, a CLI that hangs.
+
+What is sent is a digest: titles, any grouping the export already recorded, and
+one 160-character opening line per conversation, capped at 400. Assistant replies
+never leave the machine. The operator sees that description and confirms before
+anything is spawned, and the note says plainly that a locally installed CLI is
+usually the front end of a hosted model.
+
+### Added — `systemNotes`, for notes the operator keeps themselves
+
+The generated system layer is a fixed list per profile, so a note written under
+the system directory read as unmanaged and the System Hub linking it read as
+over-linked. `systemNotes` in the manifest names those notes. They are branded
+like any other system note, never created or rewritten, and the System Hub may
+link them without complaint; a note declared but never written is reported, and
+one nobody declared is still reported as unmanaged.
+
+### Fixed — a hub's prose counted against it
+
+`doctor` compared every wikilink in a hub against the links the manifest expects
+there, so a hub that explained itself was told it had links beyond the manifest.
+But a hub is a navigation list *and* prose, and the prose is the part worth
+writing. The check now reads only the sections where a hub lists what it owns.
+Drift in that list is still reported; the wording moved to "lists beyond the
+manifest" to say which of the two it means. `wireHubs` and `doctor` take those
+section names from one place, so the check and the repair cannot disagree.
 
 ### Fixed — a hub's prose counted against it
 
