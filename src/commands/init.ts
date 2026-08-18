@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { basename, relative, resolve } from "node:path";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
-import { messages, type Locale } from "../i18n.js";
+import { LOCALE_LABELS, LOCALES, messages, type Locale } from "../i18n.js";
 import {
   ADAPTERS,
   adapterFor,
@@ -44,7 +44,10 @@ const run = promisify(execFile);
 
 function defaultLocale(): Locale {
   const env = `${process.env.LC_ALL ?? ""}${process.env.LANG ?? ""}`.toLowerCase();
-  return env.startsWith("tr") || env.includes("tr_") ? "tr" : "en";
+  // Matched against the environment's language tag, not its region: `de_AT`
+  // and `es_MX` are the same catalog as `de_DE` and `es_ES`.
+  const match = LOCALES.find((locale) => env.startsWith(locale) || env.includes(`${locale}_`));
+  return match ?? "en";
 }
 
 function expandHome(value: string): string {
@@ -214,10 +217,7 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
   if (!options.locale && !options.defaults) {
     locale = await askSelect<Locale>({
       message: t.localeQuestion,
-      options: [
-        { value: "tr", label: t.localeTr },
-        { value: "en", label: t.localeEn },
-      ],
+      options: LOCALES.map((value) => ({ value, label: LOCALE_LABELS[value] })),
       initialValue: locale,
     });
     setPromptLocale(locale);

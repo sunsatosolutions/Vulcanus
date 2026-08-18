@@ -3,6 +3,17 @@ import { systemNoteKinds } from "../manifest/derive.js";
 import { renderFrontmatter } from "../util/markdown.js";
 import { bulletList, joinSections, slugify } from "../util/text.js";
 import { renderTree } from "../util/tree.js";
+import { noteText, type NoteText } from "./text.js";
+
+/**
+ * The catalog for the language this vault is written in.
+ *
+ * Module-scoped rather than threaded through every helper: generation is one
+ * synchronous pass from a single entry point, and the alternative is an extra
+ * parameter on a dozen functions that would only ever carry the same value.
+ * The entry point below sets it before anything is generated.
+ */
+let t: NoteText = noteText("en");
 import type { GeneratedFile } from "./types.js";
 
 const FRONTMATTER_TYPE: Record<string, string> = {
@@ -33,7 +44,7 @@ function frontmatter(plan: VaultPlan, kind: string, extraTags: string[] = []): s
 
 function projectOverview(plan: VaultPlan): string {
   if (plan.allProjects.length === 0) {
-    return "_No projects have been defined yet. Add one with `vulcanus add project`._";
+    return t("system.projectOverview.1");
   }
 
   const lines: string[] = [];
@@ -41,7 +52,7 @@ function projectOverview(plan: VaultPlan): string {
     const heading = "#".repeat(Math.min(depth + 3, 6));
     lines.push(`${heading} ${project.project.name}`);
     lines.push("");
-    lines.push(project.project.summary || "_Summary not recorded yet._");
+    lines.push(project.project.summary || t("system.projectOverview.2"));
     lines.push("");
     for (const child of project.children) walk(child, depth + 1);
   };
@@ -51,10 +62,7 @@ function projectOverview(plan: VaultPlan): string {
     lines.push(`### ${group.group.name}`);
     lines.push("");
     lines.push(
-      group.group.summary ||
-        (group.group.navigationOnly
-          ? "Graph navigation group. This grouping does not imply ownership or a shared business hierarchy."
-          : ""),
+      group.group.summary || (group.group.navigationOnly ? t("system.projectOverview.3") : ""),
     );
     lines.push("");
     for (const member of group.members) {
@@ -95,43 +103,47 @@ function indexNote(plan: VaultPlan): GeneratedFile {
     `# ${plan.index.name}`,
     manifest.vault.fullName ?? "",
     manifest.vault.tagline ??
-      `${manifest.vault.name} is ${manifest.admin.name}'s AI-readable second brain for project context, decisions, rules, and reusable long-term knowledge.`,
+      t("system.indexNote.3", { name: manifest.vault.name, name2: manifest.admin.name }),
     "---",
     [
-      "## Operating Principle",
+      t.heading("Operating Principle"),
       "",
-      `${manifest.vault.name} should be recalled before project work and updated after project work whenever durable knowledge changes.`,
+      t("system.indexNote.4", { name: manifest.vault.name }),
       "",
-      `Admin and operator recall is routed through ${wiki(plan.systemHub.name)} to the Admin Profile without expanding this index into a system-file star.`,
+      t("system.indexNote.5", { name: wiki(plan.systemHub.name) }),
     ].join("\n"),
     "---",
-    ["## Main Hubs", "", bulletList(mainHubs.map(wiki))].join("\n"),
+    [t.heading("Main Hubs"), "", bulletList(mainHubs.map(wiki))].join("\n"),
     "---",
-    ["## Active Project Overview", "", projectOverview(plan)].join("\n"),
-    "---",
-    ["## Current Vault Tree", "", "```txt", renderTree(manifest.vault.name, treePaths), "```"].join(
-      "\n",
-    ),
+    [t.heading("Active Project Overview"), "", projectOverview(plan)].join("\n"),
     "---",
     [
-      "## Global Rules",
+      t.heading("Current Vault Tree"),
+      "",
+      "```txt",
+      renderTree(manifest.vault.name, treePaths),
+      "```",
+    ].join("\n"),
+    "---",
+    [
+      t.heading("Global Rules"),
       "",
       bulletList([
-        `${manifest.vault.name} stores long-term reusable information.`,
-        "Do not store random temporary chat.",
-        "Do not invent missing details.",
-        `Prefer ${manifest.admin.name}'s latest explicit correction.`,
-        "Use project-specific files when available.",
-        "Keep project boundaries clean.",
-        "Do not add new projects without confirmation.",
-        "Keep Markdown valid and Obsidian-friendly.",
+        t("system.indexNote.6", { name: manifest.vault.name }),
+        t("system.indexNote.7"),
+        t("system.indexNote.8"),
+        t("system.indexNote.9", { name: manifest.admin.name }),
+        t("system.indexNote.10"),
+        t("system.indexNote.11"),
+        t("system.indexNote.12"),
+        t("system.indexNote.13"),
       ]),
     ].join("\n"),
     "---",
     [
-      "## Short Principle",
+      t.heading("Short Principle"),
       "",
-      `${manifest.vault.name} turns conversation history into clean, reusable AI memory.`,
+      t("system.indexNote.14", { name: manifest.vault.name }),
     ].join("\n"),
   ]);
 
@@ -160,36 +172,36 @@ export function recallRouteSection(plan: VaultPlan, project: ProjectPlan): strin
   ];
 
   const specializedLine = project.specialized.length
-    ? `\nThen read ${project.specialized
-        .map((entry) => wiki(entry.note.name))
-        .join(" and ")} when the task touches that domain.\n`
+    ? t("system.recallRouteSection.1", {
+        value: project.specialized.map((entry) => wiki(entry.note.name)).join(" and "),
+      })
     : "";
 
   return [
     `### ${project.project.name}`,
     "",
-    "**Trigger Words**",
+    t("system.recallRouteSection.2"),
     "",
     bulletList(triggers),
     "",
-    "**Read Order**",
+    t("system.recallRouteSection.3"),
     "",
     readOrder.map((name, index) => `${index + 1}. ${wiki(name)}`).join("\n"),
     specializedLine,
-    "**Deep Recall Conditions**",
+    t("system.recallRouteSection.4"),
     "",
     bulletList([
-      "scope, identity, or ownership changes",
-      "architecture, algorithm, or safety behavior changes",
-      "brand, visual, legal, or content constraints change",
-      "sources conflict or the Capsule is insufficient",
+      t("system.recallRouteSection.5"),
+      t("system.recallRouteSection.6"),
+      t("system.recallRouteSection.7"),
+      t("system.recallRouteSection.8"),
     ]),
     "",
-    "**Update After Work Conditions**",
+    t("system.recallRouteSection.9"),
     "",
     bulletList([
-      `${plan.manifest.admin.name} confirms a durable definition, decision, constraint, or future behavior rule`,
-      "a reusable implementation pattern emerges",
+      t("system.recallRouteSection.10", { name: plan.manifest.admin.name }),
+      t("system.recallRouteSection.11"),
     ]),
   ].join("\n");
 }
@@ -202,72 +214,62 @@ function recallMapNote(plan: VaultPlan): GeneratedFile {
   const content = joinSections([
     frontmatter(plan, "Recall Map", ["recall", "routing"]),
     `# ${plan.recallMap.name}`,
+    [t.heading("Purpose"), "", t("system.recallMapNote.1")].join("\n"),
     [
-      "## Purpose",
-      "",
-      "Route project trigger words to the smallest reliable memory layer and expand recall only when the task requires deeper context.",
-    ].join("\n"),
-    [
-      "## Recall Principles",
+      t.heading("Recall Principles"),
       "",
       bulletList([
-        "Start with the matching Capsule; use it as a compressed recall entry, not a replacement for source memory.",
-        "Read only the minimum layer needed to act correctly.",
-        `Prefer ${manifest.admin.name}'s latest explicit correction and the most specific project file.`,
-        "If the Capsule and route do not resolve uncertainty, move deeper through the listed order.",
-        "Do not infer project relationships from navigation hubs.",
-        "Put unresolved information under `Needs Confirmation`.",
+        t("system.recallMapNote.2"),
+        t("system.recallMapNote.3"),
+        t("system.recallMapNote.4", { name: manifest.admin.name }),
+        t("system.recallMapNote.5"),
+        t("system.recallMapNote.6"),
+        t("system.recallMapNote.7"),
       ]),
     ].join("\n"),
     [
-      "## Default Read Strategy",
+      t.heading("Default Read Strategy"),
       "",
       [
-        "Read this Recall Map and the matching project Capsule.",
-        "Stop when the Capsule fully answers a low-risk, non-durable task.",
-        "Read the Hub to locate authoritative memory nodes.",
-        "Read Decisions and Rules when choices or future behavior matter.",
-        "Read Context when identity, scope, definitions, or broader background matter.",
-        "Read specialized files only for the domain they govern.",
-        "Use imports or Git history only for provenance, conflicts, recovery, or version history.",
+        t("system.recallMapNote.8"),
+        t("system.recallMapNote.9"),
+        t("system.recallMapNote.10"),
+        t("system.recallMapNote.11"),
+        t("system.recallMapNote.12"),
+        t("system.recallMapNote.13"),
+        t("system.recallMapNote.14"),
       ]
         .map((step, index) => `${index + 1}. ${step}`)
         .join("\n"),
     ].join("\n"),
     [
-      "## System Recall Routes",
+      t.heading("System Recall Routes"),
       "",
-      "### Admin and Operator Preferences",
+      t("system.recallMapNote.15"),
       "",
-      `**Triggers:** admin, ${manifest.admin.name}, operator, owner, user preferences, working style, communication style, technical preferences, project ownership, admin correction`,
+      t("system.recallMapNote.16", { name: manifest.admin.name }),
       "",
-      `**Read Order:** ${wiki(plan.adminProfile.name)} → ${wiki(plan.system.get("Rules")!.name)}`,
+      t("system.recallMapNote.17", {
+        name: wiki(plan.adminProfile.name),
+        name2: wiki(plan.system.get("Rules")!.name),
+      }),
       "",
-      `Use this route when interpreting ${manifest.admin.name}'s preferences, authority, project boundaries, working style, or an admin-level correction. A newer explicit correction overrides older imported memory for the corrected claim.`,
+      t("system.recallMapNote.18", { name: manifest.admin.name }),
       "",
-      "### Memory Format and Consolidation",
+      t("system.recallMapNote.19"),
       "",
-      "**Triggers:** update format, decision note, correction, import batch, consolidation",
+      t("system.recallMapNote.20"),
       "",
-      `**Read Order:** ${wiki(plan.system.get("Update Format")!.name)} → ${wiki(plan.system.get("Rules")!.name)}`,
+      t("system.recallMapNote.21", {
+        name: wiki(plan.system.get("Update Format")!.name),
+        name2: wiki(plan.system.get("Rules")!.name),
+      }),
     ].join("\n"),
     plan.allProjects.length
-      ? ["## Project Recall Routes", "", projectRoutes.join("\n\n---\n\n")].join("\n")
-      : [
-          "## Project Recall Routes",
-          "",
-          "_No project routes yet. `vulcanus add project` writes one for each new project._",
-        ].join("\n"),
-    [
-      "## Deep Recall Conditions",
-      "",
-      "Use deeper layers when work changes architecture, scope, rules, visual identity, legal or content constraints, algorithms, safety behavior, project relationships, or durable memory. Also go deeper when sources conflict, the Capsule is insufficient, or provenance is required.",
-    ].join("\n"),
-    [
-      "## Update After Work Conditions",
-      "",
-      "After meaningful work, perform recursive consolidation. Check the Capsule, Recall Map, Context, Decisions, Rules, relevant specialized files, deprecated information, and `Needs Confirmation`. Update only the affected nodes, then run `vulcanus doctor` and sync.",
-    ].join("\n"),
+      ? [t.heading("Project Recall Routes"), "", projectRoutes.join("\n\n---\n\n")].join("\n")
+      : [t.heading("Project Recall Routes"), "", t("system.recallMapNote.22")].join("\n"),
+    [t.heading("Deep Recall Conditions"), "", t("system.recallMapNote.23")].join("\n"),
+    [t.heading("Update After Work Conditions"), "", t("system.recallMapNote.24")].join("\n"),
   ]);
 
   // Seed, not managed: trigger words are hand-tuned memory. `vulcanus add`
@@ -278,15 +280,15 @@ function recallMapNote(plan: VaultPlan): GeneratedFile {
 function adminProfileNote(plan: VaultPlan): GeneratedFile {
   const { admin, vault } = plan.manifest;
   const aliasLine = admin.aliases.length
-    ? `In ${vault.name} context, \`admin\`, \`${admin.name}\`, and ${admin.aliases
-        .map((alias) => `\`${alias}\``)
-        .join(", ")} refer to the same person unless stated otherwise.`
-    : `In ${vault.name} context, \`admin\` and \`${admin.name}\` refer to the same person unless stated otherwise.`;
+    ? t("system.adminProfileNote.1", {
+        name: vault.name,
+        name2: admin.name,
+        value: admin.aliases.map((alias) => `\`${alias}\``).join(", "),
+      })
+    : t("system.adminProfileNote.2", { name: vault.name, name2: admin.name });
 
   const languageLine =
-    admin.language === "tr"
-      ? "Turkish is the default conversational language unless the task or requested output requires another language."
-      : "English is the default conversational language unless the task or requested output requires another language.";
+    admin.language === "tr" ? t("system.adminProfileNote.3") : t("system.adminProfileNote.4");
 
   const content = joinSections([
     renderFrontmatter({
@@ -299,103 +301,97 @@ function adminProfileNote(plan: VaultPlan): GeneratedFile {
     }),
     `# ${plan.adminProfile.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
-        `Recall Map: ${wiki(plan.recallMap.name)}`,
+        t("system.adminProfileNote.5", { name: wiki(plan.recallMap.name) }),
         `Rules: ${wiki(plan.system.get("Rules")!.name)}`,
       ]),
     ].join("\n"),
     [
-      "## Identity",
+      t.heading("Identity"),
       "",
       bulletList(
         [
           `Admin: ${admin.name}`,
-          `${admin.name} is the owner and operator of ${vault.name}.`,
+          t("system.adminProfileNote.6", { name: admin.name, name2: vault.name }),
           aliasLine,
-          admin.role ? `Working identity: \`${admin.role}\`` : "",
+          admin.role ? t("system.adminProfileNote.7", { role: admin.role }) : "",
         ].filter(Boolean),
       ),
     ].join("\n"),
     [
-      `## Role in ${vault.name}`,
+      t("system.adminProfileNote.8", { name: vault.name }),
       "",
       bulletList([
-        `${admin.name} is the primary decision-maker for project memory.`,
-        `${admin.name} is the final authority for project status, scope, ownership, naming, boundaries, and explicit exclusions.`,
-        `${admin.name} can confirm, reject, redefine, remove, or restore durable memory.`,
-        `A newer explicit correction from ${admin.name} overrides older imported memory for the corrected claim.`,
+        t("system.adminProfileNote.9", { name: admin.name }),
+        t("system.adminProfileNote.10", { name: admin.name }),
+        t("system.adminProfileNote.11", { name: admin.name }),
+        t("system.adminProfileNote.12", { name: admin.name }),
       ]),
     ].join("\n"),
     [
-      "## Working Style",
+      t.heading("Working Style"),
       "",
       bulletList(
         admin.workingStyle.length
           ? admin.workingStyle
           : [
-              "Prefer practical, direct, and iterative collaboration.",
-              "Prefer task-ready prompts, actionable outputs, and exact next steps.",
-              "Capture durable decisions and corrections after meaningful work.",
-              "Prefer production-ready solutions without unnecessary overengineering.",
-              "Follow project-specific rules and existing repository conventions before introducing new patterns.",
+              t("system.adminProfileNote.13"),
+              t("system.adminProfileNote.14"),
+              t("system.adminProfileNote.15"),
+              t("system.adminProfileNote.16"),
+              t("system.adminProfileNote.17"),
             ],
       ),
     ].join("\n"),
     [
-      "## Communication Style",
+      t.heading("Communication Style"),
       "",
-      bulletList([
-        languageLine,
-        "Lead with the useful result, then provide clear actions or implementation details.",
-        "Avoid unnecessary over-explanation and cold corporate language.",
-      ]),
+      bulletList([languageLine, t("system.adminProfileNote.18"), t("system.adminProfileNote.19")]),
     ].join("\n"),
     [
-      "## Technical Preferences",
+      t.heading("Technical Preferences"),
       "",
-      "These are default preferences. More specific project memory and existing repository conventions take priority.",
+      t("system.adminProfileNote.20"),
       "",
       bulletList(
-        admin.technical.length
-          ? admin.technical
-          : ["_Not recorded yet. Add confirmed defaults as they emerge._"],
-        "_Not recorded yet._",
+        admin.technical.length ? admin.technical : [t("system.adminProfileNote.21")],
+        t("system.adminProfileNote.22"),
       ),
     ].join("\n"),
     [
-      "## AI Collaboration Rules",
+      t.heading("AI Collaboration Rules"),
       "",
       bulletList([
-        `Use the ${vault.name} protocol for project work.`,
-        `Start with ${wiki(plan.recallMap.name)} and the relevant Capsule; expand through the Hub and authoritative files only when needed.`,
-        "If durable memory changes, update every affected node, run `vulcanus doctor`, and sync the approved changes.",
-        `Treat an explicit correction from ${admin.name} as high-confidence memory for the corrected claim.`,
-        "Put uncertainty under `Needs Confirmation` instead of inventing details.",
+        t("system.adminProfileNote.23", { name: vault.name }),
+        t("system.adminProfileNote.24", { name: wiki(plan.recallMap.name) }),
+        t("system.adminProfileNote.25"),
+        t("system.adminProfileNote.26", { name: admin.name }),
+        t("system.adminProfileNote.27"),
       ]),
     ].join("\n"),
     [
-      "## Project Ownership and Boundary Rules",
+      t.heading("Project Ownership and Boundary Rules"),
       "",
       bulletList(
-        admin.boundaries.length ? admin.boundaries : ["_No ownership boundaries recorded yet._"],
-        "_No ownership boundaries recorded yet._",
+        admin.boundaries.length ? admin.boundaries : [t("system.adminProfileNote.28")],
+        t("system.adminProfileNote.29"),
       ),
     ].join("\n"),
     [
-      "## Do Not Assume",
+      t.heading("Do Not Assume"),
       "",
       bulletList([
-        "Do not invent project details.",
-        "Do not create new top-level projects without sufficient confirmation.",
-        "Do not merge independent brands or infer ownership from graph navigation.",
-        "Do not store sensitive personal details in this profile.",
-        "Do not commit raw exports or copy raw conversations into durable memory.",
+        t("system.adminProfileNote.30"),
+        t("system.adminProfileNote.31"),
+        t("system.adminProfileNote.32"),
+        t("system.adminProfileNote.33"),
+        t("system.adminProfileNote.34"),
       ]),
     ].join("\n"),
-    ["## Needs Confirmation", "", "- _Nothing pending._"].join("\n"),
+    [t.heading("Needs Confirmation"), "", t("system.adminProfileNote.35")].join("\n"),
   ]);
 
   return { path: plan.adminProfile.path, content, kind: "seed" };
@@ -407,18 +403,15 @@ function systemHubNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "System Hub", ["hub"]),
     `# ${plan.systemHub.name}`,
     [
-      "## Purpose",
+      t.heading("Purpose"),
       "",
-      `Navigation point for ${plan.manifest.vault.name}'s own system layer: routing, protocol, operator profile, and memory-format notes.`,
+      t("system.systemHubNote.1", { name: plan.manifest.vault.name }),
     ].join("\n"),
-    ["## System Notes", "", bulletList(links)].join("\n"),
+    [t.heading("System Notes"), "", bulletList(links)].join("\n"),
     [
-      "## Maintenance",
+      t.heading("Maintenance"),
       "",
-      bulletList([
-        "Keep this hub linked to every system note so the graph has no isolated system nodes.",
-        "Run `vulcanus doctor` after structural changes.",
-      ]),
+      bulletList([t("system.systemHubNote.2"), t("system.systemHubNote.3")]),
     ].join("\n"),
   ]);
   // Seed: a hub is a navigation note operators extend with their own links.
@@ -432,7 +425,7 @@ function vaultContextNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Context", ["context"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
@@ -441,33 +434,36 @@ function vaultContextNote(plan: VaultPlan): GeneratedFile {
       ]),
     ].join("\n"),
     [
-      "## What This Vault Is",
+      t.heading("What This Vault Is"),
       "",
-      `${vault.name}${vault.fullName ? ` (${vault.fullName})` : ""} is an AI-readable second brain and recall archive. It stores durable project context, decisions, rules, constraints, and specialized knowledge in linked Markdown so humans and AI agents can resume work with reliable context.`,
+      t("system.vaultContextNote.1", {
+        name: vault.name,
+        value: vault.fullName ? ` (${vault.fullName})` : "",
+      }),
     ].join("\n"),
     [
-      "## Core Model",
+      t.heading("Core Model"),
       "",
       bulletList([
-        "Notes are memory nodes.",
-        "Hubs are neural clusters.",
-        "Wikilinks are recall paths.",
-        "Capsules are token-efficient recall entry points.",
-        "Git is versioned memory history.",
+        t("system.vaultContextNote.2"),
+        t("system.vaultContextNote.3"),
+        t("system.vaultContextNote.4"),
+        t("system.vaultContextNote.5"),
+        t("system.vaultContextNote.6"),
       ]),
     ].join("\n"),
     [
-      "## Operator",
+      t.heading("Operator"),
       "",
-      `${admin.name} is the vault owner and the final authority on durable memory. See ${wiki(plan.adminProfile.name)}.`,
+      t("system.vaultContextNote.7", { name: admin.name, name2: wiki(plan.adminProfile.name) }),
     ].join("\n"),
     [
-      "## Boundary",
+      t.heading("Boundary"),
       "",
       bulletList([
-        "Durable, reusable knowledge belongs here.",
-        "Casual chat, one-off commands, and temporary debugging do not.",
-        "Unconfirmed information belongs under `Needs Confirmation`, never as fact.",
+        t("system.vaultContextNote.8"),
+        t("system.vaultContextNote.9"),
+        t("system.vaultContextNote.10"),
       ]),
     ].join("\n"),
   ]);
@@ -481,45 +477,45 @@ function vaultRulesNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Rules", ["rules"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
         `Context: ${wiki(plan.system.get("Context")!.name)}`,
-        `Update Format: ${wiki(plan.system.get("Update Format")!.name)}`,
+        t("system.vaultRulesNote.1", { name: wiki(plan.system.get("Update Format")!.name) }),
       ]),
     ].join("\n"),
     [
-      "## Memory Rules",
+      t.heading("Memory Rules"),
       "",
       bulletList([
-        "Store long-term reusable information only.",
-        "Do not invent missing project facts.",
-        `Prefer ${admin.name}'s latest explicit correction and the most specific project file.`,
-        "Keep project boundaries clean; do not infer ownership from navigation hubs.",
-        "Record uncertain items under `Needs Confirmation`.",
-        "Do not add new projects without explicit confirmation.",
+        t("system.vaultRulesNote.2"),
+        t("system.vaultRulesNote.3"),
+        t("system.vaultRulesNote.4", { name: admin.name }),
+        t("system.vaultRulesNote.5"),
+        t("system.vaultRulesNote.6"),
+        t("system.vaultRulesNote.7"),
       ]),
     ].join("\n"),
     [
-      "## Safety Rules",
+      t.heading("Safety Rules"),
       "",
       bulletList([
-        `Never commit raw AI exports; \`${structure.importsDir}/\` raw sources stay ignored.`,
-        `Never commit generated state under \`${structure.stateDir}/\`.`,
-        "Preserve ignored local and sensitive files.",
-        "Keep Markdown and Obsidian wiki links valid.",
-        "Do not claim a commit or push succeeded unless it actually did.",
+        t("system.vaultRulesNote.8", { importsDir: structure.importsDir }),
+        t("system.vaultRulesNote.9", { stateDir: structure.stateDir }),
+        t("system.vaultRulesNote.10"),
+        t("system.vaultRulesNote.11"),
+        t("system.vaultRulesNote.12"),
       ]),
     ].join("\n"),
     [
-      "## Validation Rules",
+      t.heading("Validation Rules"),
       "",
       bulletList([
-        "Every note carries `type`, `project`, `status`, and `tags` frontmatter.",
-        "Every project note links back to its own Hub.",
-        "Every project has a Capsule reachable from the Recall Map.",
-        `Run \`vulcanus doctor\` before syncing ${vault.name}.`,
+        t("system.vaultRulesNote.13"),
+        t("system.vaultRulesNote.14"),
+        t("system.vaultRulesNote.15"),
+        t("system.vaultRulesNote.16", { name: vault.name }),
       ]),
     ].join("\n"),
   ]);
@@ -533,147 +529,143 @@ function updateFormatNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Update Format", ["update-format"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
         `Rules: ${wiki(plan.system.get("Rules")!.name)}`,
       ]),
     ].join("\n"),
+    [t.heading("Purpose"), "", t("system.updateFormatNote.3")].join("\n"),
     [
-      "## Purpose",
-      "",
-      "This note defines how conversations become durable memory. Use it whenever work produces something worth remembering.",
-    ].join("\n"),
-    [
-      "## Basic Update Format",
+      t.heading("Basic Update Format"),
       "",
       "```md",
-      "# Update — [Project Name]",
+      t("system.updateFormatNote.4"),
       "",
-      "## Date",
+      t.heading("Date"),
       "",
       "YYYY-MM-DD",
       "",
-      "## Source",
+      t.heading("Source"),
       "",
-      "conversation / user correction / project discussion",
+      t("system.updateFormatNote.5"),
       "",
-      "## Target Files",
+      t.heading("Target Files"),
       "",
-      "- `path/to/[Project] Context.md`",
+      t("system.updateFormatNote.6"),
       "",
-      "## Summary",
+      t.heading("Summary"),
       "",
-      "Short summary of what changed.",
+      t("system.updateFormatNote.7"),
       "",
-      "## Add / Update",
+      t.heading("Add / Update"),
       "",
-      "### Target: `path/to/file.md`",
+      t("system.updateFormatNote.8"),
       "",
-      "Content to add or update.",
+      t("system.updateFormatNote.9"),
       "",
-      "## Remove / Correct",
+      t.heading("Remove / Correct"),
       "",
-      "Content that should be removed, corrected, or replaced.",
+      t("system.updateFormatNote.10"),
       "",
-      "## Needs Confirmation",
+      t.heading("Needs Confirmation"),
       "",
-      "Unclear items that should not be stored as facts yet.",
+      t("system.updateFormatNote.11"),
       "```",
     ].join("\n"),
     [
-      "## Decision Note Format",
+      t.heading("Decision Note Format"),
       "",
       "```md",
-      "## [Decision Title]",
+      t.heading("[Decision Title]"),
       "",
-      "### Decision",
+      t("system.updateFormatNote.12"),
       "",
-      "Clear decision.",
+      t("system.updateFormatNote.13"),
       "",
       "### Details",
       "",
-      "Supporting details.",
+      t("system.updateFormatNote.14"),
       "",
       "### Impact",
       "",
-      "How this changes future work.",
+      t("system.updateFormatNote.15"),
       "```",
     ].join("\n"),
     [
-      "## Correction Format",
+      t.heading("Correction Format"),
       "",
       "```md",
-      "## Correction — [Topic]",
+      t.heading("Correction — [Topic]"),
       "",
-      "### Old / Wrong",
+      t("system.updateFormatNote.16"),
       "",
-      "What was wrong.",
+      t("system.updateFormatNote.17"),
       "",
       "### Correct",
       "",
-      "Correct information.",
+      t("system.updateFormatNote.18"),
       "",
       "### Impact",
       "",
-      "How future notes and responses should change.",
+      t("system.updateFormatNote.19"),
       "```",
     ].join("\n"),
     [
-      "## Target File Selection",
+      t.heading("Target File Selection"),
       "",
       bulletList([
-        "**Context** — project definition, scope, identity, known features, positioning.",
-        "**Decisions** — confirmed decisions, corrections, relationship and naming rules.",
-        "**Rules** — assistant behavior, product constraints, do/don't instructions.",
-        "**Specialized** — architecture, flow, visual direction, content guidelines.",
-        "**Capsule** — the compressed must-remember summary, updated last.",
+        t("system.updateFormatNote.20"),
+        t("system.updateFormatNote.21"),
+        t("system.updateFormatNote.22"),
+        t("system.updateFormatNote.23"),
+        t("system.updateFormatNote.24"),
       ]),
     ].join("\n"),
     [
-      "## Import Processing Rules",
+      t.heading("Import Processing Rules"),
       "",
       "### Keep",
       "",
       bulletList([
-        "project definitions and confirmed scope",
-        "user corrections and technical preferences",
-        "brand rules and visual direction",
-        "reusable prompts and known mistakes to avoid",
-        "important decisions",
+        t("system.updateFormatNote.25"),
+        t("system.updateFormatNote.26"),
+        t("system.updateFormatNote.27"),
+        t("system.updateFormatNote.28"),
+        t("system.updateFormatNote.29"),
       ]),
       "",
       "### Ignore",
       "",
       bulletList([
-        "small talk and repeated drafts",
-        "temporary debugging unless reusable",
-        "one-off commands and outdated assumptions",
+        t("system.updateFormatNote.30"),
+        t("system.updateFormatNote.31"),
+        t("system.updateFormatNote.32"),
       ]),
       "",
-      "### Mark as Needs Confirmation",
+      t("system.updateFormatNote.33"),
       "",
       bulletList([
-        "unclear project relationships",
-        "old information contradicted by newer notes",
-        "uncertain naming or scope",
-        "missing business or legal details",
+        t("system.updateFormatNote.34"),
+        t("system.updateFormatNote.35"),
+        t("system.updateFormatNote.36"),
+        t("system.updateFormatNote.37"),
       ]),
       "",
-      `Raw exports stay under the ignored \`${structure.importsDir}/\` directory and are treated as untrusted source material. Only ${admin.name}-confirmed, durable memory is extracted into notes.`,
+      t("system.updateFormatNote.38", { importsDir: structure.importsDir, name: admin.name }),
     ].join("\n"),
     [
-      "## Update Checklist",
+      t.heading("Update Checklist"),
       "",
       "```txt",
-      "Is this long-term useful?",
-      "Will this change future AI understanding or behavior?",
-      "Is the target project correct?",
-      "Is it confirmed, or does it belong under Needs Confirmation?",
-      "Does it conflict with newer information?",
-      "Should the Capsule and Recall Map change for future fast recall?",
-      "Did `vulcanus doctor` pass?",
+      t("system.updateFormatNote.39"),
+      t("system.updateFormatNote.40"),
+      t("system.updateFormatNote.41"),
+      t("system.updateFormatNote.42"),
+      t("system.updateFormatNote.43"),
+      t("system.updateFormatNote.44"),
+      t("system.updateFormatNote.45"),
       "```",
     ].join("\n"),
   ]);
@@ -687,25 +679,21 @@ function changelogNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Changelog", ["changelog"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([`Hub: ${wiki(plan.systemHub.name)}`, `Index: ${wiki(plan.index.name)}`]),
     ].join("\n"),
+    [t.heading("Purpose"), "", t("system.changelogNote.1")].join("\n"),
     [
-      "## Purpose",
-      "",
-      "Human-readable history of material changes to this vault's memory architecture and operating protocol.",
-    ].join("\n"),
-    [
-      `## ${today} — Vault created`,
+      t("system.changelogNote.2", { today: today }),
       "",
       bulletList([
-        `Created ${plan.manifest.vault.name} with the Vulcanus generator.`,
-        `Projects at creation: ${
-          plan.allProjects.length
+        t("system.changelogNote.3", { name: plan.manifest.vault.name }),
+        t("system.changelogNote.4", {
+          value: plan.allProjects.length
             ? plan.allProjects.map((project) => project.project.name).join(", ")
-            : "none"
-        }.`,
+            : "none",
+        }),
       ]),
     ].join("\n"),
   ]);
@@ -718,15 +706,11 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
   const content = joinSections([
     frontmatter(plan, "Import Log", ["import-log"]),
     `# ${note.name}`,
-    ["## Navigation", "", bulletList([`Hub: ${wiki(plan.systemHub.name)}`])].join("\n"),
-    [
-      "## Purpose",
-      "",
-      "Provenance for memory extracted from AI conversation exports. Raw exports are never committed and never copied into durable memory.",
-    ].join("\n"),
+    [t.heading("Navigation"), "", bulletList([`Hub: ${wiki(plan.systemHub.name)}`])].join("\n"),
+    [t.heading("Purpose"), "", t("system.importLogNote.1")].join("\n"),
     records.length
       ? [
-          "## Imports",
+          t.heading("Imports"),
           "",
           records
             .map((record) =>
@@ -735,8 +719,8 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
                 "",
                 bulletList(
                   [
-                    `Conversations scanned: ${record.conversations}`,
-                    `Project candidates accepted: ${record.candidatesAccepted}`,
+                    t("system.importLogNote.2", { conversations: record.conversations }),
+                    t("system.importLogNote.3", { candidatesAccepted: record.candidatesAccepted }),
                     record.note ?? "",
                   ].filter(Boolean),
                 ),
@@ -744,14 +728,14 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
             )
             .join("\n\n"),
         ].join("\n")
-      : ["## Imports", "", "_No import has been processed yet._"].join("\n"),
+      : [t.heading("Imports"), "", t("system.importLogNote.4")].join("\n"),
     [
-      "## Safety Notes",
+      t.heading("Safety Notes"),
       "",
       bulletList([
-        "Raw exports remain ignored and untracked.",
-        "No raw conversation text is copied into durable memory.",
-        "Statements that conflict with newer rules are not promoted as facts.",
+        t("system.importLogNote.5"),
+        t("system.importLogNote.6"),
+        t("system.importLogNote.7"),
       ]),
     ].join("\n"),
   ]);
@@ -765,57 +749,52 @@ function brainOsNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Brain OS Architecture", ["brain-os", "architecture"]),
     `# ${note.name}`,
     [
-      "## Navigation",
-      "",
-      bulletList([`Hub: ${wiki(plan.systemHub.name)}`, `Recall Map: ${wiki(plan.recallMap.name)}`]),
-    ].join("\n"),
-    [
-      "## Purpose",
-      "",
-      "Define how this vault stores, routes, validates, and consolidates durable memory without loading the whole vault for every task.",
-    ].join("\n"),
-    [
-      "## Memory Node Types",
+      t.heading("Navigation"),
       "",
       bulletList([
-        "**capsule** — shortest verified project recall entry",
-        "**hub** — local navigation and cluster boundary",
-        "**context** — identity, definitions, and scope",
-        "**decisions** — confirmed choices and corrections",
-        "**rules** — future behavior and constraints",
-        "**specialized** — domain depth such as architecture, flow, visual direction, or content",
-        "**recall-map** — lexical routing to the minimum reliable memory layer",
-        "**import-log** — provenance without raw exports",
-        "**changelog** — material system and protocol history",
+        `Hub: ${wiki(plan.systemHub.name)}`,
+        t("system.brainOsNote.3", { name: wiki(plan.recallMap.name) }),
+      ]),
+    ].join("\n"),
+    [t.heading("Purpose"), "", t("system.brainOsNote.4")].join("\n"),
+    [
+      t.heading("Memory Node Types"),
+      "",
+      bulletList([
+        t("system.brainOsNote.5"),
+        t("system.brainOsNote.6"),
+        t("system.brainOsNote.7"),
+        t("system.brainOsNote.8"),
+        t("system.brainOsNote.9"),
+        t("system.brainOsNote.10"),
+        t("system.brainOsNote.11"),
+        t("system.brainOsNote.12"),
+        t("system.brainOsNote.13"),
       ]),
     ].join("\n"),
     [
-      "## Recall Layers",
+      t.heading("Recall Layers"),
       "",
       [
-        "**Layer 0 — Capsule:** compressed, verified entry point.",
-        "**Layer 1 — Hub:** cluster navigation and boundaries.",
-        "**Layer 2 — Context / Decisions / Rules:** authoritative scope, choices, and constraints.",
-        "**Layer 3 — Specialized:** domain-specific depth.",
-        "**Layer 4 — Imports / Git:** provenance, recovery, and history.",
+        t("system.brainOsNote.14"),
+        t("system.brainOsNote.15"),
+        t("system.brainOsNote.16"),
+        t("system.brainOsNote.17"),
+        t("system.brainOsNote.18"),
       ]
         .map((line, index) => `${index}. ${line}`)
         .join("\n"),
     ].join("\n"),
+    [t.heading("Recursive Consolidation Loop"), "", t("system.brainOsNote.19")].join("\n"),
     [
-      "## Recursive Consolidation Loop",
-      "",
-      "Recall → perform work → identify durable change → update only affected nodes → check Capsule, route, authority, links, and uncertainty → validate with `vulcanus doctor` → sync versioned memory.",
-    ].join("\n"),
-    [
-      "## Safety Boundaries",
+      t.heading("Safety Boundaries"),
       "",
       bulletList([
-        "Do not invent facts, products, projects, or relationships.",
-        "Raw exports and sensitive raw data are not durable-memory nodes.",
-        "`Needs Confirmation` is not fact.",
-        "Do not replace detailed project memory with lossy summaries.",
-        "Preserve project boundaries and explicit exclusions.",
+        t("system.brainOsNote.20"),
+        t("system.brainOsNote.21"),
+        t("system.brainOsNote.22"),
+        t("system.brainOsNote.23"),
+        t("system.brainOsNote.24"),
       ]),
     ].join("\n"),
   ]);
@@ -828,46 +807,42 @@ function operatingIntuitionNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Operating Intuition", ["intuition", "reflex"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
         `Brain OS: ${wiki(plan.system.get("Brain OS Architecture")!.name)}`,
       ]),
     ].join("\n"),
+    [t.heading("Purpose"), "", t("system.operatingIntuitionNote.3")].join("\n"),
     [
-      "## Purpose",
-      "",
-      "Reflex layer for AI agents: what to notice before recall and after work. It guides attention but never replaces confirmed memory or source evidence.",
-    ].join("\n"),
-    [
-      "## Before Work",
+      t.heading("Before Work"),
       "",
       bulletList([
-        "Identify which project the request belongs to before answering.",
-        "Read the smallest layer that can answer correctly.",
-        "Notice when a request implies a durable change rather than a one-off task.",
-        "Notice when the operator is correcting something previously recorded.",
+        t("system.operatingIntuitionNote.4"),
+        t("system.operatingIntuitionNote.5"),
+        t("system.operatingIntuitionNote.6"),
+        t("system.operatingIntuitionNote.7"),
       ]),
     ].join("\n"),
     [
-      "## After Work",
+      t.heading("After Work"),
       "",
       bulletList([
-        "Ask whether durable knowledge changed; if not, do not edit memory just to show activity.",
-        "Update the affected nodes only, then the Capsule for fast future recall.",
-        "Record leftover uncertainty under `Needs Confirmation`.",
-        "Report what changed, what passed validation, and what is still open.",
+        t("system.operatingIntuitionNote.8"),
+        t("system.operatingIntuitionNote.9"),
+        t("system.operatingIntuitionNote.10"),
+        t("system.operatingIntuitionNote.11"),
       ]),
     ].join("\n"),
     [
-      "## Failure Modes to Avoid",
+      t.heading("Failure Modes to Avoid"),
       "",
       bulletList([
-        "Answering from a stale summary when the authoritative note contradicts it.",
-        "Promoting an idea into an active project without confirmation.",
-        "Flattening distinct projects into one cluster.",
-        "Over-summarizing detailed memory until it stops being useful.",
+        t("system.operatingIntuitionNote.12"),
+        t("system.operatingIntuitionNote.13"),
+        t("system.operatingIntuitionNote.14"),
+        t("system.operatingIntuitionNote.15"),
       ]),
     ].join("\n"),
   ]);
@@ -880,7 +855,7 @@ function neuralLinkMapNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Neural Link Map", ["graph", "links"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
@@ -888,28 +863,28 @@ function neuralLinkMapNote(plan: VaultPlan): GeneratedFile {
       ]),
     ].join("\n"),
     [
-      "## Link Types",
+      t.heading("Link Types"),
       "",
       bulletList([
-        "**parent-child** — hierarchy between a cluster and a node inside it",
-        "**sibling** — navigation between peers with the same parent",
-        "**recall-route** — trigger-to-entry path used during retrieval",
-        "**decision-supports-rule** — a confirmed choice justifies future behavior",
-        "**context-defines-scope** — context establishes the boundary another node applies in",
-        "**specialized-deepens-topic** — domain detail without replacing authority",
-        "**needs-confirmation** — an explicit path to uncertainty that is not fact",
+        t("system.neuralLinkMapNote.3"),
+        t("system.neuralLinkMapNote.4"),
+        t("system.neuralLinkMapNote.5"),
+        t("system.neuralLinkMapNote.6"),
+        t("system.neuralLinkMapNote.7"),
+        t("system.neuralLinkMapNote.8"),
+        t("system.neuralLinkMapNote.9"),
       ]),
     ].join("\n"),
     [
-      "## Linking Rules",
+      t.heading("Linking Rules"),
       "",
       bulletList([
-        "Prefer local, typed links over dense global cross-linking.",
-        "Add a cross-cluster link only when it shortens a real recall route or resolves scope.",
-        "A navigation link never implies ownership between projects.",
+        t("system.neuralLinkMapNote.10"),
+        t("system.neuralLinkMapNote.11"),
+        t("system.neuralLinkMapNote.12"),
       ]),
     ].join("\n"),
-    ["## Cross-Cluster Links", "", "_None recorded yet._"].join("\n"),
+    [t.heading("Cross-Cluster Links"), "", t("system.neuralLinkMapNote.13")].join("\n"),
   ]);
   return { path: note.path, content, kind: "seed" };
 }
@@ -920,7 +895,7 @@ function confidenceModelNote(plan: VaultPlan): GeneratedFile {
     frontmatter(plan, "Memory Confidence Model", ["confidence", "trust"]),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([
         `Hub: ${wiki(plan.systemHub.name)}`,
@@ -928,32 +903,29 @@ function confidenceModelNote(plan: VaultPlan): GeneratedFile {
       ]),
     ].join("\n"),
     [
-      "## Confidence Levels",
+      t.heading("Confidence Levels"),
       "",
       bulletList([
-        "**confirmed** — the operator explicitly stated or approved it.",
-        "**corroborated** — repeated consistently across independent sources.",
-        "**inferred** — derived from context; usable with a stated assumption.",
-        "**needs-confirmation** — uncertain, contradicted, or single-source; never fact.",
+        t("system.confidenceModelNote.3"),
+        t("system.confidenceModelNote.4"),
+        t("system.confidenceModelNote.5"),
+        t("system.confidenceModelNote.6"),
       ]),
     ].join("\n"),
     [
-      "## Resolution Rules",
+      t.heading("Resolution Rules"),
       "",
       bulletList([
-        "The latest explicit operator correction wins for the corrected claim.",
-        "The most specific project file wins over a general one.",
-        "A Capsule never outranks its source note.",
-        "When two confirmed statements conflict, escalate to the operator instead of choosing silently.",
+        t("system.confidenceModelNote.7"),
+        t("system.confidenceModelNote.8"),
+        t("system.confidenceModelNote.9"),
+        t("system.confidenceModelNote.10"),
       ]),
     ].join("\n"),
     [
-      "## Staleness",
+      t.heading("Staleness"),
       "",
-      bulletList([
-        "Externally sourced facts carry the date they were read.",
-        "Re-verify time-sensitive facts before reusing them in outward-facing work.",
-      ]),
+      bulletList([t("system.confidenceModelNote.11"), t("system.confidenceModelNote.12")]),
     ].join("\n"),
   ]);
   return { path: note.path, content, kind: "seed" };
@@ -975,6 +947,7 @@ const SYSTEM_BUILDERS: Record<string, (plan: VaultPlan) => GeneratedFile> = {
 };
 
 export function generateSystemNotes(plan: VaultPlan): GeneratedFile[] {
+  t = noteText(plan.manifest.vault.language);
   const files: GeneratedFile[] = [systemHubNote(plan)];
   for (const kind of systemNoteKinds(plan.manifest)) {
     const builder = SYSTEM_BUILDERS[kind];

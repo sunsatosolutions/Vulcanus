@@ -1,6 +1,17 @@
 import type { GroupPlan, ProjectPlan, VaultPlan } from "../manifest/derive.js";
 import { renderFrontmatter } from "../util/markdown.js";
 import { bulletList, joinSections, slugify } from "../util/text.js";
+import { noteText, type NoteText } from "./text.js";
+
+/**
+ * The catalog for the language this vault is written in.
+ *
+ * Module-scoped rather than threaded through every helper: generation is one
+ * synchronous pass from a single entry point, and the alternative is an extra
+ * parameter on a dozen functions that would only ever carry the same value.
+ * The entry point below sets it before anything is generated.
+ */
+let t: NoteText = noteText("en");
 import type { GeneratedFile } from "./types.js";
 
 function wiki(name: string): string {
@@ -26,38 +37,33 @@ function capsuleNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
     projectFrontmatter(plan, project, "capsule"),
     `# ${project.capsule.name}`,
     [
-      "## Identity",
+      t.heading("Identity"),
       "",
-      summary || `_${name} has no confirmed summary yet._`,
-      parentName ? `\n${name} belongs under ${parentName}.` : "",
+      summary || t("project.capsuleNote.1", { name: name }),
+      parentName ? t("project.capsuleNote.2", { name: name, parentName: parentName }) : "",
     ].join("\n"),
+    [t.heading("Current Scope"), "", t("project.capsuleNote.3")].join("\n"),
     [
-      "## Current Scope",
-      "",
-      "Durable memory currently covers the definition recorded at vault creation. Expand it only with confirmed information.",
-    ].join("\n"),
-    [
-      "## Must Remember",
+      t.heading("Must Remember"),
       "",
       bulletList(
         [
           summary ? summary : "",
-          parentName ? `${parentName} is ${name}'s parent.` : `${name} is a top-level project.`,
-          `Keep ${name} memory limited to ${name}-specific confirmed facts.`,
-          "Mark unresolved scope and relationships as `Needs Confirmation`.",
+          parentName
+            ? t("project.capsuleNote.4", { parentName: parentName, name: name })
+            : t("project.capsuleNote.5", { name: name }),
+          t("project.capsuleNote.6", { name: name }),
+          t("project.capsuleNote.7"),
         ].filter(Boolean),
       ),
     ].join("\n"),
     [
-      "## Do Not Assume",
+      t.heading("Do Not Assume"),
       "",
-      bulletList([
-        `Do not invent ${name}'s ownership, legal structure, or operational relationships.`,
-        "Do not infer relationships from graph navigation.",
-      ]),
+      bulletList([t("project.capsuleNote.8", { name: name }), t("project.capsuleNote.9")]),
     ].join("\n"),
     [
-      "## Read Next",
+      t.heading("Read Next"),
       "",
       bulletList([
         wiki(project.hub.name),
@@ -67,9 +73,7 @@ function capsuleNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
         ...project.specialized.map((entry) => wiki(entry.note.name)),
       ]),
     ].join("\n"),
-    ["## Needs Confirmation", "", `- Detailed scope and operating structure for ${name}.`].join(
-      "\n",
-    ),
+    [t.heading("Needs Confirmation"), "", t("project.capsuleNote.10", { name: name })].join("\n"),
   ]);
 
   return { path: project.capsule.path, content, kind: "seed" };
@@ -89,51 +93,45 @@ function hubNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
   const content = joinSections([
     projectFrontmatter(plan, project, "hub"),
     `# ${project.hub.name}`,
-    ["## Purpose", "", `${project.hub.name} is the memory and navigation point for ${name}.`].join(
-      "\n",
-    ),
     [
-      "## Scope",
+      t.heading("Purpose"),
       "",
-      `Use this hub for confirmed ${name} context, decisions, rules, and scope definition without importing assumptions from other projects.`,
+      t("project.hubNote.1", { name: project.hub.name, name2: name }),
     ].join("\n"),
-    ["## Core Files", "", bulletList(coreFiles)].join("\n"),
-    ["## Parent", "", bulletList([wiki(project.parentLink.name)])].join("\n"),
+    [t.heading("Scope"), "", t("project.hubNote.2", { name: name })].join("\n"),
+    [t.heading("Core Files"), "", bulletList(coreFiles)].join("\n"),
+    [t.heading("Parent"), "", bulletList([wiki(project.parentLink.name)])].join("\n"),
     project.children.length
       ? [
-          "## Sub-Projects",
+          t.heading("Sub-Projects"),
           "",
           bulletList(project.children.map((child) => wiki(child.hub.name))),
         ].join("\n")
       : "",
     [
-      "## Core Memory",
+      t.heading("Core Memory"),
       "",
-      bulletList(
-        [project.project.summary, `${name} keeps its own Context, Decisions, and Rules.`].filter(
-          Boolean,
-        ),
-      ),
+      bulletList([project.project.summary, t("project.hubNote.3", { name: name })].filter(Boolean)),
     ].join("\n"),
     [
-      "## Active Rules",
+      t.heading("Active Rules"),
       "",
       bulletList([
-        "Do not infer products, ownership, legal structure, or unconfirmed operations.",
-        `Keep ${name}'s memory distinct from neighbouring projects.`,
-        "Mark unresolved scope as `Needs Confirmation`.",
+        t("project.hubNote.4"),
+        t("project.hubNote.5", { name: name }),
+        t("project.hubNote.6"),
       ]),
     ].join("\n"),
     [
-      "## Next Actions",
+      t.heading("Next Actions"),
       "",
       bulletList([
-        `Record confirmed ${name} definitions in ${wiki(project.context.name)}.`,
-        `Record confirmed choices in ${wiki(project.decisions.name)}.`,
-        `Record future behavior constraints in ${wiki(project.rules.name)}.`,
+        t("project.hubNote.7", { name: name, name2: wiki(project.context.name) }),
+        t("project.hubNote.8", { name: wiki(project.decisions.name) }),
+        t("project.hubNote.9", { name: wiki(project.rules.name) }),
       ]),
     ].join("\n"),
-    ["## Needs Confirmation", "", `- Detailed operating model for ${name}.`].join("\n"),
+    [t.heading("Needs Confirmation"), "", t("project.hubNote.10", { name: name })].join("\n"),
   ]);
 
   return { path: project.hub.path, content, kind: "seed" };
@@ -142,9 +140,10 @@ function hubNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
 function navigation(project: ProjectPlan, exclude: string): string {
   const entries: string[] = [`Hub: ${wiki(project.hub.name)}`];
   if (exclude !== "context") entries.push(`Context: ${wiki(project.context.name)}`);
-  if (exclude !== "decisions") entries.push(`Decisions: ${wiki(project.decisions.name)}`);
+  if (exclude !== "decisions")
+    entries.push(t("project.navigation.1", { name: wiki(project.decisions.name) }));
   if (exclude !== "rules") entries.push(`Rules: ${wiki(project.rules.name)}`);
-  return ["## Navigation", "", bulletList(entries)].join("\n");
+  return [t.heading("Navigation"), "", bulletList(entries)].join("\n");
 }
 
 function contextNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
@@ -155,38 +154,31 @@ function contextNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
     projectFrontmatter(plan, project, "context"),
     `# ${project.context.name}`,
     navigation(project, "context"),
-    ["## Project Name", "", name].join("\n"),
-    ["## Status", "", status].join("\n"),
+    [t.heading("Project Name"), "", name].join("\n"),
+    [t.heading("Status"), "", status].join("\n"),
     [
-      "## Core Definition",
+      t.heading("Core Definition"),
       "",
-      summary || `_${name}'s definition has not been recorded yet._`,
-      parentName ? `\n${name} operates under ${parentName}.` : "",
+      summary || t("project.contextNote.1", { name: name }),
+      parentName ? t("project.contextNote.2", { name: name, parentName: parentName }) : "",
     ].join("\n"),
     [
-      `## What ${name} Is`,
+      t("project.contextNote.3", { name: name }),
       "",
-      bulletList([summary || `a project tracked in ${plan.manifest.vault.name}`]),
+      bulletList([summary || t("project.contextNote.4", { name: plan.manifest.vault.name })]),
     ].join("\n"),
     [
-      `## What ${name} Is Not`,
+      t("project.contextNote.5", { name: name }),
+      "",
+      bulletList([t("project.contextNote.6"), t("project.contextNote.7")]),
+    ].join("\n"),
+    [t.heading("Current Scope"), "", t("project.contextNote.8", { name: name })].join("\n"),
+    [
+      t.heading("Needs Confirmation"),
       "",
       bulletList([
-        "a parent or umbrella for unrelated projects",
-        "a placeholder for work that belongs to another project",
-      ]),
-    ].join("\n"),
-    [
-      "## Current Scope",
-      "",
-      `Only the definition above is confirmed. Everything else about ${name} must be added explicitly.`,
-    ].join("\n"),
-    [
-      "## Needs Confirmation",
-      "",
-      bulletList([
-        `${name}'s detailed scope, deliverables, and operating model.`,
-        `${name}'s relationships to other projects beyond what is recorded here.`,
+        t("project.contextNote.9", { name: name }),
+        t("project.contextNote.10", { name: name }),
       ]),
     ].join("\n"),
   ]);
@@ -200,15 +192,15 @@ function decisionsNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
 
   const parentDecision = parentName
     ? [
-        `## ${parentName} Parent Relationship`,
+        t("project.decisionsNote.1", { parentName: parentName }),
         "",
-        "### Decision",
+        t("project.decisionsNote.2"),
         "",
-        `${name} operates under ${parentName}.`,
+        t("project.decisionsNote.3", { name: name, parentName: parentName }),
         "",
         "### Details",
         "",
-        `${name} keeps its own Context, Decisions, and Rules inside the ${parentName} hierarchy.`,
+        t("project.decisionsNote.4", { name: name, parentName: parentName }),
         "",
         "### Impact",
         "",
@@ -218,19 +210,19 @@ function decisionsNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
         "```",
       ].join("\n")
     : [
-        `## ${name} Is a Top-Level Project`,
+        t("project.decisionsNote.5", { name: name }),
         "",
-        "### Decision",
+        t("project.decisionsNote.6"),
         "",
-        `${name} is tracked as its own top-level project.`,
+        t("project.decisionsNote.7", { name: name }),
         "",
         "### Details",
         "",
-        `${name} is not owned by, and does not own, another project unless that is explicitly recorded.`,
+        t("project.decisionsNote.8", { name: name }),
         "",
         "### Impact",
         "",
-        "Do not place other projects under it by inference.",
+        t("project.decisionsNote.9"),
       ].join("\n");
 
   const content = joinSections([
@@ -240,19 +232,19 @@ function decisionsNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
     parentDecision,
     "---",
     [
-      "## Scope Definition",
+      t.heading("Scope Definition"),
       "",
-      "### Decision",
+      t("project.decisionsNote.10"),
       "",
-      `${name}'s durable memory starts from its recorded definition only.`,
+      t("project.decisionsNote.11", { name: name }),
       "",
       "### Details",
       "",
-      "No visual direction, business model, product list, or hierarchy is confirmed yet.",
+      t("project.decisionsNote.12"),
       "",
       "### Impact",
       "",
-      `Do not invent ${name} details; wait for explicit confirmation.`,
+      t("project.decisionsNote.13", { name: name }),
     ].join("\n"),
   ]);
 
@@ -268,40 +260,38 @@ function rulesNote(plan: VaultPlan, project: ProjectPlan): GeneratedFile {
     `# ${project.rules.name}`,
     navigation(project, "rules"),
     [
-      "## Boundary Rule",
+      t.heading("Boundary Rule"),
       "",
       parentName
-        ? `${name} belongs under ${parentName}. Keep its own identity and memory cluster, but do not describe it as independent from ${parentName}.`
-        : `${name} is a top-level project. Do not place it under another project, and do not treat it as an umbrella for others.`,
+        ? t("project.rulesNote.1", { name: name, parentName: parentName })
+        : t("project.rulesNote.2", { name: name }),
     ].join("\n"),
     [
-      "## Scope Caution Rule",
+      t.heading("Scope Caution Rule"),
       "",
-      `When discussing ${name}, avoid inventing:`,
+      t("project.rulesNote.3", { name: name }),
       "",
       bulletList([
-        "product list",
-        "brand hierarchy",
-        "business model",
+        t("project.rulesNote.4"),
+        t("project.rulesNote.5"),
+        t("project.rulesNote.6"),
         "sub-projects",
-        "unconfirmed ownership relationships",
+        t("project.rulesNote.7"),
       ]),
       "",
-      `Wait for ${plan.manifest.admin.name}'s confirmation before adding structure.`,
+      t("project.rulesNote.8", { name: plan.manifest.admin.name }),
     ].join("\n"),
+    [t.heading("Memory Organization Rule"), "", t("project.rulesNote.9", { name: name })].join(
+      "\n",
+    ),
     [
-      "## Memory Organization Rule",
-      "",
-      `Keep ${name}-specific facts inside this cluster. Do not store unrelated project details here.`,
-    ].join("\n"),
-    [
-      "## Assistant Response Rule",
+      t.heading("Assistant Response Rule"),
       "",
       bulletList([
-        `Read ${wiki(project.capsule.name)} first, then expand only as needed.`,
-        `Do not invent ${name} details without confirmation.`,
-        `Keep the answer clean and cautious when ${name} context is incomplete.`,
-        `When new ${name} details arrive, update ${wiki(project.context.name)} before expanding decisions or rules.`,
+        t("project.rulesNote.10", { name: wiki(project.capsule.name) }),
+        t("project.rulesNote.11", { name: name }),
+        t("project.rulesNote.12", { name: name }),
+        t("project.rulesNote.13", { name: name, name2: wiki(project.context.name) }),
       ]),
     ].join("\n"),
   ]);
@@ -316,30 +306,30 @@ function specializedNote(
   note: { name: string; path: string },
 ): GeneratedFile {
   const purpose: Record<string, string> = {
-    Architecture: `Implementation layers, runtime boundaries, data flow, persistence, and deployment decisions for ${project.project.name}.`,
-    Flow: `End-to-end user and system flow for ${project.project.name}, including states, transitions, and failure paths.`,
-    "Visual Direction": `Approved visual identity for ${project.project.name}: logo usage, palette, typography, imagery, and application rules.`,
-    "Content Guidelines": `Voice, tone, copy patterns, and content constraints for ${project.project.name}.`,
+    Architecture: t("project.specializedNote.1", { name: project.project.name }),
+    Flow: t("project.specializedNote.2", { name: project.project.name }),
+    "Visual Direction": t("project.specializedNote.3", { name: project.project.name }),
+    "Content Guidelines": t("project.specializedNote.4", { name: project.project.name }),
   };
 
   const content = joinSections([
     projectFrontmatter(plan, project, slugify(kind)),
     `# ${note.name}`,
     [
-      "## Navigation",
+      t.heading("Navigation"),
       "",
       bulletList([`Hub: ${wiki(project.hub.name)}`, `Context: ${wiki(project.context.name)}`]),
     ].join("\n"),
     [
-      "## Purpose",
+      t.heading("Purpose"),
       "",
-      purpose[kind] ?? `Domain-specific memory for ${project.project.name}: ${kind}.`,
+      purpose[kind] ?? t("project.specializedNote.5", { name: project.project.name, kind: kind }),
     ].join("\n"),
-    ["## Confirmed", "", "_Nothing confirmed yet._"].join("\n"),
+    [t.heading("Confirmed"), "", t("project.specializedNote.6")].join("\n"),
     [
-      "## Needs Confirmation",
+      t.heading("Needs Confirmation"),
       "",
-      `- Everything in this note until ${plan.manifest.admin.name} records a confirmed decision.`,
+      t("project.specializedNote.7", { name: plan.manifest.admin.name }),
     ].join("\n"),
   ]);
 
@@ -356,21 +346,19 @@ function groupHubNote(plan: VaultPlan, group: GroupPlan): GeneratedFile {
     }),
     `# ${group.hub.name}`,
     [
-      "## Purpose",
+      t.heading("Purpose"),
       "",
-      group.group.summary || `Navigation cluster for ${group.group.name} projects.`,
+      group.group.summary || t("project.groupHubNote.1", { name: group.group.name }),
     ].join("\n"),
     group.group.navigationOnly
-      ? [
-          "## Boundary",
-          "",
-          "This grouping exists for graph navigation only. It does not imply ownership, a shared business hierarchy, or any relationship between the projects below.",
-        ].join("\n")
+      ? [t.heading("Boundary"), "", t("project.groupHubNote.2")].join("\n")
       : "",
-    ["## Projects", "", bulletList(group.members.map((member) => wiki(member.hub.name)))].join(
-      "\n",
-    ),
-    ["## Parent", "", bulletList([wiki(plan.index.name)])].join("\n"),
+    [
+      t.heading("Projects"),
+      "",
+      bulletList(group.members.map((member) => wiki(member.hub.name))),
+    ].join("\n"),
+    [t.heading("Parent"), "", bulletList([wiki(plan.index.name)])].join("\n"),
   ]);
 
   // Seed, like project hubs: `add project` links new members in surgically.
@@ -378,6 +366,7 @@ function groupHubNote(plan: VaultPlan, group: GroupPlan): GeneratedFile {
 }
 
 export function generateProjectNotes(plan: VaultPlan): GeneratedFile[] {
+  t = noteText(plan.manifest.vault.language);
   const files: GeneratedFile[] = [];
 
   for (const group of plan.groups) {
