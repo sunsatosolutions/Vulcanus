@@ -83,8 +83,8 @@ function indexNote(plan: VaultPlan): GeneratedFile {
   const { manifest } = plan;
   const mainHubs = [plan.systemHub.name, plan.recallMap.name];
   if (manifest.vault.profile === "full") {
-    mainHubs.push(plan.system.get(t("system.indexNote.1"))!.name);
-    mainHubs.push(plan.system.get(t("system.indexNote.2"))!.name);
+    mainHubs.push(plan.system.get("Brain OS Architecture")!.name);
+    mainHubs.push(plan.system.get("Operating Intuition")!.name);
   }
   for (const group of plan.groups) mainHubs.push(group.hub.name);
   for (const root of plan.roots) {
@@ -523,10 +523,10 @@ function vaultRulesNote(plan: VaultPlan): GeneratedFile {
 }
 
 function updateFormatNote(plan: VaultPlan): GeneratedFile {
-  const note = plan.system.get(t("system.updateFormatNote.1"))!;
+  const note = plan.system.get("Update Format")!;
   const { structure, admin } = plan.manifest;
   const content = joinSections([
-    frontmatter(plan, t("system.updateFormatNote.2"), ["update-format"]),
+    frontmatter(plan, "Update Format", ["update-format"]),
     `# ${note.name}`,
     [
       t.heading("Navigation"),
@@ -744,9 +744,9 @@ function importLogNote(plan: VaultPlan): GeneratedFile {
 }
 
 function brainOsNote(plan: VaultPlan): GeneratedFile {
-  const note = plan.system.get(t("system.brainOsNote.1"))!;
+  const note = plan.system.get("Brain OS Architecture")!;
   const content = joinSections([
-    frontmatter(plan, t("system.brainOsNote.2"), ["brain-os", "architecture"]),
+    frontmatter(plan, "Brain OS Architecture", ["brain-os", "architecture"]),
     `# ${note.name}`,
     [
       t.heading("Navigation"),
@@ -802,9 +802,9 @@ function brainOsNote(plan: VaultPlan): GeneratedFile {
 }
 
 function operatingIntuitionNote(plan: VaultPlan): GeneratedFile {
-  const note = plan.system.get(t("system.operatingIntuitionNote.1"))!;
+  const note = plan.system.get("Operating Intuition")!;
   const content = joinSections([
-    frontmatter(plan, t("system.operatingIntuitionNote.2"), ["intuition", "reflex"]),
+    frontmatter(plan, "Operating Intuition", ["intuition", "reflex"]),
     `# ${note.name}`,
     [
       t.heading("Navigation"),
@@ -850,9 +850,9 @@ function operatingIntuitionNote(plan: VaultPlan): GeneratedFile {
 }
 
 function neuralLinkMapNote(plan: VaultPlan): GeneratedFile {
-  const note = plan.system.get(t("system.neuralLinkMapNote.1"))!;
+  const note = plan.system.get("Neural Link Map")!;
   const content = joinSections([
-    frontmatter(plan, t("system.neuralLinkMapNote.2"), ["graph", "links"]),
+    frontmatter(plan, "Neural Link Map", ["graph", "links"]),
     `# ${note.name}`,
     [
       t.heading("Navigation"),
@@ -890,9 +890,9 @@ function neuralLinkMapNote(plan: VaultPlan): GeneratedFile {
 }
 
 function confidenceModelNote(plan: VaultPlan): GeneratedFile {
-  const note = plan.system.get(t("system.confidenceModelNote.1"))!;
+  const note = plan.system.get("Memory Confidence Model")!;
   const content = joinSections([
-    frontmatter(plan, t("system.confidenceModelNote.2"), ["confidence", "trust"]),
+    frontmatter(plan, "Memory Confidence Model", ["confidence", "trust"]),
     `# ${note.name}`,
     [
       t.heading("Navigation"),
