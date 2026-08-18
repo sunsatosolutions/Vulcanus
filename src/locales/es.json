@@ -115,5 +115,12 @@
   "cancelled": "Cancelado. No se escribió nada.",
   "summaryTitle": "Vault listo",
   "nextSteps": "cd {path}\nvulcanus agents        # haz que tus herramientas de IA usen este vault en todas partes\nvulcanus skills        # dales un skill que ejecute estos comandos\nvulcanus doctor        # valida la estructura\nvulcanus sync \"tema\"   # commit y push\n\nLee primero USING-WITH-AI.md: es la parte que hace que el vault valga la pena.",
-  "required": "Este campo es obligatorio"
+  "required": "Este campo es obligatorio",
+  "aiGroupTitle": "Agrupación con {cli}",
+  "aiGroupSummary": "A {cli} se le envía un resumen de {count} conversación(es): cada título, la agrupación que la exportación ya registraba y las primeras palabras del primer mensaje.\nNo se envían las transcripciones completas, y este paso no escribe nada en el vault.\nLa mayoría de las CLIs de IA son la interfaz de un modelo alojado: considéralo información que sale de tu equipo.",
+  "aiGroupConfirm": "¿Enviar el resumen a {cli}?",
+  "aiGroupRunning": "{cli} está agrupando las conversaciones",
+  "aiGroupDone": "{cli} ha propuesto {count} proyecto(s)",
+  "aiGroupFailed": "{cli} no devolvió una agrupación utilizable ({message}); quedan los candidatos por frecuencia de palabras.",
+  "aiGroupNoCli": "No se encontró ninguna CLI de IA en el PATH, así que se omitió la agrupación."
 }

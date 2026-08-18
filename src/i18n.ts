@@ -148,6 +148,14 @@ export interface Messages {
   cancelled: string;
   summaryTitle: string;
   nextSteps: (path: string) => string;
+  aiGroupTitle: (cli: string) => string;
+  aiGroupSummary: (cli: string, count: number) => string;
+  aiGroupConfirm: (cli: string) => string;
+  aiGroupRunning: (cli: string) => string;
+  aiGroupDone: (count: number, cli: string) => string;
+  aiGroupFailed: (cli: string, message: string) => string;
+  aiGroupNoCli: string;
+
   required: string;
 }
 
@@ -173,6 +181,12 @@ const CATALOGS: Record<Locale, Record<string, string>> = { en, tr, de, es };
  * `{name}` anywhere the target language needs it and reorder nothing in code.
  */
 const PARAMETERS: Record<string, string[]> = {
+  aiGroupTitle: ["cli"],
+  aiGroupSummary: ["cli", "count"],
+  aiGroupConfirm: ["cli"],
+  aiGroupRunning: ["cli"],
+  aiGroupDone: ["count", "cli"],
+  aiGroupFailed: ["cli", "message"],
   detected: ["count"],
   readDone: ["conversations", "candidates"],
   readFailed: ["message"],

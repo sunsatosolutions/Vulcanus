@@ -208,18 +208,24 @@ async function main(): Promise<void> {
     )
     .option("-p, --path <path>", "path to the export or session directory")
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
+    .option(
+      "--ai-group [cli]",
+      "also ask an installed AI CLI to group the conversations; confirms before sending",
+    )
     .option("--json", "analyze and print the candidates as JSON; writes nothing")
     .action(
       async (options: {
         source?: string;
         path?: string;
         ai?: string | boolean;
+        aiGroup?: string | boolean;
         json?: boolean;
       }) => {
         process.exitCode = await importCommand({
           source: options.source as ImportSourceId | undefined,
           path: options.path,
           ai: options.ai,
+          aiGroup: options.aiGroup,
           json: options.json,
         });
       },

@@ -115,5 +115,12 @@
   "cancelled": "İptal edildi. Hiçbir dosya yazılmadı.",
   "summaryTitle": "Vault hazır",
   "nextSteps": "cd {path}\nvulcanus agents        # yapay zekâ araçlarına bu vault'u zorunlu kıl\nvulcanus skills        # bu komutları çalıştıran skill'leri kur\nvulcanus doctor        # yapıyı doğrula\nvulcanus sync \"konu\"   # commit ve push\n\nÖnce USING-WITH-AI.md dosyasını oku — vault'u değerli kılan kısım orada.",
-  "required": "Bu alan zorunlu"
+  "required": "Bu alan zorunlu",
+  "aiGroupTitle": "{cli} ile kümeleme",
+  "aiGroupSummary": "{cli} aracına {count} konuşmanın özeti gönderilir: her başlık, dışa aktarımın önceden kaydettiği gruplama ve ilk mesajın açılış sözcükleri.\nTam konuşma metinleri gönderilmez ve bu adımda vault'a hiçbir şey yazılmaz.\nÇoğu AI CLI barındırılan bir modelin önyüzüdür; bunu makinenden çıkan veri olarak değerlendir.",
+  "aiGroupConfirm": "Özet {cli} aracına gönderilsin mi?",
+  "aiGroupRunning": "{cli} konuşmaları kümeliyor",
+  "aiGroupDone": "{cli} {count} proje önerdi",
+  "aiGroupFailed": "{cli} kullanılabilir bir kümeleme döndürmedi ({message}); kelime-frekans adayları tek başına kalıyor.",
+  "aiGroupNoCli": "PATH üzerinde AI CLI bulunamadı, kümeleme atlandı."
 }

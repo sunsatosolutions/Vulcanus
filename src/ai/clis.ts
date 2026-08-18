@@ -8,6 +8,12 @@ export interface AiCli {
   label: string;
   /** Arguments that open an interactive session already seeded with a prompt. */
   args: (prompt: string) => string[];
+  /**
+   * Arguments for a headless run: answer once on stdout and exit. Used where a
+   * machine reads the answer instead of an operator — grouping an import, where
+   * there is nothing to discuss and the reply has to be parseable.
+   */
+  printArgs: (prompt: string) => string[];
 }
 
 export interface DetectedCli extends AiCli {
@@ -28,15 +34,34 @@ export interface DetectedCli extends AiCli {
  * resolved path is always shown before the operator confirms the spawn.
  */
 export const AI_CLIS: readonly AiCli[] = [
-  { id: "claude", commands: ["claude"], label: "Claude Code", args: (prompt) => [prompt] },
-  { id: "codex", commands: ["codex"], label: "Codex CLI", args: (prompt) => [prompt] },
+  {
+    id: "claude",
+    commands: ["claude"],
+    label: "Claude Code",
+    args: (prompt) => [prompt],
+    printArgs: (prompt) => ["-p", prompt],
+  },
+  {
+    id: "codex",
+    commands: ["codex"],
+    label: "Codex CLI",
+    args: (prompt) => [prompt],
+    printArgs: (prompt) => ["exec", prompt],
+  },
   {
     id: "cursor-agent",
     commands: ["cursor-agent", "agent"],
     label: "Cursor Agent",
     args: (prompt) => [prompt],
+    printArgs: (prompt) => ["--print", prompt],
   },
-  { id: "gemini", commands: ["gemini"], label: "Gemini CLI", args: (prompt) => ["-i", prompt] },
+  {
+    id: "gemini",
+    commands: ["gemini"],
+    label: "Gemini CLI",
+    args: (prompt) => ["-i", prompt],
+    printArgs: (prompt) => ["-p", prompt],
+  },
 ];
 
 function isExecutableFile(path: string): boolean {

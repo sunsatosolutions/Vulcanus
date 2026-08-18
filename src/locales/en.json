@@ -115,5 +115,12 @@
   "cancelled": "Cancelled. Nothing was written.",
   "summaryTitle": "Vault ready",
   "nextSteps": "cd {path}\nvulcanus agents        # make your AI tools use this vault everywhere\nvulcanus skills        # give them a skill that runs these commands\nvulcanus doctor        # validate the structure\nvulcanus sync \"topic\"  # commit and push\n\nRead USING-WITH-AI.md first — it is the part that makes the vault pay off.",
-  "required": "This field is required"
+  "required": "This field is required",
+  "aiGroupTitle": "Grouping with {cli}",
+  "aiGroupSummary": "{cli} is sent a digest of {count} conversation(s): each title, any grouping the export already recorded, and the opening words of the first message.\nFull transcripts are not sent, and nothing is written to the vault by this step.\nMost AI CLIs are a front end for a hosted model, so treat this as leaving your machine.",
+  "aiGroupConfirm": "Send the digest to {cli}?",
+  "aiGroupRunning": "{cli} is grouping the conversations",
+  "aiGroupDone": "{count} project(s) proposed by {cli}",
+  "aiGroupFailed": "{cli} returned no usable grouping ({message}); the word-frequency candidates stand alone.",
+  "aiGroupNoCli": "No AI CLI found on PATH, so grouping was skipped."
 }

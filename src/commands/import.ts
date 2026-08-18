@@ -8,10 +8,14 @@ import {
   detectSources,
   type ImportSourceId,
 } from "../importers/index.js";
+import type { AnalysisResult } from "../importers/analyze.js";
+import type { NormalizedConversation } from "../importers/types.js";
 import { readSeen, rememberIds, seenIds, skipSeen, writeSeen } from "../importers/seen.js";
-import { messages, type Locale } from "../i18n.js";
-import { askMultiselect, askSelect, askText, setPromptLocale } from "../prompts.js";
+import { messages, type Locale, type Messages } from "../i18n.js";
+import { askConfirm, askMultiselect, askSelect, askText, setPromptLocale } from "../prompts.js";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
+import { detectAiClis } from "../ai/clis.js";
+import { buildDigest, mergeClusters, runClustering } from "../ai/cluster.js";
 import { applyProjects, askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
 
@@ -26,6 +30,12 @@ export interface ImportOptions {
   /** `true` picks the AI path, a string also names the CLI to hand over to. */
   ai?: string | boolean;
   /**
+   * Ask an installed AI CLI to group the conversations, alongside the
+   * word-frequency pass. A string names the CLI. Opt-in, and confirmed again
+   * before anything is sent: a digest of the history leaves the machine.
+   */
+  aiGroup?: string | boolean;
+  /**
    * Report what the analysis found and write nothing. Accepting candidates is a
    * judgement call about the operator's own work, so the JSON mode stops short
    * of it rather than inventing projects unattended.
@@ -36,6 +46,54 @@ export interface ImportOptions {
    * second run on the same export should only surface what is new.
    */
   all?: boolean;
+}
+
+/**
+ * Ask an installed AI CLI to group the conversations, and fold what it says
+ * into the heuristic result.
+ *
+ * Every failure here is survivable and none of them stop the import: no CLI on
+ * PATH, the operator declining, a reply that is not JSON. The word-frequency
+ * candidates were already computed, so the worst case is the import the
+ * operator would have had anyway, with a line saying why.
+ */
+async function groupWithAi(
+  analysis: AnalysisResult,
+  load: () => AsyncIterable<NormalizedConversation>,
+  choice: string | boolean,
+  t: Messages,
+): Promise<AnalysisResult> {
+  const detected = detectAiClis();
+  const cli =
+    typeof choice === "string"
+      ? detected.find((entry) => entry.id === choice || entry.command === choice)
+      : detected[0];
+  if (!cli) {
+    p.log.warn(t.aiGroupNoCli);
+    return analysis;
+  }
+
+  const conversations: NormalizedConversation[] = [];
+  for await (const conversation of load()) conversations.push(conversation);
+  const digest = buildDigest(conversations);
+  if (digest.length === 0) return analysis;
+
+  p.log.step(t.aiGroupTitle(cli.label));
+  p.note(t.aiGroupSummary(cli.label, digest.length));
+  if (!(await askConfirm({ message: t.aiGroupConfirm(cli.label), initialValue: true }))) {
+    return analysis;
+  }
+
+  const spinner = p.spinner();
+  spinner.start(t.aiGroupRunning(cli.label));
+  const { clusters, error } = await runClustering(cli, digest);
+  if (!clusters) {
+    spinner.stop(t.aiGroupFailed(cli.label, error ?? ""));
+    return analysis;
+  }
+  spinner.stop(t.aiGroupDone(clusters.length, cli.label));
+
+  return mergeClusters(analysis, clusters);
 }
 
 export async function importCommand(options: ImportOptions = {}): Promise<number> {
@@ -127,6 +185,10 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
     return 1;
   }
   reading.stop(t.readDone(analysis.conversations, analysis.candidates.length));
+
+  if (options.aiGroup) {
+    analysis = await groupWithAi(analysis, () => adapter.load(path), options.aiGroup, t);
+  }
 
   const skipped = encountered.size - analysis.conversations;
   if (skipped > 0) {

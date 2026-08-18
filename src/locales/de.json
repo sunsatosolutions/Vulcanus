@@ -115,5 +115,12 @@
   "cancelled": "Abgebrochen. Es wurde nichts geschrieben.",
   "summaryTitle": "Vault bereit",
   "nextSteps": "cd {path}\nvulcanus agents        # deine KI-Werkzeuge überall an dieses Vault binden\nvulcanus skills        # ihnen einen Skill geben, der diese Befehle ausführt\nvulcanus doctor        # die Struktur prüfen\nvulcanus sync \"Thema\"  # committen und pushen\n\nLies zuerst USING-WITH-AI.md — das ist der Teil, der das Vault auszahlen lässt.",
-  "required": "Dieses Feld ist erforderlich"
+  "required": "Dieses Feld ist erforderlich",
+  "aiGroupTitle": "Gruppierung mit {cli}",
+  "aiGroupSummary": "An {cli} geht eine Kurzfassung von {count} Unterhaltung(en): jeder Titel, eine im Export bereits erfasste Gruppierung und die ersten Worte der ersten Nachricht.\nVollständige Verläufe werden nicht gesendet, und dieser Schritt schreibt nichts ins Vault.\nDie meisten KI-CLIs sind nur die Oberfläche eines gehosteten Modells — betrachte das als Daten, die deinen Rechner verlassen.",
+  "aiGroupConfirm": "Die Kurzfassung an {cli} senden?",
+  "aiGroupRunning": "{cli} gruppiert die Unterhaltungen",
+  "aiGroupDone": "{count} Projekt(e) von {cli} vorgeschlagen",
+  "aiGroupFailed": "{cli} lieferte keine brauchbare Gruppierung ({message}); es bleiben die Vorschläge aus der Worthäufigkeit.",
+  "aiGroupNoCli": "Keine KI-CLI im PATH gefunden, die Gruppierung wurde übersprungen."
 }
