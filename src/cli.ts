@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { LOCALES } from "./i18n.js";
 import { addProjectCommand } from "./commands/add.js";
 import { agentsCommand } from "./commands/agents.js";
 import { completionCommand, SHELLS } from "./commands/completion.js";
@@ -58,7 +59,7 @@ async function main(): Promise<void> {
     .command("init", { isDefault: true })
     .description("Create a new vault by answering a few questions")
     .argument("[target]", "directory to create the vault in")
-    .option("-l, --lang <locale>", "wizard language: tr or en")
+    .option("-l, --lang <locale>", `wizard language: ${LOCALES.join(", ")}`)
     .option("-y, --yes", "skip the final confirmation")
     .option("--ai [cli]", "let a locally installed AI CLI write the project notes")
     .option("--name <name>", "vault name (skips the question)")
@@ -97,7 +98,7 @@ async function main(): Promise<void> {
           dryRun?: boolean;
         },
       ) => {
-        const locale = options.lang === "tr" || options.lang === "en" ? options.lang : undefined;
+        const locale = LOCALES.find((candidate) => candidate === options.lang);
         const naming =
           options.naming === "branded" || options.naming === "generic" ? options.naming : undefined;
         if (options.naming && !naming) {

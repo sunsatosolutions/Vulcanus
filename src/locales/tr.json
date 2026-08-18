@@ -1,9 +1,7 @@
 {
   "introTitle": "Vulcanus",
   "introBody": "Kendin ve yapay zekâ ajanların için okunabilir bir ikinci beyin kur.",
-  "localeQuestion": "Dil / Language",
-  "localeTr": "Türkçe",
-  "localeEn": "English",
+  "localeQuestion": "Dil",
   "importQuestion": "Proje ağacını çıkarmak için mevcut bir yapay zekâ geçmişini içe aktaralım mı?",
   "importHint": "Vault'a hiçbir konuşma kopyalanmaz — yalnızca onayladığın proje isimleri kullanılır.",
   "importNone": "Hayır, projeleri kendim tanımlayayım",

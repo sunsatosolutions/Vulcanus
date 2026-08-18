@@ -1,9 +1,7 @@
 {
   "introTitle": "Vulcanus",
   "introBody": "Build an AI-readable second brain for you and your AI agents.",
-  "localeQuestion": "Language / Dil",
-  "localeTr": "Türkçe",
-  "localeEn": "English",
+  "localeQuestion": "Language",
   "importQuestion": "Import an existing AI history to seed your project tree?",
   "importHint": "Nothing is copied into the vault — only project names you confirm.",
   "importNone": "No, I'll define projects myself",

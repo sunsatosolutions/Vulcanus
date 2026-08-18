@@ -1,12 +1,29 @@
-export type Locale = "tr" | "en";
+export type Locale = "en" | "tr" | "de" | "es";
+
+/**
+ * Every locale that ships, in the order the picker offers them. Adding a
+ * language is this entry plus `src/locales/<locale>.json` — nothing else.
+ */
+export const LOCALES: readonly Locale[] = ["en", "tr", "de", "es"];
+
+/**
+ * A language's own name for itself, which is what a picker should show and is
+ * the same text whatever locale the picker is currently in. Keeping it out of
+ * the catalogs means a new language cannot arrive half-listed, named in some
+ * files and missing from others.
+ */
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: "English",
+  tr: "Türkçe",
+  de: "Deutsch",
+  es: "Español",
+};
 
 export interface Messages {
   introTitle: string;
   introBody: string;
 
   localeQuestion: string;
-  localeTr: string;
-  localeEn: string;
 
   importQuestion: string;
   importHint: string;
@@ -134,7 +151,9 @@ export interface Messages {
   required: string;
 }
 
+import de from "./locales/de.json" with { type: "json" };
 import en from "./locales/en.json" with { type: "json" };
+import es from "./locales/es.json" with { type: "json" };
 import tr from "./locales/tr.json" with { type: "json" };
 
 /**
@@ -146,7 +165,7 @@ import tr from "./locales/tr.json" with { type: "json" };
  * matches it, which is what keeps a half-translated file from reaching a user
  * as an empty prompt.
  */
-const CATALOGS: Record<Locale, Record<string, string>> = { en, tr };
+const CATALOGS: Record<Locale, Record<string, string>> = { en, tr, de, es };
 
 /**
  * Parameter order for the entries the interface declares as functions. The
@@ -229,6 +248,8 @@ function build(locale: Locale): Messages {
 export const MESSAGES: Record<Locale, Messages> = {
   en: build("en"),
   tr: build("tr"),
+  de: build("de"),
+  es: build("es"),
 };
 
 export function messages(locale: Locale): Messages {

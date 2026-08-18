@@ -3,7 +3,7 @@ import { slugify } from "../util/text.js";
 export const MANIFEST_VERSION = 1;
 export const MANIFEST_FILENAME = "vulcanus.json";
 
-export type Language = "tr" | "en";
+export type Language = "en" | "tr" | "de" | "es";
 export type NamingStyle = "branded" | "generic";
 export type VaultProfile = "core" | "full";
 
