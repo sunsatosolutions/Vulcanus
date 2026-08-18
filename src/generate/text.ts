@@ -60,6 +60,28 @@ export function noteText(locale: Locale): NoteText {
   return text;
 }
 
+/**
+ * Keys that stay English in every locale, on purpose.
+ *
+ * These are read by agents, not by the operator: the AGENTS.md protocol and the
+ * visibility rule inside it. The protocol carries a version stamp that `doctor`
+ * checks and that `update` merges against, so one shape in one language is the
+ * thing that keeps those checks honest — and model instructions are followed
+ * more reliably in the language they were written in. A test holds every locale
+ * to the English text for these, so translating one is a failure rather than a
+ * surprise in a generated vault.
+ */
+export const ENGLISH_ONLY_PREFIXES = [
+  "root.agentsFile.",
+  "root.projectVisibilitySection.",
+  "root.gitignoreFile.",
+];
+
+/** Whether `key` is one of the entries that deliberately stays English. */
+export function isEnglishOnly(key: string): boolean {
+  return ENGLISH_ONLY_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
 /** Every heading name the catalogs define, for tests and for `derive.ts`. */
 export const HEADING_NAMES: string[] = Object.keys(enNotes.headings);
 

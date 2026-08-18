@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, test } from "node:test";
 import { generateFiles } from "../src/generate/index.js";
-import { headingVariants, noteText, type NoteCatalog } from "../src/generate/text.js";
+import {
+  headingVariants,
+  isEnglishOnly,
+  noteText,
+  type NoteCatalog,
+} from "../src/generate/text.js";
 import { LOCALES, type Locale } from "../src/i18n.js";
 import { manifest, project } from "./helpers.js";
 
@@ -72,6 +77,17 @@ describe("generated-note catalogs", () => {
             `${locale}.${key} drops {${name}}; the value would never appear`,
           );
         }
+      }
+    });
+
+    test(`${locale}: leaves the agent protocol in English`, () => {
+      for (const key of Object.keys(EN.text)) {
+        if (!isEnglishOnly(key)) continue;
+        assert.equal(
+          entries.text[key],
+          EN.text[key],
+          `${locale}.${key} was translated; the agent protocol is one shape in one language on purpose`,
+        );
       }
     });
 
