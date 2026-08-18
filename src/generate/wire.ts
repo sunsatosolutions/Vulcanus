@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { hubExpectations, type VaultPlan } from "../manifest/derive.js";
+import { hubExpectations, hubNavigationSections, type VaultPlan } from "../manifest/derive.js";
 import { wikiTargets } from "../util/markdown.js";
 import { ensureBulletUnderHeading } from "./patch.js";
 
@@ -15,16 +15,11 @@ import { ensureBulletUnderHeading } from "./patch.js";
  * everything else is left exactly as it was.
  */
 
-/** Where each kind of hub lists what it owns. */
-function sectionFor(plan: VaultPlan, path: string): string {
-  if (path === plan.index.path) return "## Main Hubs";
-  if (path === plan.systemHub.path) return "## System Notes";
-  if (plan.groups.some((group) => group.hub.path === path)) return "## Projects";
-  return "## Sub-Projects";
-}
-
 export async function wireHubs(vaultRoot: string, plan: VaultPlan): Promise<string[]> {
   const patched: string[] = [];
+  // One source for where a hub lists what it owns, shared with the doctor so
+  // the check and the repair cannot drift apart.
+  const sections = hubNavigationSections(plan);
 
   for (const [path, expected] of hubExpectations(plan)) {
     const absolute = resolve(vaultRoot, path);
@@ -35,7 +30,7 @@ export async function wireHubs(vaultRoot: string, plan: VaultPlan): Promise<stri
     const missing = [...expected].filter((name) => !present.has(name));
     if (missing.length === 0) continue;
 
-    const heading = sectionFor(plan, path);
+    const heading = sections.get(path)?.[0] ?? "## Sub-Projects";
     let changed = false;
     for (const name of missing) {
       const result = ensureBulletUnderHeading(content, heading, `- [[${name}]]`);

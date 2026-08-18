@@ -130,6 +130,30 @@ export function wikiTargets(text: string): string[] {
   return targets;
 }
 
+/**
+ * Wikilink targets found only under the given `## ` headings.
+ *
+ * Used where a hub's navigation list has to be told apart from its prose: the
+ * same link means different things in a bullet under `## Sub-Projects` and in a
+ * sentence explaining who owns what.
+ */
+export function wikiTargetsUnderHeadings(text: string, headings: string[]): string[] {
+  const wanted = new Set(headings.map((heading) => heading.trim()));
+  const targets: string[] = [];
+  let inside = false;
+
+  for (const line of visibleMarkdown(text).split("\n")) {
+    const heading = line.match(/^(#{1,6})\s/);
+    if (heading) {
+      inside = wanted.has(line.trim());
+      continue;
+    }
+    if (inside) targets.push(...wikiTargets(line));
+  }
+
+  return targets;
+}
+
 export function link(name: string): string {
   return `[[${name}]]`;
 }

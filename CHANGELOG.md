@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+## 0.4.8 — 2026-08-18
+
+### Fixed — a hub's prose counted against it
+
+`doctor` compared every wikilink in a hub against the links the manifest
+expects there, so a hub that explained itself was told it had links beyond the
+manifest. But a hub is a navigation list *and* prose, and the prose is the part
+worth writing: a sentence like "this product belongs to the client and lives
+under their hub" is exactly what an operator should record, and it has to link
+to the notes it names. The only ways out were deleting a true sentence or
+living with a permanent warning — and a warning nobody can clear is one the
+operator learns to scroll past, which costs more than it ever caught.
+
+The check now reads only the sections where a hub lists what it owns. Links
+anywhere else are prose and are left alone. Drift in the navigation list is
+still reported, and still worth reporting; the wording moved from "links beyond
+the manifest" to "lists beyond the manifest" to say which of the two it means.
+`wireHubs` and `doctor` now take those section names from one place, so the
+check and the repair cannot disagree about where a hub's list lives. Both
+spellings of the System Hub's list are recognized, since vaults generated
+earlier wrote `## Core Files` where new ones write `## System Notes`.
+
+### Added — `systemNotes` for the notes the operator keeps themselves
+
+The generated system layer is a fixed list per profile, and `specialized`
+exists only on projects, so there was nowhere to say "this note under the
+system directory is mine and it belongs". A vault that added one got it
+reported as unmanaged and got the System Hub that linked it reported as
+over-linked: two findings for doing nothing wrong.
+
+`systemNotes` in `vulcanus.json` takes the note kinds the operator writes.
+They are branded like every other system note, so `Release Notes` resolves to
+`<Vault> Release Notes` in a branded vault and `Release Notes` in a generic
+one. Declaring one makes the vault aware of it and nothing more: it is never
+created, never rewritten, and `update` will not touch it. The System Hub is
+allowed to link it, `wireHubs` adds the bullet if it is missing, and a note
+declared but never written is reported so the declaration cannot quietly point
+at nothing. A system note nobody declared is still reported as unmanaged.
+
+`doctor` rejects a declared name that collides with one the CLI generates, and
+rejects duplicates, rather than letting two notes fight over one path.
+
 ## 0.4.7 — 2026-08-17
 
 ### Added — projects can record what they are and who may hear about them

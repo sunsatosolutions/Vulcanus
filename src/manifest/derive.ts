@@ -56,6 +56,12 @@ export interface VaultPlan {
   allProjects: ProjectPlan[];
   /** Every markdown note the generator owns, in stable order. */
   allNotes: NoteRef[];
+  /**
+   * System notes the operator declared and writes themselves. Known to the
+   * vault — linked from the System Hub, never flagged as unmanaged — but never
+   * created or rewritten here.
+   */
+  operatorNotes: NoteRef[];
 }
 
 function systemNoteName(manifest: VaultManifest, kind: string): string {
@@ -77,6 +83,25 @@ export function systemNoteKinds(manifest: VaultManifest): string[] {
   return manifest.vault.profile === "full"
     ? [...CORE_SYSTEM_NOTES, ...FULL_SYSTEM_NOTES]
     : [...CORE_SYSTEM_NOTES];
+}
+
+/**
+ * System note kinds the operator declared. Empty for every vault that never
+ * asks for one, which is most of them.
+ */
+export function operatorSystemNoteKinds(manifest: VaultManifest): string[] {
+  const generated = new Set(systemNoteKinds(manifest));
+  const seen = new Set<string>();
+  const kinds: string[] = [];
+  for (const raw of manifest.systemNotes ?? []) {
+    const kind = typeof raw === "string" ? raw.trim() : "";
+    if (!kind || generated.has(kind) || kind === "System Hub") continue;
+    const key = kind.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kinds.push(kind);
+  }
+  return kinds;
 }
 
 export function projectDirName(project: ProjectNode): string {
@@ -183,6 +208,10 @@ export function buildPlan(manifest: VaultManifest): VaultPlan {
     ...allProjects.flatMap((plan) => plan.notes),
   ];
 
+  const operatorNotes: NoteRef[] = operatorSystemNoteKinds(manifest).map((kind) =>
+    systemNoteRef(manifest, kind),
+  );
+
   return {
     manifest,
     system,
@@ -194,7 +223,34 @@ export function buildPlan(manifest: VaultManifest): VaultPlan {
     roots,
     allProjects,
     allNotes,
+    operatorNotes,
   };
+}
+
+/**
+ * The headings under which each hub lists what it owns.
+ *
+ * A hub is a navigation list *and* prose, and the prose is the part worth
+ * writing — "this product is the client's and lives under their hub" is exactly
+ * what an operator should record. Those sentences link to real notes, so a
+ * check that reads the whole file cannot tell a navigation entry from a
+ * sentence, and reports a correct hub as over-linked. Anything that has to
+ * distinguish the two reads only these sections.
+ *
+ * The first heading is also where a missing link gets inserted.
+ */
+export function hubNavigationSections(plan: VaultPlan): Map<string, string[]> {
+  const sections = new Map<string, string[]>();
+  sections.set(plan.index.path, ["## Main Hubs"]);
+  // "Core Files" is what older vaults wrote and some still carry; both name the
+  // same list, and a check that knows only the current spelling would silently
+  // stop checking the very hub it was written for.
+  sections.set(plan.systemHub.path, ["## System Notes", "## Core Files"]);
+  for (const group of plan.groups) sections.set(group.hub.path, ["## Projects", "## Parent"]);
+  for (const project of plan.allProjects) {
+    sections.set(project.hub.path, ["## Sub-Projects", "## Core Files", "## Parent"]);
+  }
+  return sections;
 }
 
 /**
@@ -209,6 +265,9 @@ export function hubExpectations(plan: VaultPlan): Map<string, Set<string>> {
   for (const kind of systemNoteKinds(plan.manifest)) {
     systemTargets.add(plan.system.get(kind)!.name);
   }
+  // Operator-declared notes are listed alongside the generated ones: the point
+  // of declaring one is that the System Hub may link it without complaint.
+  for (const note of plan.operatorNotes) systemTargets.add(note.name);
   expectations.set(plan.systemHub.path, systemTargets);
 
   const indexTargets = new Set<string>([plan.systemHub.name, plan.recallMap.name]);

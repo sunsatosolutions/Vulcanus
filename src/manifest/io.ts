@@ -88,6 +88,7 @@ export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest 
       boundaries: input.admin.boundaries ?? [],
     },
     structure: { ...DEFAULT_STRUCTURE, ...(input.structure ?? {}) },
+    systemNotes: input.systemNotes ?? [],
     groups: (input.groups ?? []).map((group) => ({
       ...group,
       navigationOnly: group.navigationOnly ?? true,

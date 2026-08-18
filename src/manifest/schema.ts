@@ -109,6 +109,21 @@ export interface VaultManifest {
   vault: VaultIdentity;
   admin: AdminIdentity;
   structure: StructureConfig;
+  /**
+   * System notes the operator writes and this CLI only has to know about.
+   *
+   * The generated system layer is a fixed list per profile, which left no way
+   * to say "this note under the system directory is mine and it belongs".
+   * Without that, an operator's own note reads as unmanaged and the System Hub
+   * that links it reads as over-linked — two warnings for doing nothing wrong.
+   *
+   * Declared as kinds, not filenames: they go through the same branding as the
+   * generated ones, so `Release Notes` is `<Vault> Release Notes` in a branded
+   * vault and `Release Notes` in a generic one. Nothing here is ever written or
+   * rewritten by the generator; declaring a note only makes the vault aware of
+   * one the operator already keeps.
+   */
+  systemNotes: string[];
   groups: ProjectGroup[];
   projects: ProjectNode[];
   imports: ImportRecord[];
@@ -181,6 +196,27 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
   }
   if (!manifest.vault?.name?.trim()) error("vault.name is required");
   if (!manifest.admin?.name?.trim()) error("admin.name is required");
+
+  const generatedKinds = new Set<string>([
+    ...CORE_SYSTEM_NOTES,
+    ...FULL_SYSTEM_NOTES,
+    "System Hub",
+  ]);
+  const declaredNotes = new Set<string>();
+  for (const kind of manifest.systemNotes ?? []) {
+    const trimmed = typeof kind === "string" ? kind.trim() : "";
+    if (!trimmed) {
+      error("systemNotes contains an empty name");
+      continue;
+    }
+    if (generatedKinds.has(trimmed)) {
+      error(`systemNotes declares "${trimmed}", which this CLI already generates`);
+      continue;
+    }
+    const key = trimmed.toLowerCase();
+    if (declaredNotes.has(key)) error(`duplicate system note: ${trimmed}`);
+    declaredNotes.add(key);
+  }
 
   const groupIds = new Set<string>();
   for (const group of manifest.groups) {

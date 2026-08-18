@@ -4,12 +4,13 @@ import { resolve } from "node:path";
 import {
   buildPlan,
   hubExpectations,
+  hubNavigationSections,
   recallRouteExpectations,
   returnLinkExpectations,
   type VaultPlan,
 } from "../manifest/derive.js";
 import { MANIFEST_VERSION, validateManifest, type VaultManifest } from "../manifest/schema.js";
-import { parseNote, wikiTargets } from "../util/markdown.js";
+import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdown.js";
 import { vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
 import { SKILL_DIRS } from "../generate/skills.js";
@@ -112,9 +113,21 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     }
   }
 
+  const declaredPaths = new Set(plan.operatorNotes.map((note) => note.path));
+  for (const note of plan.operatorNotes) {
+    if (!present.has(note.path)) {
+      add(
+        "warning",
+        "UNMANAGED",
+        `declared in systemNotes but not present; write it or drop the declaration`,
+        note.path,
+      );
+    }
+  }
+
   const plannedPaths = new Set(plan.allNotes.map((note) => note.path));
   for (const file of files) {
-    if (!plannedPaths.has(file)) {
+    if (!plannedPaths.has(file) && !declaredPaths.has(file)) {
       add("info", "UNMANAGED", `note is not described by the manifest`, file);
     }
   }
@@ -204,6 +217,7 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     targetsOf.set(file, new Set(wikiTargets(contents.get(file)!)));
   }
 
+  const navigationSections = hubNavigationSections(plan);
   for (const [path, expected] of hubExpectations(plan)) {
     const actual = targetsOf.get(path);
     if (!actual) continue; // already reported as missing
@@ -211,9 +225,15 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     if (missing.length) {
       add("error", "HUB", `missing links: ${missing.join(", ")}`, path);
     }
-    const extra = [...actual].filter((name) => !expected.has(name));
+    // A link is only "extra" when it sits in the navigation list. Elsewhere in
+    // the file it is prose, and a hub whose prose points at a related note is
+    // doing its job, not drifting from the manifest.
+    const sections = navigationSections.get(path);
+    if (!sections) continue;
+    const listed = new Set(wikiTargetsUnderHeadings(contents.get(path)!, sections));
+    const extra = [...listed].filter((name) => !expected.has(name));
     if (extra.length) {
-      add("warning", "HUB", `links beyond the manifest: ${extra.join(", ")}`, path);
+      add("warning", "HUB", `lists beyond the manifest: ${extra.join(", ")}`, path);
     }
   }
 

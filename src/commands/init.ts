@@ -488,6 +488,9 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
       ...DEFAULT_STRUCTURE,
       stateDir: `.${slugify(vaultName) || "vault"}`,
     },
+    // Empty on a new vault: system notes the operator writes themselves are
+    // declared later, once they exist.
+    systemNotes: [],
     groups,
     projects,
     imports: imported.record

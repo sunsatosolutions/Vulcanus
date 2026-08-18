@@ -52,6 +52,7 @@ export function manifest(overrides: Partial<VaultManifest> = {}): VaultManifest 
       importsDir: "_imports",
       stateDir: ".atlas",
     },
+    systemNotes: [],
     groups: [],
     projects: [],
     imports: [],
