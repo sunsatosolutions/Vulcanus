@@ -60,13 +60,90 @@
               "price": "0",
               "priceCurrency": "USD"
             },
-            "publisher": { "@id": "https://sunsato.com/#organization" }
+            "publisher": { "@id": "https://sunsato.com/#organization" },
+            "sameAs": [
+              "https://github.com/sunsatosolutions/Vulcanus",
+              "https://www.npmjs.com/package/@sunsato/vulcanus",
+              "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sunsatosolutions/vulcanus",
+              "https://glama.ai/mcp/servers/sunsatosolutions/Vulcanus",
+              "https://sunsato.com/en/products/vulcanus"
+            ]
           },
           {
             "@type": "Organization",
             "@id": "https://sunsato.com/#organization",
             "name": "Sunsato",
             "url": "https://sunsato.com"
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://vulcanus.sunsato.com/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Vulcanus?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "An open-source command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that you and your coding agents both read. It serves that vault over MCP, so an agent can recall a project instead of starting every session cold."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How is it different from a CLAUDE.md or AGENTS.md file?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A single instructions file is read in full on every task, grows without limit, and nothing checks that it is still true. A Vulcanus vault is layered: an agent reads the Recall Map, then the one project Capsule its task needs, and goes deeper only for authority or detail. vulcanus doctor then validates that every link resolves and every project is reachable, so outdated memory shows up as an error."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How is it different from other MCP memory servers?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Many memory servers keep facts in a database or index past conversations for retrieval. Vulcanus keeps memory as plain Markdown notes you can read, edit, and review in Git or Obsidian, organized into a fixed structure per project — Capsule, Hub, Context, Decisions, Rules — that is validated against a manifest. What your agent remembers is exactly what is written in the vault."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which AI tools does it work with?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any MCP client, including Claude Code and Cursor, through vulcanus serve. The vault also ships skills for Claude Code, Codex, Cursor, and Gemini CLI, and vulcanus agents prints a block to paste into any tool's global instructions."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does my data leave my machine?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. There is no account and no server. The only network call is an optional once-a-day check for a newer release, which VULCANUS_NO_UPDATE_CHECK=1 turns off. When you import AI history, conversations are read locally, reduced to candidate project names, and discarded — nothing from them is copied into the vault."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I use it with my existing Obsidian vault?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Run vulcanus init inside it and Vulcanus adds the memory structure to that vault instead of creating a separate one. Your own notes are never overwritten, and the graph view shows each project as its own cluster."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can agents write to the memory, and is that safe?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Agents record outcomes through scoped MCP tools: append_decision and append_rule add one entry to the right note, and update_capsule replaces one named section rather than rewriting the file. Every change is a plain Markdown edit you can review and revert in Git, and vulcanus hooks install refuses commits that break the vault's structure."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does it cost, and what does it need?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Start with npx @sunsato/vulcanus."
+                }
+              }
+            ]
           },
           {
             "@type": "WebSite",
@@ -91,7 +168,7 @@
         --line: #23232e;
         --text: #e8e8ef;
         --muted: #9a9aab;
-        --dim: #6a6a7c;
+        --dim: #7e7e90;
         --ember: #ff6b35;
         --ember-2: #f7931e;
         --ok: #4ade80;
@@ -594,6 +671,10 @@
         color: var(--text);
       }
 
+      .note a {
+        color: var(--ember);
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -646,6 +727,41 @@
         gap: 1rem;
       }
 
+      .faq {
+        display: grid;
+        gap: 0.75rem;
+        max-width: 48rem;
+      }
+
+      .faq details {
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--panel);
+      }
+
+      .faq summary {
+        padding: 1.1rem 1.3rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .faq summary:hover {
+        color: var(--ember);
+      }
+
+      .faq details p {
+        margin: 0;
+        padding: 0 1.3rem 1.2rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .faq code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        color: var(--text);
+      }
+
       footer a {
         color: var(--muted);
         text-decoration: none;
@@ -691,6 +807,7 @@
           <a href="#budget">Token budget</a>
           <a href="#agents">Agents</a>
           <a href="#obsidian">Obsidian</a>
+          <a href="#faq">FAQ</a>
           <a
             class="persist gh"
             href="https://github.com/sunsatosolutions/Vulcanus"
@@ -1224,6 +1341,46 @@ requirement, not an optional extra.
         </div>
       </section>
 
+      <section id="faq">
+        <h2>Questions</h2>
+        <p class="section-lede">What people ask before they point an agent at it.</p>
+
+        <div class="faq">
+          <details>
+            <summary>What is Vulcanus?</summary>
+            <p>An open-source command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that you and your coding agents both read. It serves that vault over MCP, so an agent can <code>recall</code> a project instead of starting every session cold.</p>
+          </details>
+          <details>
+            <summary>How is it different from a CLAUDE.md or AGENTS.md file?</summary>
+            <p>A single instructions file is read in full on every task, grows without limit, and nothing checks that it is still true. A Vulcanus vault is layered: an agent reads the Recall Map, then the one project Capsule its task needs, and goes deeper only for authority or detail. <code>vulcanus doctor</code> then validates that every link resolves and every project is reachable, so outdated memory shows up as an error.</p>
+          </details>
+          <details>
+            <summary>How is it different from other MCP memory servers?</summary>
+            <p>Many memory servers keep facts in a database or index past conversations for retrieval. Vulcanus keeps memory as plain Markdown notes you can read, edit, and review in Git or Obsidian, organized into a fixed structure per project — Capsule, Hub, Context, Decisions, Rules — that is validated against a manifest. What your agent remembers is exactly what is written in the vault.</p>
+          </details>
+          <details>
+            <summary>Which AI tools does it work with?</summary>
+            <p>Any MCP client, including Claude Code and Cursor, through <code>vulcanus serve</code>. The vault also ships skills for Claude Code, Codex, Cursor, and Gemini CLI, and <code>vulcanus agents</code> prints a block to paste into any tool's global instructions.</p>
+          </details>
+          <details>
+            <summary>Does my data leave my machine?</summary>
+            <p>No. There is no account and no server. The only network call is an optional once-a-day check for a newer release, which <code>VULCANUS_NO_UPDATE_CHECK=1</code> turns off. When you import AI history, conversations are read locally, reduced to candidate project names, and discarded — nothing from them is copied into the vault.</p>
+          </details>
+          <details>
+            <summary>Can I use it with my existing Obsidian vault?</summary>
+            <p>Yes. Run <code>vulcanus init</code> inside it and Vulcanus adds the memory structure to that vault instead of creating a separate one. Your own notes are never overwritten, and the graph view shows each project as its own cluster.</p>
+          </details>
+          <details>
+            <summary>Can agents write to the memory, and is that safe?</summary>
+            <p>Agents record outcomes through scoped MCP tools: <code>append_decision</code> and <code>append_rule</code> add one entry to the right note, and <code>update_capsule</code> replaces one named section rather than rewriting the file. Every change is a plain Markdown edit you can review and revert in Git, and <code>vulcanus hooks install</code> refuses commits that break the vault's structure.</p>
+          </details>
+          <details>
+            <summary>What does it cost, and what does it need?</summary>
+            <p>Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Start with <code>npx @sunsato/vulcanus</code>.</p>
+          </details>
+        </div>
+      </section>
+
       <section style="text-align: center">
         <h2>Your agents are only as good as their memory</h2>
         <p class="section-lede" style="margin-inline: auto">Build it once. Keep it honest.</p>
@@ -1242,7 +1399,7 @@ requirement, not an optional extra.
           class="sponsor-btn"
           href="https://github.com/sponsors/sunsatosolutions"
           rel="noopener"
-          aria-label="Sponsor Vulcanus development on GitHub"
+          aria-label="Sponsor its development on GitHub"
         >
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path

@@ -3,6 +3,7 @@
 # inline style and script are the page's own, everything external is blocked.
 
 /*
+  Strict-Transport-Security: max-age=31536000
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
@@ -16,4 +17,8 @@
   Cache-Control: public, max-age=3600
 
 /robots.txt
+  Cache-Control: public, max-age=3600
+
+/llms.txt
+  Content-Type: text/markdown; charset=utf-8
   Cache-Control: public, max-age=3600
