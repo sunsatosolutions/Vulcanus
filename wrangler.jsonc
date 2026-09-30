@@ -5,6 +5,7 @@
   // Worker script, so Cloudflare serves the assets directly.
   "assets": {
     "directory": "./site",
-    "html_handling": "auto-trailing-slash"
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
   }
 }

@@ -6,3 +6,6 @@ dist/
 # local scratch vaults used while developing the CLI
 /tmp-vault/
 /.vulcanus-dev/
+
+# wrangler dev state
+.wrangler/

@@ -1,0 +1,51 @@
+# Vulcanus
+
+> Vulcanus is an open-source CLI (MIT, npm package `@sunsato/vulcanus`) that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that a person and their coding agents both read. It serves the vault over MCP, so Claude Code, Cursor, Codex, or any MCP client can `recall` a project's memory instead of starting every session cold.
+
+Vulcanus replaces an ever-growing `CLAUDE.md` or `AGENTS.md` with layered, scoped memory. An agent reads the Recall Map, then the one project Capsule its task needs, and goes deeper into Decisions, Rules, or Context only when it needs authority or detail. `vulcanus doctor` validates that every link resolves and every project is reachable, so stale memory fails loudly. It runs locally: no account, and no network call beyond an optional once-a-day version check. Requires Node 22.12 or newer. Made by Sunsato.
+
+Quick start:
+
+```bash
+npx @sunsato/vulcanus
+claude mcp add vulcanus -- vulcanus serve
+```
+
+## Docs
+
+- [README](https://github.com/sunsatosolutions/Vulcanus/blob/main/README.md): install, commands, vault structure, MCP server, validation, and editing safety
+- [Token budget](https://github.com/sunsatosolutions/Vulcanus/blob/main/docs/token-budget.md): how much a scoped recall saves compared with reading the whole vault, and what that measurement does not prove
+- [Changelog](https://github.com/sunsatosolutions/Vulcanus/blob/main/CHANGELOG.md): what changed in each release
+
+## What it creates
+
+- `AGENTS.md` / `CLAUDE.md`: the protocol agents follow in the vault
+- `vulcanus.json`: the manifest the whole vault is derived and validated from
+- `00_System/`: Index, Recall Map, Admin Profile, Rules, Update Format
+- One cluster per project: Capsule (compressed must-remember summary), Hub, Context, Decisions, Rules, plus optional Architecture, Flow, Visual Direction, and Content Guidelines
+- `.claude/skills/` and `.agents/skills/`: skills for Claude Code, Codex, Cursor, and Gemini CLI
+
+## MCP tools (`vulcanus serve`)
+
+- `recall`: a project's Capsule plus the read-next list, with a staleness warning when the Capsule is older than the notes beneath it
+- `search`: layer-aware text search; Capsule and Recall Map hits rank first
+- `list_projects`: names, statuses, trigger words, and capsule paths
+- `append_decision` / `append_rule`: record a confirmed decision or standing rule
+- `update_capsule`: replace one named section of a Capsule, never the whole file
+- `vault_status` / `doctor`: health summary and full structural validation
+
+## Commands
+
+- `vulcanus init`: create a vault, or add memory to an existing Obsidian vault
+- `vulcanus import`: propose projects from ChatGPT, Claude.ai, Claude Code, Codex, Gemini CLI, or Cursor history, or a Markdown folder; read locally, nothing copied into the vault
+- `vulcanus doctor`, `status`, `stats`: validate the vault, summarize its health, measure its token budget
+- `vulcanus add project`, `project remove|rename|archive`: manage projects and their links
+- `vulcanus agents`, `skills`, `hooks install`: make agents use the vault and block commits of a broken graph
+- `vulcanus update`, `sync`: upgrade the vault to a newer CLI; validate, commit, and push
+
+## Optional
+
+- [GitHub repository](https://github.com/sunsatosolutions/Vulcanus)
+- [npm package](https://www.npmjs.com/package/@sunsato/vulcanus)
+- [Glama MCP listing](https://glama.ai/mcp/servers/sunsatosolutions/Vulcanus)
+- [Sunsato](https://sunsato.com)
