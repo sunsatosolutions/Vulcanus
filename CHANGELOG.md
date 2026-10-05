@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+
+- Upgrading an existing vault to protocol 3 stamped `AGENTS.md` as current but
+  never delivered the decision-lifecycle rule. `update` merges `AGENTS.md` by
+  section — adding the sections a vault lacks, never rewriting one it has — and
+  0.6.0 had put the rule inside the existing *Recursive consolidation* section,
+  so no vault written before 0.6.0 could receive it. The rule now has its own
+  *Decision lifecycle* section, which `vulcanus update` adds to every vault,
+  customized or not. A vault created with 0.6.0 itself keeps the old sentence as
+  well; deleting it from *Recursive consolidation* is safe.
+
 ## 0.6.0 — 2026-10-05
 
 ### Added — decisions know when they stopped being true

@@ -94,7 +94,8 @@
     "Staleness": "Desactualización",
     "Superseding a Decision": "Sustituir una decisión",
     "[New Decision Title]": "[Título de la nueva decisión]",
-    "[Old Decision Title]": "[Título de la decisión anterior]"
+    "[Old Decision Title]": "[Título de la decisión anterior]",
+    "Decision lifecycle": "Ciclo de vida de las decisiones"
   },
   "text": {
     "project.capsuleNote.1": "_Todavía no hay un resumen confirmado de {name}._",

@@ -94,7 +94,8 @@
     "Staleness": "Staleness",
     "Superseding a Decision": "Superseding a Decision",
     "[New Decision Title]": "[New Decision Title]",
-    "[Old Decision Title]": "[Old Decision Title]"
+    "[Old Decision Title]": "[Old Decision Title]",
+    "Decision lifecycle": "Decision lifecycle"
   },
   "text": {
     "project.capsuleNote.1": "_{name} has no confirmed summary yet._",

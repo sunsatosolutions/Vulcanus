@@ -94,7 +94,8 @@
     "Staleness": "Veralterung",
     "Superseding a Decision": "Eine Entscheidung ablösen",
     "[New Decision Title]": "[Titel der neuen Entscheidung]",
-    "[Old Decision Title]": "[Titel der alten Entscheidung]"
+    "[Old Decision Title]": "[Titel der alten Entscheidung]",
+    "Decision lifecycle": "Lebenszyklus von Entscheidungen"
   },
   "text": {
     "project.capsuleNote.1": "_Für {name} gibt es noch keine bestätigte Zusammenfassung._",

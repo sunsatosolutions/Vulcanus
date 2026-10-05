@@ -94,7 +94,8 @@
     "Staleness": "Bayatlık",
     "Superseding a Decision": "Bir Kararın Yerini Alma",
     "[New Decision Title]": "[Yeni Karar Başlığı]",
-    "[Old Decision Title]": "[Eski Karar Başlığı]"
+    "[Old Decision Title]": "[Eski Karar Başlığı]",
+    "Decision lifecycle": "Karar yaşam döngüsü"
   },
   "text": {
     "project.capsuleNote.1": "_{name} için henüz teyitli bir özet yok._",

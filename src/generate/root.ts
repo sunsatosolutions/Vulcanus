@@ -97,10 +97,13 @@ function agentsFile(plan: VaultPlan): GeneratedFile {
       "",
       t("root.agentsFile.23"),
       "",
-      t("root.agentsFile.37"),
-      "",
       t("root.agentsFile.24", { value: mdLink(plan.system.get("Changelog")!) }),
     ].join("\n"),
+    // Its own section rather than a line in another: \`update\` merges AGENTS.md
+    // by section, adding the ones a vault lacks and never rewriting one it has,
+    // so a rule added inside an existing section would never reach an existing
+    // vault.
+    [t.heading("Decision lifecycle"), "", t("root.agentsFile.37")].join("\n"),
     [
       t.heading("Structure"),
       "",

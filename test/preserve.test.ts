@@ -273,6 +273,28 @@ describe("AGENTS.md merging", () => {
     assert.match(merged, /<!-- vulcanus:protocol 1 -->/);
   });
 
+  it("brings the decision-lifecycle rule to vaults written before protocol 3", () => {
+    const current = generateFiles(manifest()).files.find((file) => file.path === "AGENTS.md")!;
+    assert.match(current.content, /## Decision lifecycle\n\n.*supersedes::/);
+
+    // An untouched protocol-2 file: the same document without the new section.
+    const protocol2 = current.content
+      .replace(/<!-- vulcanus:protocol \d+ -->/, "<!-- vulcanus:protocol 2 -->")
+      .replace(/\n## Decision lifecycle\n[\s\S]*?(?=\n## )/, "\n");
+    assert.doesNotMatch(protocol2, /supersedes::/);
+    const upgraded = mergeProtocol(protocol2, current.content);
+    assert.match(upgraded, /## Decision lifecycle\n\n.*supersedes::/);
+    assert.match(upgraded, /<!-- vulcanus:protocol 3 -->/);
+
+    // A heavily customized file keeps its own consolidation section and still
+    // gains the rule.
+    const custom =
+      "# House Protocol\n<!-- vulcanus:protocol 2 -->\n\n## Recursive consolidation\n\nOur own steps.\n";
+    const merged = mergeProtocol(custom, current.content);
+    assert.match(merged, /Our own steps\./);
+    assert.match(merged, /## Decision lifecycle\n\n.*supersedes::/);
+  });
+
   it("refreshes an outdated protocol stamp in place", () => {
     const existing = "# P\n<!-- vulcanus:protocol 0 -->\n\n## A\n\nx\n";
     const merged = mergeProtocol(existing, "# G\n<!-- vulcanus:protocol 3 -->\n\n## A\n\ny\n");
