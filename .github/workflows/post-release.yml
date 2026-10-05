@@ -1,0 +1,109 @@
+name: Post-release
+
+# Runs after every npm publish (called by release.yml), and by hand for a
+# release whose follow-up steps failed — re-running release.yml would try to
+# publish the same version to npm again.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v0.6.0"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v0.6.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  # The MCP Registry verifies the io.github.sunsatosolutions namespace against
+  # this workflow's OIDC identity.
+  id-token: write
+
+jobs:
+  wait:
+    name: wait for the version on npm
+    runs-on: ubuntu-latest
+    steps:
+      # npm accepts a publish minutes before the registry serves it. The MCP
+      # Registry and the smoke tests both read from the registry, so they wait.
+      - name: Wait for the version to reach the registry
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          version="${TAG#v}"
+          for attempt in $(seq 1 60); do
+            if [ "$(npm view "@sunsato/vulcanus@$version" version --prefer-online 2>/dev/null)" = "$version" ]; then
+              echo "@sunsato/vulcanus@$version is on npm"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "@sunsato/vulcanus@$version never appeared on npm" >&2
+          exit 1
+
+  registry:
+    name: publish to the MCP Registry
+    needs: wait
+    runs-on: ubuntu-latest
+    steps:
+      # server.json is stamped by scripts/release.mjs, so it is read from the
+      # release tag, not from whatever main holds now.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      # The listing pins one version, so a release that skips this leaves MCP
+      # clients discovering an older Vulcanus than the one on npm. OIDC rather
+      # than a token: nothing to store, nothing to rotate.
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          for attempt in 1 2 3 4 5; do
+            ./mcp-publisher publish && exit 0
+            sleep 30
+          done
+          exit 1
+
+  # What users actually run is the package on npm, installed globally — so that
+  # is what gets tested last, on every OS, rather than the checkout it was built
+  # from.
+  smoke:
+    name: smoke test the published package (${{ matrix.os }})
+    needs: wait
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install globally and run it
+        env:
+          TAG: ${{ inputs.tag }}
+          VULCANUS_NO_UPDATE_CHECK: "1"
+        run: |
+          version="${TAG#v}"
+          npm install -g "@sunsato/vulcanus@$version" --prefer-online
+          test "$(vulcanus --version)" = "$version"
+          vault="$RUNNER_TEMP/smoke-vault"
+          vulcanus init "$vault" --name SMOKE --operator Ada --projects "Atlas,Kiln" \
+            --defaults --no-import --no-git --yes
+          cd "$vault"
+          vulcanus doctor
+          vulcanus status --json > /dev/null
+          grep -q "vulcanus:protocol" AGENTS.md

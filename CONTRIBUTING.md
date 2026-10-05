@@ -143,9 +143,12 @@ git tag -a v0.5.0 -m "Release 0.5.0" && git push --follow-tags
 Pushing the tag runs `.github/workflows/release.yml`: the full CI matrix (every
 OS, every supported Node, coverage, site checks) runs on the tagged commit first,
 then the package is published to npm with provenance, a GitHub release is
-drafted from the CHANGELOG, the MCP Registry listing is updated, and finally the
-published package is installed globally from npm on Linux, macOS, and Windows and
-used to create and validate a vault.
+drafted from the CHANGELOG, and `.github/workflows/post-release.yml` takes over:
+it waits until npm actually serves the new version (that lags the publish by
+minutes), updates the MCP Registry listing, and installs the published package
+globally on Linux, macOS, and Windows to create and validate a vault. If a
+post-release step fails, re-run that workflow by hand with the tag rather than
+re-running the release, which would try to publish to npm again.
 
 ## The site
 
