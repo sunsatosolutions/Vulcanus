@@ -97,6 +97,8 @@ function agentsFile(plan: VaultPlan): GeneratedFile {
       "",
       t("root.agentsFile.23"),
       "",
+      t("root.agentsFile.37"),
+      "",
       t("root.agentsFile.24", { value: mdLink(plan.system.get("Changelog")!) }),
     ].join("\n"),
     [

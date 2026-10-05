@@ -156,6 +156,38 @@ export interface Messages {
   aiGroupFailed: (cli: string, message: string) => string;
   aiGroupNoCli: string;
 
+  memoryAsk: string;
+  memoryNoProjects: string;
+  memoryReading: string;
+  memoryFound: (count: number, projects: number) => string;
+  memoryNone: string;
+  memoryKindDecision: string;
+  memoryKindRule: string;
+  memoryCandidateTitle: (
+    project: string,
+    kind: string,
+    conversations: number,
+    date: string,
+  ) => string;
+  memoryMayReplace: (heading: string) => string;
+  memoryAction: string;
+  memoryAcceptDecision: string;
+  memoryAcceptReplace: (heading: string) => string;
+  memoryAcceptRule: string;
+  memoryEdit: string;
+  memorySkip: string;
+  memoryStop: string;
+  memoryEditText: string;
+  memoryEditTitle: string;
+  memorySupersedeFailed: (heading: string, message: string) => string;
+  memoryDone: (accepted: number, skipped: number) => string;
+  memoryAiTitle: (cli: string) => string;
+  memoryAiSummary: (cli: string, count: number) => string;
+  memoryAiConfirm: (cli: string) => string;
+  memoryAiRunning: (cli: string) => string;
+  memoryAiDone: (count: number, cli: string) => string;
+  memoryAiFailed: (cli: string, message: string) => string;
+
   required: string;
 }
 
@@ -187,6 +219,18 @@ const PARAMETERS: Record<string, string[]> = {
   aiGroupRunning: ["cli"],
   aiGroupDone: ["count", "cli"],
   aiGroupFailed: ["cli", "message"],
+  memoryFound: ["count", "projects"],
+  memoryCandidateTitle: ["project", "kind", "conversations", "date"],
+  memoryMayReplace: ["heading"],
+  memoryAcceptReplace: ["heading"],
+  memorySupersedeFailed: ["heading", "message"],
+  memoryDone: ["accepted", "skipped"],
+  memoryAiTitle: ["cli"],
+  memoryAiSummary: ["cli", "count"],
+  memoryAiConfirm: ["cli"],
+  memoryAiRunning: ["cli"],
+  memoryAiDone: ["count", "cli"],
+  memoryAiFailed: ["cli", "message"],
   detected: ["count"],
   readDone: ["conversations", "candidates"],
   readFailed: ["message"],

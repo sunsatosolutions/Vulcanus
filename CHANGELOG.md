@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+### Added — decisions know when they stopped being true
+
+A correction used to be prose: a new section appended under the old one, with
+nothing an agent could check. Decisions and rules now carry lifecycle fields
+under their heading — `supersedes::`, `superseded-by::`, `superseded-on::`,
+`valid-until::` — and the old section stays, unchanged, as history.
+
+- `doctor` validates them: a link to a heading that does not exist, a
+  supersession loop, or a malformed date is an error; a link stated on one side
+  only, a decision past its `valid-until::`, or a Capsule linking a superseded
+  heading is a warning. Heading anchors were never checked before; lifecycle
+  links are checked fully.
+- `doctor --repair` completes a one-sided link by inserting the missing
+  back-reference under the heading. Nothing else in the section moves.
+- `append_decision` and `append_rule` take `supersedes` and mark both sides in
+  one call. A missing or already-superseded target is refused before anything
+  is written, so a typo cannot leave a half-linked pair.
+- `recall` lists superseded and expired decisions and rules; `search` marks
+  hits inside them with `state` and ranks them below every live hit;
+  `vault_status`, `vulcanus status`, and `doctor --json` count them.
+- Agent protocol 3: `AGENTS.md`, the Update Format note, and the skills tell
+  agents to supersede rather than delete. Existing vaults get the protocol
+  warning and pick it up with `vulcanus update`.
+
+The keys stay English in every vault language, like the protocol itself. No
+manifest change.
+
+### Added — `import` proposes the decisions you already made
+
+After the project step, `import` can read your own messages — never the
+assistant's — for decisions and rules, and offer them one at a time: accept as
+decision, as a replacement for one it may revise, or as a rule; edit; skip; or
+stop. `--memory`, `--no-memory`, and `--memory-only` control the step.
+
+Extraction is local and deterministic: decision and rule phrases in English,
+Turkish, German, and Spanish, scored by phrase strength, repetition across
+conversations, and recency; restatements merged; anything the vault already
+records dropped; at most 15 per project. Accepted entries carry
+`source:: import · <source> · <date>`. Pending candidates are never stored;
+reviewed conversations are remembered in a ledger kept apart from project
+discovery's. `--ai-extract [cli]` optionally lets an installed AI CLI tidy the
+candidate sentences, after showing what is sent, and discards anything it
+returns that does not trace back to one of them.
+
+### Security
+
+- `SECURITY.md` and the site's `/.well-known/security.txt` say how to report a
+  vulnerability privately, and what is in scope.
+- The landing page's Content-Security-Policy allows its inline script and styles
+  by hash instead of `'unsafe-inline'`, with `default-src 'none'`. A new
+  `npm run site:check`, run in CI, fails when the hashes, the FAQ structured
+  data, or the stated version drift from the page.
+
+### Fixed
+
+- `import --all` was documented but never wired to the CLI; it now re-reads
+  conversations an earlier import scanned.
+- The Markdown importer now treats a heading as its own sentence instead of
+  gluing it to the paragraph beneath it.
+
 ## 0.5.0 — 2026-08-18
 
 ### Added — the vault speaks the operator's language
@@ -60,7 +120,7 @@ migration.
 
 `vulcanus import --ai-group` asks a CLI already on PATH to read the conversation
 titles and say which project each belongs to. The word-frequency pass cannot tell
-that "the roastery site" and a brand name are one project; a model reading the
+that "the studio site" and a brand name are one project; a model reading the
 titles can.
 
 It runs alongside the heuristic, not instead of it. Counts stay counted rather

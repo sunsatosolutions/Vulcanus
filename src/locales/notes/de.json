@@ -91,7 +91,10 @@
     "Cross-Cluster Links": "Verweise zwischen Clustern",
     "Confidence Levels": "Zuverlässigkeitsstufen",
     "Resolution Rules": "Auflösungsregeln",
-    "Staleness": "Veralterung"
+    "Staleness": "Veralterung",
+    "Superseding a Decision": "Eine Entscheidung ablösen",
+    "[New Decision Title]": "[Titel der neuen Entscheidung]",
+    "[Old Decision Title]": "[Titel der alten Entscheidung]"
   },
   "text": {
     "project.capsuleNote.1": "_Für {name} gibt es noch keine bestätigte Zusammenfassung._",
@@ -455,6 +458,12 @@
     "system.confidenceModelNote.9": "Eine Capsule steht nie über ihrer Quellnotiz.",
     "system.confidenceModelNote.10": "Widersprechen sich zwei bestätigte Aussagen, lege es dem Betreiber vor, statt still zu entscheiden.",
     "system.confidenceModelNote.11": "Von außen bezogene Fakten tragen das Datum, an dem sie gelesen wurden.",
-    "system.confidenceModelNote.12": "Prüfe zeitkritische Fakten erneut, bevor du sie in nach außen gerichteter Arbeit wiederverwendest."
+    "system.confidenceModelNote.12": "Prüfe zeitkritische Fakten erneut, bevor du sie in nach außen gerichteter Arbeit wiederverwendest.",
+    "root.agentsFile.37": "When a confirmed decision or rule replaces an earlier one, never delete the old section: add the new one with `supersedes:: [[Note#Old Heading]]` under its heading and mark the old one with `superseded-by::` and `superseded-on::` (`append_decision` and `append_rule` do both when given `supersedes`). Sections marked `superseded-by::`, or past their `valid-until::` date, are history, not current memory.",
+    "system.updateFormatNote.46": "Ersetzt eine bestätigte Entscheidung oder Regel eine frühere, fügen Sie einen neuen Abschnitt hinzu und verbinden Sie beide mit Lebenszyklus-Feldern. Löschen oder überschreiben Sie den alten Abschnitt nie; er bleibt als Verlauf erhalten.",
+    "system.updateFormatNote.47": "Die neue Entscheidung.",
+    "system.updateFormatNote.48": "Die frühere Entscheidung, unter ihren Feldern unverändert.",
+    "system.updateFormatNote.49": "Eine Entscheidung, die nur bis zu einem Datum gilt, trägt `valid-until:: YYYY-MM-DD`. Die Feldschlüssel bleiben in jeder Sprache Englisch. `vulcanus doctor` prüft, dass beide Seiten einer Verknüpfung übereinstimmen, und markiert abgelaufene Entscheidungen; `vulcanus doctor --repair` ergänzt einen fehlenden Rückverweis.",
+    "system.updateFormatNote.50": "Entscheidungsnotiz"
   }
 }

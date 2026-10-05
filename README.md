@@ -5,14 +5,17 @@
 Vulcanus fixes that at the source. It builds an **AI-readable second brain** — a Git-versioned vault of linked Markdown that you and your agents both read — and serves it over MCP, so an agent can `recall` a project instead of guessing at it.
 
 ```bash
-npx @sunsato/vulcanus
+npm install -g @sunsato/vulcanus
+vulcanus
 ```
+
+Install it globally: the MCP server (`vulcanus serve`), the skills, and the commit hook all run the `vulcanus` command, so it has to be on your PATH. `npx @sunsato/vulcanus` works for a one-off look, but nothing you wire to your agents can reach it.
 
 ![Creating a vault with vulcanus init, then checking it with status and stats](https://raw.githubusercontent.com/sunsatosolutions/Vulcanus/main/docs/demo.gif)
 
 You answer a few questions, and Vulcanus writes the whole vault — routing layer, operator profile, agent protocol, and one memory cluster per project — then validates that the graph actually holds together. Already keep an Obsidian vault? It adds the memory structure to that vault instead of creating a separate one.
 
-Requires Node 22.12 or newer. Nothing leaves your machine: no account, no network call beyond an optional once-a-day version check.
+Requires Node 22.12 or newer. It runs locally: no account, and no automatic network call beyond an optional once-a-day version check. Upgrade with `npm install -g @sunsato/vulcanus@latest`.
 
 A [Sunsato](https://sunsato.com) product · [vulcanus.sunsato.com](https://vulcanus.sunsato.com)
 
@@ -118,9 +121,22 @@ Locations are auto-detected, so usually you just pick one from a list. A Markdow
 
 Re-running `import` on the same source proposes only what is new — conversation ids already read are remembered in the vault's state directory. `--all` re-reads everything. `--json` prints the candidates with their evidence and writes nothing.
 
-**Nothing from your history is copied into the vault.** Conversations are read locally, reduced to candidate project names with evidence counts, and discarded. Only the names you tick become notes; the Import Log records how many conversations were scanned, never their content.
+**Nothing from your history is copied into the vault unless you accept it.** Conversations are read locally, reduced to candidate project names with evidence counts, and discarded. Only the names you tick become notes; the Import Log records how many conversations were scanned, never their content.
 
 Names the source itself grouped conversations under — a Claude project, a repository directory — are the strong signal and come pre-checked. Names inferred purely from title frequency are proposals and start unchecked.
+
+### Decisions you already made
+
+Your history usually holds more than project names: the choices you settled and the rules you kept repeating. After the project step, `import` asks whether to look for them (`--memory` says yes up front, `--no-memory` skips the question, and `--memory-only` skips project discovery for a vault that already has its projects).
+
+- Only **your own messages** are read. An assistant's sentence is not your decision.
+- Sentences are matched against decision and rule phrases in English, Turkish, German, and Spanish — "we decided", "from now on", "karar verdik", "ab sofort", "a partir de ahora" — and ranked by how strong the phrase is, how many conversations repeat it, and how recent it is. Questions and code are ignored.
+- A conversation counts toward a project when its source grouped it there or its title names the project. Body mentions do not.
+- What the vault already records is dropped. A candidate that looks like a revision of a live decision is offered as its **replacement**, so the old one is marked rather than contradicted (see [When a decision changes](#when-a-decision-changes)).
+- You review each candidate: accept as decision, accept as replacement, accept as rule, edit the wording, skip, or stop. At most 15 per project per run. Nothing is accepted unattended — `--json` with `--memory-only` reports counts only.
+- What you accept is written in the wording you accepted, with a `source:: import · <source> · <date>` line. Skipped candidates are discarded, and reviewed conversations are remembered so they are not proposed again (separately from project discovery, so one never hides conversations from the other).
+
+`--ai-extract [cli]` hands the candidate sentences — not transcripts — to an installed AI CLI to merge duplicates, drop noise, and tighten wording, after showing you what will be sent. Anything it returns that does not trace back to a sentence it was given is discarded.
 
 ## Commands
 
@@ -183,7 +199,7 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 
@@ -261,11 +277,11 @@ That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault
 
 | Tool | Does |
 | --- | --- |
-| `recall` | returns a project's Capsule plus the read-next list — the protocol's entry point |
-| `search` | layer-aware text search; Capsule and Recall Map hits rank first |
+| `recall` | returns a project's Capsule plus the read-next list — the protocol's entry point — and names any decisions or rules that are superseded or expired |
+| `search` | layer-aware text search; Capsule and Recall Map hits rank first, hits in superseded or expired sections rank last and say so |
 | `list_projects` | the routing table: names, statuses, trigger words, capsule paths |
-| `append_decision` | records a confirmed decision in the Decision/Details format |
-| `append_rule` | records a standing rule in the project's Rules note |
+| `append_decision` | records a confirmed decision in the Decision/Details format; with `supersedes`, also marks the decision it replaces |
+| `append_rule` | records a standing rule in the project's Rules note; with `supersedes`, also marks the rule it replaces |
 | `update_capsule` | replaces one section of a Capsule — never a blind whole-file rewrite |
 | `vault_status` | the `vulcanus status` summary, as JSON |
 | `doctor` | full structural validation with every finding |
@@ -314,8 +330,35 @@ After a command, the CLI checks npm at most once a day and prints a one-line not
 - raw exports and generated state are actually ignored by Git
 - `AGENTS.md` describes the agent protocol this CLI writes, not a superseded one
 - the skill copies in `.claude/skills/` and `.agents/skills/` have not drifted apart
+- every `supersedes::` / `superseded-by::` link points at a real heading, both sides agree, and nothing supersedes itself in a loop
+- no decision is past its `valid-until::` date while still presented as current, and no Capsule links one that is
 
 Missing structure is an error; extra hand-added links are a warning, because a vault is meant to be written in.
+
+### When a decision changes
+
+A decision that stops being true is not deleted — it is history, and "why did we stop doing X" is a fair question. It is marked instead, with fields under its heading:
+
+```md
+## Usage-Based Pricing
+
+supersedes:: [[Acme Decisions#Flat Pricing]]
+
+### Decision
+
+Price per active seat.
+```
+
+```md
+## Flat Pricing
+
+superseded-by:: [[Acme Decisions#Usage-Based Pricing]]
+superseded-on:: 2026-10-05
+```
+
+A decision that holds only until a date carries `valid-until:: 2026-12-31`. The keys are English in every vault language; they are fields, not prose. The same fields work on rules.
+
+Write one side and `vulcanus doctor --repair` adds the other — it inserts the missing back-reference and touches nothing else. `append_decision` and `append_rule` write both sides in one call when given `supersedes`, and refuse, writing nothing, when the target does not exist or is already superseded. `recall` lists what is no longer current so an agent skips it, `search` ranks it last, and `vulcanus status` counts it.
 
 `vulcanus sync` refuses to commit while errors remain, and reports the push result exactly as it happened.
 
@@ -349,7 +392,7 @@ Source layout: `manifest/` derives every path and link expectation, `generate/` 
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the checks, the review bar, and how to add an importer or a language. [`docs/token-budget.md`](docs/token-budget.md) measures what the layered structure actually saves, and how that was measured.
 
-The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed to Cloudflare Workers as static assets (`wrangler.jsonc`) on every push to `main`.
+The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed to Cloudflare Workers as static assets (`wrangler.jsonc`) on every push to `main`, but only after `npm run site:check` passes. A workflow then verifies the live site against the repository. Releases run the full CI matrix before publishing and smoke-test the published package afterwards; [`CONTRIBUTING.md`](CONTRIBUTING.md) has the details.
 
 ## License
 

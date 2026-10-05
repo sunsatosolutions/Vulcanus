@@ -201,7 +201,7 @@ async function main(): Promise<void> {
 
   program
     .command("import")
-    .description("Propose projects from an AI conversation export")
+    .description("Propose projects, decisions, and rules from an AI conversation export")
     .option(
       "-s, --source <source>",
       "chatgpt | claude | claude-code | codex | gemini | cursor | markdown",
@@ -212,6 +212,14 @@ async function main(): Promise<void> {
       "--ai-group [cli]",
       "also ask an installed AI CLI to group the conversations; confirms before sending",
     )
+    .option("--memory", "also review decisions and rules found in your own messages")
+    .option("--no-memory", "skip the decisions-and-rules review without asking")
+    .option("--memory-only", "skip project discovery; review decisions and rules only")
+    .option(
+      "--ai-extract [cli]",
+      "also ask an installed AI CLI to tidy the memory candidates; confirms before sending",
+    )
+    .option("--all", "re-read conversations an earlier import already scanned")
     .option("--json", "analyze and print the candidates as JSON; writes nothing")
     .action(
       async (options: {
@@ -219,6 +227,10 @@ async function main(): Promise<void> {
         path?: string;
         ai?: string | boolean;
         aiGroup?: string | boolean;
+        memory?: boolean;
+        memoryOnly?: boolean;
+        aiExtract?: string | boolean;
+        all?: boolean;
         json?: boolean;
       }) => {
         process.exitCode = await importCommand({
@@ -226,6 +238,10 @@ async function main(): Promise<void> {
           path: options.path,
           ai: options.ai,
           aiGroup: options.aiGroup,
+          memory: options.memory,
+          memoryOnly: options.memoryOnly,
+          aiExtract: options.aiExtract,
+          all: options.all,
           json: options.json,
         });
       },

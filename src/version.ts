@@ -16,4 +16,4 @@ export const PACKAGE_NAME = "@sunsato/vulcanus";
  * AGENTS.md is a managed file, so `vulcanus update` rewrites it; the stamp is
  * what lets `doctor` notice that a vault is still carrying the old protocol.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;

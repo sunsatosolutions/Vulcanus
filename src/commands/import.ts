@@ -18,6 +18,9 @@ import { detectAiClis } from "../ai/clis.js";
 import { buildDigest, mergeClusters, runClustering } from "../ai/cluster.js";
 import { applyProjects, askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
+import { runDoctor } from "../doctor/index.js";
+import { openVault } from "../mcp/tools.js";
+import { findMemoryCandidates, runMemoryInbox } from "../memory/inbox.js";
 
 function expandHome(value: string): string {
   return value.replace(/^~(?=$|\/)/, process.env.HOME ?? "~");
@@ -46,6 +49,18 @@ export interface ImportOptions {
    * second run on the same export should only surface what is new.
    */
   all?: boolean;
+  /**
+   * Look for decisions and rules the operator stated in the conversations and
+   * offer them for review. `undefined` asks; `false` skips without asking.
+   */
+  memory?: boolean;
+  /** Skip project discovery and only review memory for existing projects. */
+  memoryOnly?: boolean;
+  /**
+   * Ask an installed AI CLI to merge, drop, and reword the memory candidates.
+   * Opt-in, and confirmed again before the candidate sentences are sent.
+   */
+  aiExtract?: string | boolean;
 }
 
 /**
@@ -171,6 +186,67 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
 
   // Conversations already scanned are skipped unless --all asks for a rescan.
   const ledger = await readSeen(vaultRoot, manifest);
+
+  // The memory review keeps its own ledger: a conversation scanned for project
+  // names has not been reviewed for decisions, and the reverse.
+  const memorySeen = options.all ? new Set<string>() : seenIds(ledger, adapter.id, "memory");
+  const memoryStream = skipSeen(() => adapter.load(path), memorySeen, new Set<string>());
+
+  const reviewMemory = async (): Promise<boolean> => {
+    const run = await runMemoryInbox({
+      vaultRoot,
+      load: memoryStream,
+      source: adapter.id,
+      aiExtract: options.aiExtract,
+      t,
+    });
+    if (run.reviewedConversations.length) {
+      const fresh = await readSeen(vaultRoot, manifest);
+      await writeSeen(
+        vaultRoot,
+        manifest,
+        rememberIds(fresh, adapter.id, run.reviewedConversations, "memory"),
+      );
+    }
+    if (run.accepted === 0) return true;
+    const report = await runDoctor(vaultRoot, await readManifest(vaultRoot));
+    return report.ok;
+  };
+
+  // Asked once, after the project step, and never in JSON mode: accepting
+  // memory is a review, not something to do unattended.
+  const wantsMemory = async (): Promise<boolean> => {
+    if (options.memoryOnly || options.memory) return true;
+    if (options.memory === false || options.json) return false;
+    return askConfirm({ message: t.memoryAsk, initialValue: false });
+  };
+
+  if (options.memoryOnly && options.json) {
+    const found = await findMemoryCandidates(await openVault(vaultRoot), memoryStream());
+    const perProject: Record<string, number> = {};
+    for (const candidate of found.candidates) {
+      perProject[candidate.project] = (perProject[candidate.project] ?? 0) + 1;
+    }
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          vault: manifest.vault.name,
+          source: { id: adapter.id, label: adapter.label, path },
+          conversations: found.conversationIds.length,
+          memoryCandidates: perProject,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return 0;
+  }
+
+  if (options.memoryOnly) {
+    const ok = await reviewMemory();
+    p.outro(ok ? "PASS" : "FAIL — run `vulcanus doctor` for details");
+    return ok ? 0 : 1;
+  }
   const previously = options.all ? new Set<string>() : seenIds(ledger, adapter.id);
   const encountered = new Set<string>();
   const stream = skipSeen(() => adapter.load(path), previously, encountered);
@@ -225,8 +301,10 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
     .slice(0, 25);
 
   if (shortlist.length === 0) {
-    p.outro("No new project candidates.");
-    return 0;
+    p.log.info("No new project candidates.");
+    const ok = (await wantsMemory()) ? await reviewMemory() : true;
+    p.outro(ok ? "Done." : "FAIL — run `vulcanus doctor` for details");
+    return ok ? 0 : 1;
   }
 
   const selected = await askMultiselect({
@@ -246,8 +324,10 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   });
 
   if (selected.length === 0) {
-    p.outro("Nothing selected.");
-    return 0;
+    p.log.info("No projects selected.");
+    const ok = (await wantsMemory()) ? await reviewMemory() : true;
+    p.outro(ok ? "Done." : "FAIL — run `vulcanus doctor` for details");
+    return ok ? 0 : 1;
   }
 
   const requested: DetailMode = options.ai ? "ai" : await askDetailMode(locale);
@@ -287,7 +367,11 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   const afterAi = handoff
     ? await runHandoff(vaultRoot, await readManifest(vaultRoot), handoff, locale)
     : null;
-  const ok = afterAi ? afterAi.ok : result.ok;
+  const projectsOk = afterAi ? afterAi.ok : result.ok;
+  // New projects exist in the manifest by now, so their conversations' decisions
+  // have somewhere to go.
+  const memoryOk = projectsOk && (await wantsMemory()) ? await reviewMemory() : true;
+  const ok = projectsOk && memoryOk;
 
   p.outro(ok ? "PASS" : "FAIL — see findings above");
   return ok ? 0 : 1;

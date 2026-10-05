@@ -7,6 +7,7 @@ import {
   appendDecision,
   appendRule,
   CAPSULE_SECTIONS,
+  LifecycleTargetError,
   listProjects,
   openVault,
   recall,
@@ -26,6 +27,16 @@ function json(value: unknown) {
 
 function failure(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/** A supersession that could not be recorded is the caller's to fix, not a crash. */
+async function lifecycleSafe<T>(write: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await write();
+  } catch (error) {
+    if (error instanceof LifecycleTargetError) return { error: error.message };
+    throw error;
+  }
 }
 
 /**
@@ -87,7 +98,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Recall a project",
       description:
-        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context. Query by project name, id, or a trigger word. Read-only; when nothing matches, the error lists the projects that exist.",
+        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context, and lists any decisions or rules that are superseded or expired so you do not act on them. Query by project name, id, or a trigger word. Read-only; when nothing matches, the error lists the projects that exist.",
       inputSchema: { project: z.string().describe("Project name, id, or trigger word") },
       annotations: readOnly,
     },
@@ -112,7 +123,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Search the vault",
       description:
-        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top. Read-only; prefer `recall` when you already know which project you need.",
+        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top; hits inside superseded or expired sections carry a `state` and rank below every live hit. Read-only; prefer `recall` when you already know which project you need.",
       inputSchema: {
         query: z.string().describe("Text to look for"),
         limit: z.number().int().min(1).max(100).optional().describe("Max hits, default 20"),
@@ -148,22 +159,29 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a decision",
       description:
-        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. Writes to disk: it adds to the end of the note and never edits what is already there, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing.",
+        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. When it replaces an earlier decision, pass that decision's heading as `supersedes`: the new section records `supersedes::`, and the old one gains `superseded-by::` and `superseded-on::` under its heading but is otherwise left as history — never delete or rewrite the old decision yourself. Writes to disk: it adds to the end of the note, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing, or when `supersedes` names no live section (then nothing is written).",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         title: z.string().describe("Short heading for the decision"),
         decision: z.string().describe("The decision itself, one or two sentences"),
         details: z.string().optional().describe("Optional supporting details"),
+        supersedes: z
+          .string()
+          .optional()
+          .describe("Heading of the existing decision this one replaces, if any"),
       },
       annotations: appends,
     },
-    async ({ project, title, decision, details }) => {
+    async ({ project, title, decision, details, supersedes }) => {
       const vaultRoot = vault();
       if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
-      const result = await appendDecision(handle, project, title, decision, details);
+      const result = await lifecycleSafe(() =>
+        appendDecision(handle, project, title, decision, details, { supersedes }),
+      );
       if (!result)
         return failure(`No project matches "${project}", or its Decisions note is missing.`);
+      if ("error" in result) return failure(result.error);
       return json(result);
     },
   );
@@ -196,20 +214,27 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a rule",
       description:
-        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation. Use `append_decision` instead for a choice that was made, and `update_capsule` when the summary itself is now wrong. Writes to disk: it appends and never edits existing rules, so calling it twice records the rule twice. Errors when the project or its Rules note is missing.",
+        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation. Use `append_decision` instead for a choice that was made, and `update_capsule` when the summary itself is now wrong. When it replaces an earlier rule, pass that rule's heading as `supersedes`; the old rule is marked `superseded-by::` and kept as history. Writes to disk: it appends, so calling it twice records the rule twice. Errors when the project or its Rules note is missing, or when `supersedes` names no live rule (then nothing is written).",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         name: z.string().describe('Short name for the rule, e.g. "Naming"'),
         rule: z.string().describe("The rule itself, in one or two sentences"),
+        supersedes: z
+          .string()
+          .optional()
+          .describe("Heading of the existing rule this one replaces, if any"),
       },
       annotations: appends,
     },
-    async ({ project, name, rule }) => {
+    async ({ project, name, rule, supersedes }) => {
       const vaultRoot = vault();
       if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
-      const result = await appendRule(handle, project, name, rule);
+      const result = await lifecycleSafe(() =>
+        appendRule(handle, project, name, rule, { supersedes }),
+      );
       if (!result) return failure(`No project matches "${project}", or its Rules note is missing.`);
+      if ("error" in result) return failure(result.error);
       return json(result);
     },
   );

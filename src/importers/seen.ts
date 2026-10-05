@@ -16,10 +16,25 @@ import type { ImportSourceId, NormalizedConversation } from "./types.js";
 
 const FILE = "imports.json";
 
+type SeenBySource = Partial<Record<ImportSourceId, { ids: string[]; updatedAt: string }>>;
+
+/**
+ * Project discovery and the memory review keep separate lists: a conversation
+ * scanned for project names has not been reviewed for decisions, and a
+ * memory-only run must not hide conversations from the next project import.
+ */
+export type SeenScope = "projects" | "memory";
+
 export interface SeenLedger {
   version: 1;
-  /** Conversation ids per source, in the order they were first seen. */
-  sources: Partial<Record<ImportSourceId, { ids: string[]; updatedAt: string }>>;
+  /** Conversation ids per source scanned for projects, in the order first seen. */
+  sources: SeenBySource;
+  /** Conversation ids per source whose memory candidates were reviewed. */
+  memory?: SeenBySource;
+}
+
+function bucket(ledger: SeenLedger, scope: SeenScope): SeenBySource {
+  return (scope === "memory" ? ledger.memory : ledger.sources) ?? {};
 }
 
 function ledgerPath(vaultRoot: string, manifest: VaultManifest): string {
@@ -50,24 +65,28 @@ export async function writeSeen(
   await writeFile(path, `${JSON.stringify(ledger, null, 2)}\n`, "utf8");
 }
 
-export function seenIds(ledger: SeenLedger, source: ImportSourceId): Set<string> {
-  return new Set(ledger.sources[source]?.ids ?? []);
+export function seenIds(
+  ledger: SeenLedger,
+  source: ImportSourceId,
+  scope: SeenScope = "projects",
+): Set<string> {
+  return new Set(bucket(ledger, scope)[source]?.ids ?? []);
 }
 
 export function rememberIds(
   ledger: SeenLedger,
   source: ImportSourceId,
   ids: Iterable<string>,
+  scope: SeenScope = "projects",
 ): SeenLedger {
-  const merged = new Set(ledger.sources[source]?.ids ?? []);
+  const current = bucket(ledger, scope);
+  const merged = new Set(current[source]?.ids ?? []);
   for (const id of ids) merged.add(id);
-  return {
-    version: 1,
-    sources: {
-      ...ledger.sources,
-      [source]: { ids: [...merged], updatedAt: new Date().toISOString() },
-    },
+  const updated = {
+    ...current,
+    [source]: { ids: [...merged], updatedAt: new Date().toISOString() },
   };
+  return scope === "memory" ? { ...ledger, memory: updated } : { ...ledger, sources: updated };
 }
 
 /**

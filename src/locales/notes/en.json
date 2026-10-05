@@ -91,7 +91,10 @@
     "Cross-Cluster Links": "Cross-Cluster Links",
     "Confidence Levels": "Confidence Levels",
     "Resolution Rules": "Resolution Rules",
-    "Staleness": "Staleness"
+    "Staleness": "Staleness",
+    "Superseding a Decision": "Superseding a Decision",
+    "[New Decision Title]": "[New Decision Title]",
+    "[Old Decision Title]": "[Old Decision Title]"
   },
   "text": {
     "project.capsuleNote.1": "_{name} has no confirmed summary yet._",
@@ -455,6 +458,12 @@
     "system.confidenceModelNote.9": "A Capsule never outranks its source note.",
     "system.confidenceModelNote.10": "When two confirmed statements conflict, escalate to the operator instead of choosing silently.",
     "system.confidenceModelNote.11": "Externally sourced facts carry the date they were read.",
-    "system.confidenceModelNote.12": "Re-verify time-sensitive facts before reusing them in outward-facing work."
+    "system.confidenceModelNote.12": "Re-verify time-sensitive facts before reusing them in outward-facing work.",
+    "root.agentsFile.37": "When a confirmed decision or rule replaces an earlier one, never delete the old section: add the new one with `supersedes:: [[Note#Old Heading]]` under its heading and mark the old one with `superseded-by::` and `superseded-on::` (`append_decision` and `append_rule` do both when given `supersedes`). Sections marked `superseded-by::`, or past their `valid-until::` date, are history, not current memory.",
+    "system.updateFormatNote.46": "When a confirmed decision or rule replaces an earlier one, add a new section and link the two with lifecycle fields. Never delete or rewrite the old section; it stays as history.",
+    "system.updateFormatNote.47": "The new decision.",
+    "system.updateFormatNote.48": "The earlier decision, unchanged below its fields.",
+    "system.updateFormatNote.49": "A decision that holds only until a date carries `valid-until:: YYYY-MM-DD`. Field keys stay in English in every language. `vulcanus doctor` checks that both sides of a link agree and flags expired decisions; `vulcanus doctor --repair` adds a missing back-reference.",
+    "system.updateFormatNote.50": "Decisions note"
   }
 }

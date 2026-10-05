@@ -91,7 +91,10 @@
     "Cross-Cluster Links": "Kümeler Arası Bağlantılar",
     "Confidence Levels": "Güven Seviyeleri",
     "Resolution Rules": "Çözümleme Kuralları",
-    "Staleness": "Bayatlık"
+    "Staleness": "Bayatlık",
+    "Superseding a Decision": "Bir Kararın Yerini Alma",
+    "[New Decision Title]": "[Yeni Karar Başlığı]",
+    "[Old Decision Title]": "[Eski Karar Başlığı]"
   },
   "text": {
     "project.capsuleNote.1": "_{name} için henüz teyitli bir özet yok._",
@@ -455,6 +458,12 @@
     "system.confidenceModelNote.9": "Bir Capsule kaynak notundan asla üstün değildir.",
     "system.confidenceModelNote.10": "İki teyitli ifade çeliştiğinde sessizce seçim yapma, operatöre taşı.",
     "system.confidenceModelNote.11": "Dış kaynaklı bilgiler okundukları tarihi taşır.",
-    "system.confidenceModelNote.12": "Zamana duyarlı bilgileri dışarıya dönük işlerde yeniden kullanmadan önce doğrula."
+    "system.confidenceModelNote.12": "Zamana duyarlı bilgileri dışarıya dönük işlerde yeniden kullanmadan önce doğrula.",
+    "root.agentsFile.37": "When a confirmed decision or rule replaces an earlier one, never delete the old section: add the new one with `supersedes:: [[Note#Old Heading]]` under its heading and mark the old one with `superseded-by::` and `superseded-on::` (`append_decision` and `append_rule` do both when given `supersedes`). Sections marked `superseded-by::`, or past their `valid-until::` date, are history, not current memory.",
+    "system.updateFormatNote.46": "Onaylanmış bir karar ya da kural öncekinin yerini aldığında yeni bir bölüm ekleyin ve ikisini yaşam döngüsü alanlarıyla bağlayın. Eski bölümü asla silmeyin ya da yeniden yazmayın; geçmiş olarak kalır.",
+    "system.updateFormatNote.47": "Yeni karar.",
+    "system.updateFormatNote.48": "Önceki karar, alanlarının altında değişmeden kalır.",
+    "system.updateFormatNote.49": "Yalnızca bir tarihe kadar geçerli olan karar `valid-until:: YYYY-MM-DD` taşır. Alan anahtarları her dilde İngilizce kalır. `vulcanus doctor` bağlantının iki tarafının uyuştuğunu denetler ve süresi dolmuş kararları işaretler; `vulcanus doctor --repair` eksik geri bağlantıyı ekler.",
+    "system.updateFormatNote.50": "Kararlar notu"
   }
 }

@@ -118,7 +118,20 @@ export const markdownAdapter: ImportAdapter = {
         group: file.group ?? undefined,
         // The analyzer only mines user messages for supporting mentions, so the
         // note body is presented as one.
-        messages: [{ role: "user", text: cap(content.slice(0, MAX_MESSAGE_CHARS * 2)) }],
+        // Headings become sentences of their own before whitespace is collapsed,
+        // so a heading is not read as the start of the paragraph beneath it.
+        messages: [
+          {
+            role: "user",
+            text: cap(
+              content
+                .slice(0, MAX_MESSAGE_CHARS * 2)
+                .replace(/^#{1,6}\s+(.+?)\s*#*\s*$/gm, (_, heading: string) =>
+                  /[.!?:]$/.test(heading) ? heading : `${heading}.`,
+                ),
+            ),
+          },
+        ],
       } satisfies NormalizedConversation;
     }
   },

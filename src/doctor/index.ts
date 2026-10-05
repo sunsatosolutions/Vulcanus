@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -10,6 +10,13 @@ import {
   type VaultPlan,
 } from "../manifest/derive.js";
 import { MANIFEST_VERSION, validateManifest, type VaultManifest } from "../manifest/schema.js";
+import {
+  analyzeLifecycle,
+  insertFields,
+  today,
+  type LifecycleAnalysis,
+  type LifecycleState,
+} from "../memory/lifecycle.js";
 import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdown.js";
 import { vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
@@ -31,6 +38,8 @@ export interface DoctorReport {
   linksChecked: number;
   findings: DoctorFinding[];
   counts: Record<FindingLevel, number>;
+  /** Sections carrying lifecycle fields, by state. Untracked sections are not counted. */
+  lifecycle: Record<LifecycleState, number>;
 }
 
 const REQUIRED_FRONTMATTER = ["type", "project", "status", "tags"];
@@ -60,7 +69,103 @@ function baseName(path: string): string {
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "").normalize("NFC");
 }
 
-export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Promise<DoctorReport> {
+export interface VaultNotes {
+  /** Vault-relative paths of every note in the managed directories. */
+  files: string[];
+  contents: Map<string, string>;
+  byStem: Map<string, string[]>;
+  /** Every path a wikilink target could mean, seen from a source note. */
+  resolveTarget: (source: string, target: string) => string[];
+}
+
+/** Read every note doctor checks, with the link resolution it uses. */
+export async function loadVaultNotes(
+  vaultRoot: string,
+  manifest: VaultManifest,
+): Promise<VaultNotes> {
+  const files: string[] = [];
+  for (const dir of [manifest.structure.systemDir, manifest.structure.projectsDir]) {
+    files.push(...(await collectMarkdown(vaultRoot, dir)));
+  }
+
+  const contents = new Map<string, string>();
+  for (const file of files) {
+    contents.set(file, await readFile(resolve(vaultRoot, file), "utf8"));
+  }
+
+  const present = new Set(files);
+  const byStem = new Map<string, string[]>();
+  for (const file of files) {
+    const stem = baseName(file);
+    byStem.set(stem, [...(byStem.get(stem) ?? []), file]);
+  }
+
+  const resolveTarget = (source: string, target: string): string[] => {
+    const normalized = target.replace(/\.md$/i, "");
+    const direct = `${normalized}.md`;
+    const matches = new Set<string>();
+
+    if (present.has(direct)) matches.add(direct);
+    const stem = baseName(normalized);
+    for (const path of byStem.get(stem) ?? []) matches.add(path);
+
+    // Relative to the linking note's own directory.
+    const sourceDir = source.split("/").slice(0, -1).join("/");
+    const relativeCandidate = sourceDir ? `${sourceDir}/${direct}` : direct;
+    if (present.has(relativeCandidate)) matches.add(relativeCandidate);
+
+    return [...matches];
+  };
+
+  return { files, contents, byStem, resolveTarget };
+}
+
+/** Lifecycle analysis over the whole vault, shared by doctor and repair. */
+export async function vaultLifecycle(
+  vaultRoot: string,
+  manifest: VaultManifest,
+  on: string = today(),
+): Promise<LifecycleAnalysis> {
+  const notes = await loadVaultNotes(vaultRoot, manifest);
+  const capsules = buildPlan(manifest).allProjects.map((project) => project.capsule.path);
+  return analyzeLifecycle(notes.contents, notes.resolveTarget, capsules, on);
+}
+
+/**
+ * Add the back-references a lifecycle link is missing — the only lifecycle
+ * finding repair may fix on its own, because the operator already stated the
+ * relationship on the other side. Fields are inserted under the heading;
+ * nothing in the section is rewritten. Returns the notes it changed.
+ */
+export async function repairLifecycle(
+  vaultRoot: string,
+  manifest: VaultManifest,
+  on: string = today(),
+): Promise<string[]> {
+  const analysis = await vaultLifecycle(vaultRoot, manifest, on);
+  const touched = new Set<string>();
+  for (const fix of analysis.missingBackLinks) {
+    const path = resolve(vaultRoot, fix.path);
+    const text = await readFile(path, "utf8");
+    const next = insertFields(text, fix.heading, fix.fields);
+    if (next !== null && next !== text) {
+      await writeFile(path, next, "utf8");
+      touched.add(fix.path);
+    }
+  }
+  return [...touched];
+}
+
+export interface DoctorRunOptions {
+  /** ISO date the lifecycle checks treat as today; injectable for tests. */
+  today?: string;
+}
+
+export async function runDoctor(
+  vaultRoot: string,
+  manifest: VaultManifest,
+  options: DoctorRunOptions = {},
+): Promise<DoctorReport> {
   const findings: DoctorFinding[] = [];
   const add = (level: FindingLevel, code: string, message: string, file?: string) => {
     findings.push({ level, code, message, file });
@@ -75,7 +180,7 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     add(
       "error",
       "VERSION",
-      `vault manifest is version ${manifest.manifestVersion} but this CLI understands ${MANIFEST_VERSION}; upgrade with \`npm i -g vulcanus@latest\``,
+      `vault manifest is version ${manifest.manifestVersion} but this CLI understands ${MANIFEST_VERSION}; upgrade with \`npm i -g @sunsato/vulcanus@latest\``,
     );
   } else if (compareVersions(manifest.generator.version, CLI_VERSION) < 0) {
     add(
@@ -87,22 +192,13 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
 
   const plan: VaultPlan = buildPlan(manifest);
 
-  const managedDirs = [manifest.structure.systemDir, manifest.structure.projectsDir];
-  const files: string[] = [];
-  for (const dir of managedDirs) {
-    files.push(...(await collectMarkdown(vaultRoot, dir)));
-  }
+  const { files, contents, byStem, resolveTarget } = await loadVaultNotes(vaultRoot, manifest);
 
   // Root protocol files are required but live outside the managed note directories.
   for (const required of ["AGENTS.md", "README.md"]) {
     if (!existsSync(resolve(vaultRoot, required))) {
       add("error", "MISSING", `${required} is missing`, required);
     }
-  }
-
-  const contents = new Map<string, string>();
-  for (const file of files) {
-    contents.set(file, await readFile(resolve(vaultRoot, file), "utf8"));
   }
 
   // --- Planned notes exist -------------------------------------------------
@@ -161,12 +257,9 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
   }
 
   // --- Link graph ----------------------------------------------------------
-  const byStem = new Map<string, string[]>();
   const byCasefold = new Map<string, string[]>();
   for (const file of files) {
-    const stem = baseName(file);
-    byStem.set(stem, [...(byStem.get(stem) ?? []), file]);
-    const folded = stem.toLowerCase();
+    const folded = baseName(file).toLowerCase();
     byCasefold.set(folded, [...(byCasefold.get(folded) ?? []), file]);
   }
 
@@ -180,23 +273,6 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
       add("error", "CASEFOLD", `note names differ only by case ("${stem}"): ${paths.join(", ")}`);
     }
   }
-
-  const resolveTarget = (source: string, target: string): string[] => {
-    const normalized = target.replace(/\.md$/i, "");
-    const direct = `${normalized}.md`;
-    const matches = new Set<string>();
-
-    if (present.has(direct)) matches.add(direct);
-    const stem = baseName(normalized);
-    for (const path of byStem.get(stem) ?? []) matches.add(path);
-
-    // Relative to the linking note's own directory.
-    const sourceDir = source.split("/").slice(0, -1).join("/");
-    const relativeCandidate = sourceDir ? `${sourceDir}/${direct}` : direct;
-    if (present.has(relativeCandidate)) matches.add(relativeCandidate);
-
-    return [...matches];
-  };
 
   let linksChecked = 0;
   for (const file of files) {
@@ -273,6 +349,17 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
       add("error", "CAPSULE", `hub does not link to ${project.capsule.name}`, project.hub.path);
     }
   }
+
+  // --- Decision lifecycle --------------------------------------------------
+  // Superseded and expired memory is kept on purpose — it is history — but it
+  // must be marked as such, and the marks must agree with each other.
+  const lifecycle = analyzeLifecycle(
+    contents,
+    resolveTarget,
+    plan.allProjects.map((project) => project.capsule.path),
+    options.today ?? today(),
+  );
+  for (const issue of lifecycle.issues) add(issue.level, issue.code, issue.message, issue.file);
 
   // --- Agent protocol version ---------------------------------------------
   // AGENTS.md is what every agent reads before touching the vault. A vault
@@ -360,5 +447,6 @@ export async function runDoctor(vaultRoot: string, manifest: VaultManifest): Pro
     linksChecked,
     findings,
     counts,
+    lifecycle: lifecycle.counts,
   };
 }

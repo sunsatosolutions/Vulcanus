@@ -91,7 +91,10 @@
     "Cross-Cluster Links": "Enlaces entre clústeres",
     "Confidence Levels": "Niveles de confianza",
     "Resolution Rules": "Reglas de resolución",
-    "Staleness": "Desactualización"
+    "Staleness": "Desactualización",
+    "Superseding a Decision": "Sustituir una decisión",
+    "[New Decision Title]": "[Título de la nueva decisión]",
+    "[Old Decision Title]": "[Título de la decisión anterior]"
   },
   "text": {
     "project.capsuleNote.1": "_Todavía no hay un resumen confirmado de {name}._",
@@ -455,6 +458,12 @@
     "system.confidenceModelNote.9": "Una capsule nunca está por encima de su nota de origen.",
     "system.confidenceModelNote.10": "Cuando dos afirmaciones confirmadas se contradigan, plantéaselo al operador en vez de elegir en silencio.",
     "system.confidenceModelNote.11": "Los datos de fuentes externas llevan la fecha en que se leyeron.",
-    "system.confidenceModelNote.12": "Vuelve a verificar los datos sensibles al tiempo antes de reutilizarlos en trabajo de cara al exterior."
+    "system.confidenceModelNote.12": "Vuelve a verificar los datos sensibles al tiempo antes de reutilizarlos en trabajo de cara al exterior.",
+    "root.agentsFile.37": "When a confirmed decision or rule replaces an earlier one, never delete the old section: add the new one with `supersedes:: [[Note#Old Heading]]` under its heading and mark the old one with `superseded-by::` and `superseded-on::` (`append_decision` and `append_rule` do both when given `supersedes`). Sections marked `superseded-by::`, or past their `valid-until::` date, are history, not current memory.",
+    "system.updateFormatNote.46": "Cuando una decisión o regla confirmada sustituye a otra anterior, añade una sección nueva y enlaza ambas con campos de ciclo de vida. Nunca borres ni reescribas la sección anterior; queda como historial.",
+    "system.updateFormatNote.47": "La nueva decisión.",
+    "system.updateFormatNote.48": "La decisión anterior, sin cambios bajo sus campos.",
+    "system.updateFormatNote.49": "Una decisión válida solo hasta una fecha lleva `valid-until:: YYYY-MM-DD`. Las claves de los campos siguen en inglés en todos los idiomas. `vulcanus doctor` comprueba que ambos lados de un enlace coincidan y señala las decisiones caducadas; `vulcanus doctor --repair` añade la referencia inversa que falte.",
+    "system.updateFormatNote.50": "Nota de decisiones"
   }
 }

@@ -7,12 +7,23 @@
  * confirmed outcomes back (`append_decision`) so the next agent starts warmer.
  */
 import { existsSync } from "node:fs";
-import { appendFile, readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { findStaleCapsules } from "../commands/status.js";
 import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
+import {
+  findSection,
+  headingKey,
+  headingLink,
+  insertFields,
+  parseSections,
+  sectionAt,
+  sectionState,
+  today,
+  type LifecycleState,
+} from "../memory/lifecycle.js";
 
 export interface VaultHandle {
   vaultRoot: string;
@@ -73,6 +84,45 @@ export interface RecallResult {
    * that no longer matches the decisions underneath it.
    */
   staleWarning?: string;
+  /**
+   * Decisions and rules that are no longer true. They stay in the notes as
+   * history; listing them here lets an agent skip them without reading the
+   * whole note to find out.
+   */
+  lifecycle?: {
+    superseded: Array<{ heading: string; path: string; replacedBy: string[] }>;
+    expired: Array<{ heading: string; path: string; validUntil: string }>;
+  };
+}
+
+async function deadMemory(
+  handle: VaultHandle,
+  project: ProjectPlan,
+): Promise<RecallResult["lifecycle"] | undefined> {
+  const superseded: NonNullable<RecallResult["lifecycle"]>["superseded"] = [];
+  const expired: NonNullable<RecallResult["lifecycle"]>["expired"] = [];
+  const on = today();
+  for (const note of [project.decisions, project.rules]) {
+    const path = resolve(handle.vaultRoot, note.path);
+    if (!existsSync(path)) continue;
+    for (const section of parseSections(note.path, await readFile(path, "utf8"))) {
+      const state = sectionState(section, on);
+      if (state === "superseded") {
+        superseded.push({
+          heading: section.heading,
+          path: note.path,
+          replacedBy: section.supersededBy.map((link) => link.raw),
+        });
+      } else if (state === "expired") {
+        expired.push({
+          heading: section.heading,
+          path: note.path,
+          validUntil: section.validUntil!,
+        });
+      }
+    }
+  }
+  return superseded.length || expired.length ? { superseded, expired } : undefined;
 }
 
 /**
@@ -89,6 +139,7 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
   const stale = (await findStaleCapsules(handle.vaultRoot, handle.plan)).find(
     (entry) => entry.project === project.project.name,
   );
+  const lifecycle = await deadMemory(handle, project);
 
   return {
     project: project.project.name,
@@ -107,6 +158,7 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
           staleWarning: `${stale.capsule} is older than ${stale.changedSince.join(", ")}. Read those before trusting the summary, and refresh the capsule once the operator confirms what changed.`,
         }
       : {}),
+    ...(lifecycle ? { lifecycle } : {}),
     readNext: [
       project.hub,
       project.decisions,
@@ -124,6 +176,12 @@ export interface SearchHit {
   text: string;
   /** Capsules outrank hubs outrank everything else. */
   weight: number;
+  /**
+   * Set when the hit sits inside a superseded or expired section. Such hits
+   * still appear — "why did we stop doing X" is a fair question — but below
+   * every live hit.
+   */
+  state?: Exclude<LifecycleState, "live">;
 }
 
 /**
@@ -144,6 +202,7 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
   };
 
   const hits: SearchHit[] = [];
+  const on = today();
   const dirs = [handle.manifest.structure.systemDir, handle.manifest.structure.projectsDir];
 
   const walk = async (dir: string): Promise<void> => {
@@ -154,14 +213,18 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
       if (entry.isDirectory()) {
         await walk(relative);
       } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
-        const lines = (await readFile(resolve(absolute, entry.name), "utf8")).split("\n");
-        lines.forEach((text, index) => {
+        const content = await readFile(resolve(absolute, entry.name), "utf8");
+        const sections = parseSections(relative, content);
+        content.split("\n").forEach((text, index) => {
           if (text.toLowerCase().includes(needle)) {
+            const section = sectionAt(sections, index + 1);
+            const state = section ? sectionState(section, on) : "live";
             hits.push({
               path: relative,
               line: index + 1,
               text: text.trim(),
               weight: weightOf(relative),
+              ...(state !== "live" ? { state } : {}),
             });
           }
         });
@@ -170,13 +233,100 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
   };
   for (const dir of dirs) await walk(dir);
 
-  hits.sort((a, b) => b.weight - a.weight || a.path.localeCompare(b.path) || a.line - b.line);
+  const dead = (hit: SearchHit) => (hit.state ? 1 : 0);
+  hits.sort(
+    (a, b) =>
+      dead(a) - dead(b) || b.weight - a.weight || a.path.localeCompare(b.path) || a.line - b.line,
+  );
   return hits.slice(0, limit);
 }
 
 export interface AppendDecisionResult {
   project: string;
   path: string;
+  /** Heading written for the new decision. */
+  heading: string;
+  /** The heading this decision replaced, when `supersedes` was given. */
+  superseded?: string;
+}
+
+/** A supersession that cannot be recorded; nothing was written. */
+export class LifecycleTargetError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LifecycleTargetError";
+  }
+}
+
+export interface MemoryWriteOptions {
+  /** Heading of an existing section in the same note that this one replaces. */
+  supersedes?: string;
+  /** Provenance written as `source::`, e.g. "import · codex · 2026-09-14". */
+  source?: string;
+  /** Date recorded as `superseded-on::`; defaults to today. */
+  on?: string;
+}
+
+/**
+ * Append a section to a project's Decisions or Rules note and, when it
+ * replaces an earlier one, mark both sides. The old section gains
+ * `superseded-by::`/`superseded-on::` under its heading and is otherwise left
+ * exactly as it was. Every check runs before the first write, so a bad target
+ * cannot leave a half-linked pair.
+ */
+async function appendSection(
+  notePath: string,
+  noteName: string,
+  heading: string,
+  body: string[],
+  options: MemoryWriteOptions,
+): Promise<{ superseded?: string }> {
+  const current = await readFile(notePath, "utf8");
+  const fields: string[] = [];
+  let next = current;
+  let superseded: string | undefined;
+
+  if (options.supersedes?.trim()) {
+    const sections = parseSections("", current);
+    const old = findSection(sections, options.supersedes);
+    if (!old) {
+      throw new LifecycleTargetError(
+        `No section "${options.supersedes}" in ${noteName}; nothing was written. Known: ${sections
+          .map((section) => `"${section.heading}"`)
+          .join(", ")}`,
+      );
+    }
+    if (old.supersededBy.length) {
+      throw new LifecycleTargetError(
+        `"${old.heading}" is already superseded by ${old.supersededBy.map((link) => link.raw).join(", ")}; supersede that one instead. Nothing was written.`,
+      );
+    }
+    if (findSection(sections, heading) || headingKey(heading) === headingKey(old.heading)) {
+      throw new LifecycleTargetError(
+        `${noteName} already has a section "${heading}"; give the new one a distinct title so the link stays unambiguous. Nothing was written.`,
+      );
+    }
+    const patched = insertFields(current, old.heading, [
+      `superseded-by:: ${headingLink(noteName, heading)}`,
+      `superseded-on:: ${options.on ?? today()}`,
+    ]);
+    if (patched === null) throw new LifecycleTargetError(`Could not mark "${old.heading}".`);
+    next = patched;
+    superseded = old.heading;
+    fields.push(`supersedes:: ${headingLink(noteName, old.heading)}`);
+  }
+  if (options.source?.trim()) fields.push(`source:: ${options.source.trim()}`);
+
+  const section = [
+    "",
+    `## ${heading}`,
+    "",
+    ...(fields.length ? [...fields, ""] : []),
+    ...body,
+    "",
+  ].join("\n");
+  await writeFile(notePath, `${next.replace(/\n*$/, "\n")}${section}`, "utf8");
+  return superseded ? { superseded } : {};
 }
 
 /**
@@ -189,6 +339,7 @@ export async function appendDecision(
   title: string,
   decision: string,
   details?: string,
+  options: MemoryWriteOptions = {},
 ): Promise<AppendDecisionResult | null> {
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
@@ -196,19 +347,20 @@ export async function appendDecision(
   const path = resolve(handle.vaultRoot, project.decisions.path);
   if (!existsSync(path)) return null;
 
-  const section = [
-    "",
-    `## ${title.trim()}`,
-    "",
+  const heading = title.trim();
+  const body = [
     "### Decision",
     "",
     decision.trim(),
     ...(details?.trim() ? ["", "### Details", "", details.trim()] : []),
-    "",
-  ].join("\n");
-
-  await appendFile(path, section, "utf8");
-  return { project: project.project.name, path: project.decisions.path };
+  ];
+  const written = await appendSection(path, project.decisions.name, heading, body, options);
+  return {
+    project: project.project.name,
+    path: project.decisions.path,
+    heading,
+    ...written,
+  };
 }
 
 export interface SectionUpdateResult {
@@ -281,6 +433,8 @@ export interface AppendRuleResult {
   project: string;
   path: string;
   rule: string;
+  /** The rule heading this one replaced, when `supersedes` was given. */
+  superseded?: string;
 }
 
 /**
@@ -292,6 +446,7 @@ export async function appendRule(
   projectQuery: string,
   name: string,
   rule: string,
+  options: MemoryWriteOptions = {},
 ): Promise<AppendRuleResult | null> {
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
@@ -300,8 +455,8 @@ export async function appendRule(
   if (!existsSync(path)) return null;
 
   const heading = /rule$/i.test(name.trim()) ? name.trim() : `${name.trim()} Rule`;
-  await appendFile(path, `\n## ${heading}\n\n${rule.trim()}\n`, "utf8");
-  return { project: project.project.name, path: project.rules.path, rule: heading };
+  const written = await appendSection(path, project.rules.name, heading, [rule.trim()], options);
+  return { project: project.project.name, path: project.rules.path, rule: heading, ...written };
 }
 
 export interface ProjectListing {

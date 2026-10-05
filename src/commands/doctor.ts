@@ -2,7 +2,7 @@ import * as p from "../ui.js";
 import { generateFiles, writeFiles } from "../generate/index.js";
 import { wireHubs } from "../generate/wire.js";
 import { buildPlan } from "../manifest/derive.js";
-import { runDoctor, type DoctorReport } from "../doctor/index.js";
+import { repairLifecycle, runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
 
@@ -51,6 +51,10 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
     // Hubs are the operator's to write, so a hub missing a link is repaired by
     // inserting the link, never by regenerating the note around it.
     touched.push(...(await wireHubs(vaultRoot, buildPlan(manifest))));
+
+    // A supersession stated on one side is completed on the other; nothing a
+    // human still has to decide (expiry, stale capsule links) is touched.
+    touched.push(...(await repairLifecycle(vaultRoot, manifest)));
 
     if (!options.json) {
       p.log.info(

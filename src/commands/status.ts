@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
+import type { LifecycleState } from "../memory/lifecycle.js";
 import { runDoctor } from "../doctor/index.js";
 import { buildPlan, type VaultPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
@@ -53,6 +54,8 @@ export interface StatusSummary {
   notesOnDisk: number;
   linksChecked: number;
   doctor: { ok: boolean; errors: number; warnings: number };
+  /** Decisions and rules carrying lifecycle fields, by state. */
+  lifecycle: Record<LifecycleState, number>;
   imports: number;
   git: GitStatus | null;
   /** Capsules older than the Decisions/Rules/Context they summarize. */
@@ -175,6 +178,7 @@ export async function collectStatus(vaultRoot: string): Promise<StatusSummary> {
       errors: report.counts.error,
       warnings: report.counts.warning,
     },
+    lifecycle: report.lifecycle,
     imports: manifest.imports.length,
     git: await gitStatus(vaultRoot),
     staleCapsules: await findStaleCapsules(vaultRoot, plan),
@@ -208,6 +212,11 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
     `notes      ${summary.notesOnDisk} on disk / ${summary.plannedNotes} planned`,
     `links      ${summary.linksChecked} checked`,
     `doctor     ${summary.doctor.ok ? "PASS" : "FAIL"} — ${summary.doctor.errors} errors, ${summary.doctor.warnings} warnings`,
+    ...(summary.lifecycle.superseded || summary.lifecycle.expired
+      ? [
+          `memory     ${summary.lifecycle.superseded} superseded, ${summary.lifecycle.expired} expired, ${summary.lifecycle.live} tracked live`,
+        ]
+      : []),
     `generator  Vulcanus ${summary.generatedBy}${summary.updateAvailable ? ` (you run ${summary.cliVersion} — \`vulcanus update\`)` : ""}`,
   ];
   if (summary.git) {
