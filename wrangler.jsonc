@@ -5,8 +5,11 @@
   // on each push to main: a page whose CSP hashes, FAQ data, or version have
   // drifted fails here and is never published. Node built-ins only, so it needs
   // no install step.
+  // Workers Builds starts in site/ (its root directory setting) and wrangler
+  // finds this file one level up. npm walks up to package.json the same way, so
+  // the command works from either directory.
   "build": {
-    "command": "node scripts/site-check.mjs"
+    "command": "npm run --silent site:check"
   },
   // The marketing site is hand-written static HTML under site/ — there is no
   // Worker script, so Cloudflare serves the assets directly.
