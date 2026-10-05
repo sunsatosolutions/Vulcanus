@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0 — 2026-10-05
+
 ### Added — decisions know when they stopped being true
 
 A correction used to be prose: a new section appended under the old one, with
