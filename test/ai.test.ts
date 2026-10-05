@@ -118,8 +118,8 @@ describe("source directory proposals", () => {
     assert.deepEqual(proposeSourceDirectories("Site Tools", ["/srv/sitetools"]), [
       "/srv/sitetools",
     ]);
-    assert.deepEqual(proposeSourceDirectories("Nué Roastery", ["/srv/nue-roastery"]), [
-      "/srv/nue-roastery",
+    assert.deepEqual(proposeSourceDirectories("Lumé Studio", ["/srv/lume-studio"]), [
+      "/srv/lume-studio",
     ]);
   });
 

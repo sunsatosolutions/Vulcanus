@@ -54,8 +54,8 @@ function analysis(names: Array<[string, number]>): AnalysisResult {
 describe("what the model is shown", () => {
   test("carries titles and groups, never whole transcripts", () => {
     const digest = buildDigest([
-      conversation("a", "Roastery site", {
-        group: "Nué",
+      conversation("a", "Studio site", {
+        group: "Lumé",
         messages: [
           { role: "user", text: "x".repeat(500) },
           { role: "assistant", text: "secret answer" },
@@ -63,7 +63,7 @@ describe("what the model is shown", () => {
       }),
     ]);
 
-    assert.equal(digest[0].group, "Nué");
+    assert.equal(digest[0].group, "Lumé");
     assert.equal(digest[0].opening?.length, MAX_DIGEST_LINE);
     const prompt = buildClusterPrompt(digest);
     assert.equal(prompt.includes("secret answer"), false, "assistant replies are not sent");
@@ -84,8 +84,8 @@ describe("what the model is shown", () => {
 
 describe("reading the model's reply", () => {
   test("accepts a bare object", () => {
-    const clusters = parseClusters('{"projects":[{"name":"Nué","conversationIds":["a","b"]}]}');
-    assert.deepEqual(clusters, [{ name: "Nué", conversationIds: ["a", "b"] }]);
+    const clusters = parseClusters('{"projects":[{"name":"Lumé","conversationIds":["a","b"]}]}');
+    assert.deepEqual(clusters, [{ name: "Lumé", conversationIds: ["a", "b"] }]);
   });
 
   test("accepts JSON wrapped in prose or a fenced block", () => {
@@ -109,18 +109,18 @@ describe("reading the model's reply", () => {
 
 describe("folding the grouping into the heuristic", () => {
   test("agreement promotes a candidate the heuristic already found", () => {
-    const merged = mergeClusters(analysis([["Nué", 4]]), [
-      { name: "nué", conversationIds: ["a", "b"] },
+    const merged = mergeClusters(analysis([["Lumé", 4]]), [
+      { name: "lumé", conversationIds: ["a", "b"] },
     ]);
     assert.equal(merged.candidates.length, 1);
     assert.equal(merged.candidates[0].confidence, "medium");
   });
 
   test("a name only the model proposed is added, but never as high confidence", () => {
-    const merged = mergeClusters(analysis([["Nué", 4]]), [
-      { name: "Tideline", conversationIds: ["a", "b", "c", "d"] },
+    const merged = mergeClusters(analysis([["Lumé", 4]]), [
+      { name: "Atlas", conversationIds: ["a", "b", "c", "d"] },
     ]);
-    const added = merged.candidates.find((candidate) => candidate.name === "Tideline");
+    const added = merged.candidates.find((candidate) => candidate.name === "Atlas");
     assert.equal(added?.confidence, "medium");
     assert.equal(added?.evidence.conversations, 4);
   });
@@ -131,8 +131,8 @@ describe("folding the grouping into the heuristic", () => {
   });
 
   test("keeps the heuristic's evidence rather than the model's word for it", () => {
-    const merged = mergeClusters(analysis([["Nué", 9]]), [
-      { name: "Nué", conversationIds: ["only-one"] },
+    const merged = mergeClusters(analysis([["Lumé", 9]]), [
+      { name: "Lumé", conversationIds: ["only-one"] },
     ]);
     assert.equal(merged.candidates[0].evidence.conversations, 9);
   });

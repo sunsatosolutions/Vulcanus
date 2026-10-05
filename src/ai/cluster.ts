@@ -10,7 +10,7 @@ const run = promisify(execFile);
  * Ask an installed AI CLI to group conversations into projects.
  *
  * The word-frequency pass proposes names that repeat; it cannot tell that
- * "the roastery site" and "Nué" are one project, and it cannot ignore a name
+ * "the studio site" and "Lumé" are one project, and it cannot ignore a name
  * that repeats for a reason that is not a project. A model reading the titles
  * can do both, so this runs alongside the heuristic rather than instead of it:
  * the heuristic still supplies the evidence counts, and grouping only adds

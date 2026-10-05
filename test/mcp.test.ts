@@ -69,14 +69,14 @@ describe("mcp vault tools", () => {
     const root = await scaffold(
       manifest({
         projects: [
-          project("crasyn", "Crasyn", { visibility: "private", kind: "client-product" }),
+          project("harbor", "Harbor", { visibility: "private", kind: "client-product" }),
           project("meridian", "Meridian", { visibility: "public" }),
         ],
       }),
     );
     const handle = await openVault(root);
 
-    const priv = await recall(handle, "crasyn");
+    const priv = await recall(handle, "harbor");
     assert.equal(priv?.visibility, "private");
     assert.equal(priv?.kind, "client-product");
     // Phrased as an instruction: a bare field is easy for a model to skim past.
@@ -87,8 +87,8 @@ describe("mcp vault tools", () => {
     assert.equal(pub?.visibilityWarning, undefined);
 
     const listed = listProjects(handle);
-    assert.equal(listed.find((entry) => entry.id === "crasyn")?.visibility, "private");
-    assert.equal(listed.find((entry) => entry.id === "crasyn")?.kind, "client-product");
+    assert.equal(listed.find((entry) => entry.id === "harbor")?.visibility, "private");
+    assert.equal(listed.find((entry) => entry.id === "harbor")?.kind, "client-product");
   });
 
   it("search ranks capsule and recall-map hits above depth notes", async () => {

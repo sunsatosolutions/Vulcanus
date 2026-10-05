@@ -141,7 +141,7 @@ describe("the protocol names private projects", () => {
     const { root } = await scaffold(
       manifest({
         projects: [
-          project("crasyn", "Crasyn", { visibility: "private" }),
+          project("harbor", "Harbor", { visibility: "private" }),
           project("meridian", "Meridian", { visibility: "public" }),
         ],
       }),
@@ -149,7 +149,7 @@ describe("the protocol names private projects", () => {
 
     const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
     assert.match(agents, /## Project visibility/);
-    assert.match(agents, /- Crasyn/);
+    assert.match(agents, /- Harbor/);
     assert.doesNotMatch(agents, /- Meridian/);
     assert.match(agents, /not in public repositories, commit messages, issues/);
   });
@@ -240,7 +240,7 @@ describe("plan expectations", () => {
 
 describe("slugify", () => {
   it("transliterates Turkish and accented characters", () => {
-    assert.equal(slugify("Nué Roastery"), "nue-roastery");
+    assert.equal(slugify("Lumé Studio"), "lume-studio");
     assert.equal(slugify("Işık Şirketi"), "isik-sirketi");
     assert.equal(slugify("ARIA"), "aria");
   });
