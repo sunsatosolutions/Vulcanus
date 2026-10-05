@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.1 — 2026-10-05
+
 ### Fixed
 
 - Upgrading an existing vault to protocol 3 stamped `AGENTS.md` as current but
