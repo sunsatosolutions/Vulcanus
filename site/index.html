@@ -6,7 +6,7 @@
     <title>Vulcanus — forge a second brain your AI agents can read</title>
     <meta
       name="description"
-      content="Persistent memory for Claude Code, Cursor, and Codex. Vulcanus builds an AI-readable second brain — a Git-versioned vault of linked Markdown — and serves it over MCP, so your agent recalls a project instead of starting cold. A Sunsato product."
+      content="Persistent, validated memory for Claude Code, Cursor and Codex — a Git-versioned Markdown vault served over MCP, so your agent stops starting cold."
     />
     <link rel="canonical" href="https://vulcanus.sunsato.com/" />
     <meta name="author" content="Sunsato" />
@@ -22,12 +22,12 @@
       property="og:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png" />
+    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png?v=2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Vulcanus — forge a second brain your agents can read. npx @sunsato/vulcanus"
+      content="Vulcanus — forge a second brain your agents can read. npm install -g @sunsato/vulcanus"
     />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -36,7 +36,7 @@
       name="twitter:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png" />
+    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png?v=2" />
 
     <script type="application/ld+json">
       {
@@ -48,19 +48,33 @@
             "name": "Vulcanus",
             "url": "https://vulcanus.sunsato.com/",
             "description": "A command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that humans and AI agents can both navigate, served to Claude Code, Cursor, and other MCP clients as structured project memory.",
+            "image": "https://vulcanus.sunsato.com/og.png",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Linux, Windows",
             "softwareVersion": "0.5.0",
+            "releaseNotes": "https://github.com/sunsatosolutions/Vulcanus/blob/main/CHANGELOG.md",
             "license": "https://opensource.org/licenses/MIT",
             "downloadUrl": "https://www.npmjs.com/package/@sunsato/vulcanus",
             "codeRepository": "https://github.com/sunsatosolutions/Vulcanus",
             "programmingLanguage": "TypeScript",
+            "featureList": [
+              "Generates a layered, Git-versioned Markdown memory vault from a short interview",
+              "Serves the vault to MCP clients: recall, search, list_projects, append_decision, append_rule, update_capsule, vault_status, doctor",
+              "Validates links, hubs, recall routes, frontmatter, and decision lifecycle against a manifest",
+              "Marks superseded and expired decisions instead of deleting them",
+              "Imports projects and reviewed decisions from ChatGPT, Claude, Claude Code, Codex, Gemini CLI, Cursor, or Markdown history",
+              "Writes notes in English, Turkish, German, or Spanish",
+              "Works as an Obsidian vault with no plugin"
+            ],
+            "isAccessibleForFree": true,
             "offers": {
               "@type": "Offer",
               "price": "0",
               "priceCurrency": "USD"
             },
-            "publisher": { "@id": "https://sunsato.com/#organization" },
+            "publisher": {
+              "@id": "https://sunsato.com/#organization"
+            },
             "sameAs": [
               "https://github.com/sunsatosolutions/Vulcanus",
               "https://www.npmjs.com/package/@sunsato/vulcanus",
@@ -116,7 +130,7 @@
                 "name": "Does my data leave my machine?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "No. There is no account and no server. The only network call is an optional once-a-day check for a newer release, which VULCANUS_NO_UPDATE_CHECK=1 turns off. When you import AI history, conversations are read locally, reduced to candidate project names, and discarded — nothing from them is copied into the vault."
+                  "text": "No. There is no account and no server. The only automatic network call is an optional once-a-day check for a newer release, which VULCANUS_NO_UPDATE_CHECK=1 turns off. Importing AI history reads conversations locally: only the project names you confirm and the decisions you accept are written to the vault, never transcripts. Two opt-in flags, --ai-group and --ai-extract, hand a short digest to an AI CLI you already have installed, and show you what will be sent before anything is."
                 }
               },
               {
@@ -132,7 +146,15 @@
                 "name": "Can agents write to the memory, and is that safe?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Agents record outcomes through scoped MCP tools: append_decision and append_rule add one entry to the right note, and update_capsule replaces one named section rather than rewriting the file. Every change is a plain Markdown edit you can review and revert in Git, and vulcanus hooks install refuses commits that break the vault's structure."
+                  "text": "Agents record outcomes through scoped MCP tools: append_decision and append_rule add one entry to the right note, and update_capsule replaces one named section rather than rewriting the file. When a decision replaces an older one, the tool links the two instead of overwriting the old one. Every change is a plain Markdown edit you can review and revert in Git, and vulcanus hooks install refuses commits that break the vault's structure."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What happens when a decision changes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The old decision stays as history and is marked, not deleted: the new one records supersedes:: with a link to the heading it replaces, and the old one gains superseded-by::. vulcanus doctor checks that both sides agree, recall tells an agent which decisions are no longer current, and a decision can carry valid-until:: so it expires instead of quietly going stale."
                 }
               },
               {
@@ -140,25 +162,29 @@
                 "name": "What does it cost, and what does it need?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Start with npx @sunsato/vulcanus."
+                  "text": "Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Install it with npm install -g @sunsato/vulcanus and run vulcanus; it is installed globally because the MCP server, skills, and commit hook all call the vulcanus command."
                 }
               }
             ]
           },
           {
             "@type": "WebSite",
+            "@id": "https://vulcanus.sunsato.com/#website",
             "url": "https://vulcanus.sunsato.com/",
             "name": "Vulcanus",
-            "publisher": { "@id": "https://sunsato.com/#organization" }
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://sunsato.com/#organization"
+            }
           }
         ]
       }
     </script>
 
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E"
-    />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate" type="text/markdown" href="/llms.txt" title="Vulcanus for LLMs" />
 
     <style>
       :root {
@@ -409,6 +435,11 @@
         margin-top: 0.8rem;
         color: var(--dim);
         font-size: 0.85rem;
+      }
+
+      .sub-install code {
+        font-family: var(--mono);
+        color: var(--muted);
       }
 
       .inline-link {
@@ -771,6 +802,54 @@
         color: var(--ember);
       }
 
+      .skip {
+        position: absolute;
+        left: 1rem;
+        top: -3rem;
+        z-index: 10;
+        padding: 0.5rem 0.9rem;
+        border-radius: 0.4rem;
+        background: var(--ember);
+        color: #08080c;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .skip:focus {
+        top: 1rem;
+      }
+
+      .grid.one-col {
+        grid-template-columns: 1fr;
+      }
+
+      .gap-below {
+        margin-bottom: 1rem;
+      }
+
+      .gap-above {
+        margin-top: 1rem;
+      }
+
+      .terminal.flush-top {
+        margin-top: 0;
+      }
+
+      section.closing {
+        text-align: center;
+      }
+
+      section.closing .section-lede {
+        margin-inline: auto;
+      }
+
+      .sub-heading {
+        margin: 3.5rem 0 0.6rem;
+        font-size: 1.15rem;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
@@ -783,6 +862,7 @@
   </head>
 
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <div class="wrap">
       <nav>
         <div class="brand">
@@ -824,6 +904,7 @@
         </div>
       </nav>
 
+      <main id="main">
       <header>
         <span class="eyebrow">A <b>Sunsato</b> product</span>
 
@@ -837,10 +918,13 @@
 
         <div class="install">
           <span class="prompt">$</span>
-          <code id="install-cmd">npx @sunsato/vulcanus</code>
+          <code id="install-cmd">npm install -g @sunsato/vulcanus</code>
           <button class="copy" type="button" data-target="install-cmd">Copy</button>
         </div>
-        <p class="sub-install">No account. Nothing leaves your machine. Node 22.12+.</p>
+        <p class="sub-install">
+          Then run <code>vulcanus</code>. Installed globally, so your agents can reach it too. No
+          account, runs locally, Node 22.12+.
+        </p>
 
         <div class="terminal">
           <div class="terminal-bar">
@@ -894,7 +978,7 @@
 └─ <span class="dir">_imports/</span>          <span class="cm"># raw exports, git-ignored</span></pre>
 
           <div>
-            <div class="grid" style="grid-template-columns: 1fr">
+            <div class="grid one-col">
               <div class="card">
                 <h3>Capsules keep it cheap</h3>
                 <p>
@@ -912,7 +996,8 @@
               <div class="card">
                 <h3>Git is the memory history</h3>
                 <p>
-                  Every change is a commit. You can see when a decision changed, what it replaced,
+                  Every change is a commit, and a decision that changes is marked rather than erased:
+                  the new one names what it replaced. You can see when it changed, what it replaced,
                   and why — the part chat history can never give you.
                 </p>
               </div>
@@ -982,16 +1067,47 @@
         </div>
 
         <div class="note">
-          <strong>Nothing from your history is copied into the vault.</strong> Conversations are read
-          locally, reduced to candidate project names with evidence counts, and discarded. Only the
-          names you confirm become notes, and the import log records how many conversations were
-          scanned — never their content.
+          <strong>Nothing reaches the vault without your say.</strong> Conversations are read
+          locally and discarded. Only the project names you confirm and the decisions you accept
+          become notes — in the wording you accepted, never as transcripts. The import log records
+          how many conversations were scanned, never their content.
         </div>
 
         <p class="section-lede">
           Run it again later and it proposes only what is new: conversations already read are
           remembered, so a second import is not a second pile of the same candidates.
         </p>
+
+        <h3 class="sub-heading">And the decisions you already made</h3>
+        <p class="section-lede">
+          Your history holds more than project names: the choices you settled and the rules you
+          kept repeating. Say yes to one more question and Vulcanus finds them — in English,
+          Turkish, German, or Spanish — and asks you about each one.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h3>Your words, not the assistant's</h3>
+            <p>
+              Only your own messages are read, matched against phrases like “we decided” and “from
+              now on”, and ranked by how often you repeated them and how recently.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Nothing lands unreviewed</h3>
+            <p>
+              Accept it, edit it, keep it as a rule, skip it, or stop. Up to fifteen per project,
+              never accepted unattended, and what the vault already records is not asked again.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Revisions, not contradictions</h3>
+            <p>
+              A statement that revises a recorded decision is offered as its replacement, so the
+              old one is marked as superseded instead of sitting beside it, contradicting it.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section id="commands">
@@ -1016,7 +1132,7 @@
           </div>
           <div class="card">
             <h3><code>import</code></h3>
-            <p>Propose more projects from an AI export, any time after setup.</p>
+            <p>Propose more projects — and the decisions you already made — from an AI export.</p>
           </div>
           <div class="card">
             <h3><code>agents</code></h3>
@@ -1069,17 +1185,23 @@
             <h3><code>recall</code></h3>
             <p>
               One project's Capsule plus the order to read deeper. The call an agent makes before
-              touching anything — and it says so when the Capsule has fallen behind, or when the
-              project is one you marked private.
+              touching anything — and it says so when the Capsule has fallen behind, when the
+              project is one you marked private, and which decisions are no longer current.
             </p>
           </div>
           <div class="card">
             <h3><code>search</code></h3>
-            <p>Layer-aware: Capsule and Recall Map hits rank above everything else.</p>
+            <p>
+              Layer-aware: Capsule and Recall Map hits rank above everything else, and memory that
+              is no longer current ranks last.
+            </p>
           </div>
           <div class="card">
             <h3><code>append_decision</code> · <code>append_rule</code></h3>
-            <p>Confirmed outcomes go back into the right note, in the vault's own format.</p>
+            <p>
+              Confirmed outcomes go back into the right note, in the vault's own format. Pass
+              <code>supersedes</code> and the decision it replaces is marked in the same call.
+            </p>
           </div>
           <div class="card">
             <h3><code>update_capsule</code></h3>
@@ -1165,6 +1287,8 @@
             <li>No duplicate or case-colliding note names</li>
             <li>Raw exports are actually ignored by Git</li>
             <li>Agents are following the current protocol, not a superseded one</li>
+            <li>Superseded decisions link both ways, and nothing replaces itself in a loop</li>
+            <li>No decision past its expiry date is still presented as current</li>
           </ul>
         </div>
       </section>
@@ -1179,7 +1303,7 @@
 
         <div class="split">
           <div>
-            <div class="card" style="margin-bottom: 1rem">
+            <div class="card gap-below">
               <h3>Inside the vault — already done</h3>
               <p>
                 <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and
@@ -1197,7 +1321,7 @@
               </p>
             </div>
 
-            <div class="table-scroll" style="margin-top: 1rem">
+            <div class="table-scroll gap-above">
               <table>
                 <thead>
                   <tr>
@@ -1216,7 +1340,7 @@
             </div>
           </div>
 
-          <div class="terminal" style="margin-top: 0">
+          <div class="terminal flush-top">
             <div class="terminal-bar">
               <span class="dot"></span><span class="dot"></span><span class="dot"></span>
               <span class="terminal-title">vulcanus agents</span>
@@ -1364,7 +1488,7 @@ requirement, not an optional extra.
           </details>
           <details>
             <summary>Does my data leave my machine?</summary>
-            <p>No. There is no account and no server. The only network call is an optional once-a-day check for a newer release, which <code>VULCANUS_NO_UPDATE_CHECK=1</code> turns off. When you import AI history, conversations are read locally, reduced to candidate project names, and discarded — nothing from them is copied into the vault.</p>
+            <p>No. There is no account and no server. The only automatic network call is an optional once-a-day check for a newer release, which <code>VULCANUS_NO_UPDATE_CHECK=1</code> turns off. Importing AI history reads conversations locally: only the project names you confirm and the decisions you accept are written to the vault, never transcripts. Two opt-in flags, <code>--ai-group</code> and <code>--ai-extract</code>, hand a short digest to an AI CLI you already have installed, and show you what will be sent before anything is.</p>
           </details>
           <details>
             <summary>Can I use it with my existing Obsidian vault?</summary>
@@ -1372,21 +1496,25 @@ requirement, not an optional extra.
           </details>
           <details>
             <summary>Can agents write to the memory, and is that safe?</summary>
-            <p>Agents record outcomes through scoped MCP tools: <code>append_decision</code> and <code>append_rule</code> add one entry to the right note, and <code>update_capsule</code> replaces one named section rather than rewriting the file. Every change is a plain Markdown edit you can review and revert in Git, and <code>vulcanus hooks install</code> refuses commits that break the vault's structure.</p>
+            <p>Agents record outcomes through scoped MCP tools: <code>append_decision</code> and <code>append_rule</code> add one entry to the right note, and <code>update_capsule</code> replaces one named section rather than rewriting the file. When a decision replaces an older one, the tool links the two instead of overwriting the old one. Every change is a plain Markdown edit you can review and revert in Git, and <code>vulcanus hooks install</code> refuses commits that break the vault's structure.</p>
+          </details>
+          <details>
+            <summary>What happens when a decision changes?</summary>
+            <p>The old decision stays as history and is marked, not deleted: the new one records <code>supersedes::</code> with a link to the heading it replaces, and the old one gains <code>superseded-by::</code>. <code>vulcanus doctor</code> checks that both sides agree, <code>recall</code> tells an agent which decisions are no longer current, and a decision can carry <code>valid-until::</code> so it expires instead of quietly going stale.</p>
           </details>
           <details>
             <summary>What does it cost, and what does it need?</summary>
-            <p>Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Start with <code>npx @sunsato/vulcanus</code>.</p>
+            <p>Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Install it with <code>npm install -g @sunsato/vulcanus</code> and run <code>vulcanus</code>; it is installed globally because the MCP server, skills, and commit hook all call the <code>vulcanus</code> command.</p>
           </details>
         </div>
       </section>
 
-      <section style="text-align: center">
+      <section class="closing">
         <h2>Your agents are only as good as their memory</h2>
-        <p class="section-lede" style="margin-inline: auto">Build it once. Keep it honest.</p>
+        <p class="section-lede">Build it once. Keep it honest.</p>
         <div class="install">
           <span class="prompt">$</span>
-          <code id="install-cmd-2">npx @sunsato/vulcanus</code>
+          <code id="install-cmd-2">npm install -g @sunsato/vulcanus</code>
           <button class="copy" type="button" data-target="install-cmd-2">Copy</button>
         </div>
         <p class="sub-install">
@@ -1409,6 +1537,8 @@ requirement, not an optional extra.
           Sponsor its development
         </a>
       </section>
+
+      </main>
 
       <footer>
         <div class="footer-row">

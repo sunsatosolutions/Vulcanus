@@ -10,8 +10,14 @@ permissions:
   id-token: write
 
 jobs:
+  # The full CI matrix — every OS, every supported Node, coverage, site checks —
+  # has to pass on the tagged commit before anything is published.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   publish:
     name: publish to npm
+    needs: ci
     runs-on: ubuntu-latest
     environment: npm-publish
     steps:
@@ -68,3 +74,49 @@ jobs:
         run: |
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
+
+  # What users actually run is the package on npm, installed globally — so that
+  # is what gets tested last, on every OS, rather than the checkout it was built
+  # from.
+  smoke:
+    name: smoke test the published package (${{ matrix.os }})
+    needs: publish
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Wait for the version to reach the registry
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for attempt in $(seq 1 30); do
+            if [ "$(npm view "@sunsato/vulcanus@$version" version 2>/dev/null)" = "$version" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "@sunsato/vulcanus@$version never appeared on npm" >&2
+          exit 1
+
+      - name: Install globally and run it
+        env:
+          VULCANUS_NO_UPDATE_CHECK: "1"
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          npm install -g "@sunsato/vulcanus@$version"
+          test "$(vulcanus --version)" = "$version"
+          vault="$RUNNER_TEMP/smoke-vault"
+          vulcanus init "$vault" --name SMOKE --operator Ada --projects "Atlas,Kiln" \
+            --defaults --no-import --no-git --yes
+          cd "$vault"
+          vulcanus doctor
+          vulcanus status --json > /dev/null
+          grep -q "vulcanus:protocol" AGENTS.md

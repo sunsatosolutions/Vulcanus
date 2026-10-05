@@ -140,8 +140,22 @@ git add -A && git commit -m "Release 0.5.0"
 git tag -a v0.5.0 -m "Release 0.5.0" && git push --follow-tags
 ```
 
-Pushing the tag runs `.github/workflows/release.yml`, which re-runs every check
-and publishes to npm with provenance.
+Pushing the tag runs `.github/workflows/release.yml`: the full CI matrix (every
+OS, every supported Node, coverage, site checks) runs on the tagged commit first,
+then the package is published to npm with provenance, a GitHub release is
+drafted from the CHANGELOG, the MCP Registry listing is updated, and finally the
+published package is installed globally from npm on Linux, macOS, and Windows and
+used to create and validate a vault.
+
+## The site
+
+`site/` deploys to Cloudflare Workers on every push to `main`. The build command
+in `wrangler.jsonc` runs `npm run site:check` first, so a page whose CSP hashes,
+FAQ structured data, or stated version have drifted is never published — after
+editing any inline `<script>` or `<style>`, run `npm run site:csp` to refresh
+the hashes. `.github/workflows/site.yml` then waits for the deploy, checks the
+live site against the repository (`npm run site:live`), and notifies IndexNow; it
+also runs weekly to catch drift nobody pushed.
 
 Tag with `-a`. `git push --follow-tags` pushes annotated tags only, so a
 lightweight `git tag v0.5.0` silently never reaches the remote and the publish

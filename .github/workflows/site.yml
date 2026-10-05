@@ -1,0 +1,48 @@
+name: Site
+
+# Cloudflare Workers Builds deploys site/ on every push to main, after
+# `node scripts/site-check.mjs` passes (the build command in wrangler.jsonc).
+# This workflow is the other half: it waits for that deploy, checks the live
+# page against the repository, and tells search engines it changed. The weekly
+# run catches drift nobody pushed — a dashboard setting, an expiring
+# security.txt, an injected header.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "scripts/site-check.mjs"
+      - "scripts/site-live-check.mjs"
+      - "wrangler.jsonc"
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify the live site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Static checks
+        run: node scripts/site-check.mjs
+
+      - name: Wait for the deploy, then check the live site
+        if: github.event_name == 'push'
+        run: node scripts/site-live-check.mjs --wait 600 --indexnow
+
+      - name: Check the live site
+        if: github.event_name != 'push'
+        run: node scripts/site-live-check.mjs

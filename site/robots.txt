@@ -1,4 +1,9 @@
+# Search engines and AI systems are all welcome: crawl it, index it, quote it,
+# answer with it, and learn from it.
+# Content-Signal: https://contentsignals.org
+
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 
 Sitemap: https://vulcanus.sunsato.com/sitemap.xml

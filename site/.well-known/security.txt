@@ -1,0 +1,5 @@
+Contact: https://github.com/sunsatosolutions/Vulcanus/security/advisories/new
+Expires: 2027-10-05T00:00:00.000Z
+Preferred-Languages: en, tr
+Canonical: https://vulcanus.sunsato.com/.well-known/security.txt
+Policy: https://github.com/sunsatosolutions/Vulcanus/blob/main/SECURITY.md

@@ -46,6 +46,9 @@
     "format:check": "prettier --check src test scripts eslint.config.js",
     "release": "node scripts/release.mjs",
     "lint": "eslint .",
+    "site:check": "node scripts/site-check.mjs",
+    "site:csp": "node scripts/site-check.mjs --write",
+    "site:live": "node scripts/site-live-check.mjs",
     "coverage": "node scripts/run-tests.mjs --experimental-test-coverage",
     "coverage:check": "node scripts/run-tests.mjs --experimental-test-coverage --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=80"
   },

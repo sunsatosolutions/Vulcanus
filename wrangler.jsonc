@@ -1,6 +1,13 @@
 {
   "name": "vulcanus",
   "compatibility_date": "2026-08-13",
+  // Runs before every \`wrangler deploy\`, including the one Workers Builds runs
+  // on each push to main: a page whose CSP hashes, FAQ data, or version have
+  // drifted fails here and is never published. Node built-ins only, so it needs
+  // no install step.
+  "build": {
+    "command": "node scripts/site-check.mjs"
+  },
   // The marketing site is hand-written static HTML under site/ — there is no
   // Worker script, so Cloudflare serves the assets directly.
   "assets": {

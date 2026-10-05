@@ -1,16 +1,28 @@
-# Cloudflare Pages header rules.
-# The page loads no third-party resources, so the policy can stay tight —
-# inline style and script are the page's own, everything external is blocked.
+# Header rules for the static assets Cloudflare Workers serves from site/.
+# The page loads nothing from another origin, so the policy stays tight: the
+# inline script and stylesheets are allowed by hash, never by 'unsafe-inline'.
+# `npm run site:csp` rewrites the hashes after an edit; `npm run site:check`
+# (run in CI) fails when they no longer match the pages.
 
 /*
-  Strict-Transport-Security: max-age=31536000
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; font-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: accelerometer=(), browsing-topics=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-VFkhgNlmZuRUon58dup8sqaCoNPYIq3i/N2jKZLo7pE='; style-src 'self' 'sha256-1CriVbdqd2WkP18K00N6sHsQ9d3jIbwkpK5wznYBbHw=' 'sha256-kfW2XJEDxMFSm6GR1ZhhyCrsFU7Zp0GJk44oQ7+ldXs='; img-src 'self' data:; font-src 'self'; manifest-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 
 /og.png
+  Cache-Control: public, max-age=604800
+
+/favicon.ico
+  Cache-Control: public, max-age=604800
+
+/favicon.svg
+  Cache-Control: public, max-age=604800
+
+/apple-touch-icon.png
   Cache-Control: public, max-age=604800
 
 /sitemap.xml
@@ -22,3 +34,7 @@
 /llms.txt
   Content-Type: text/markdown; charset=utf-8
   Cache-Control: public, max-age=3600
+
+/.well-known/security.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
