@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.2 — 2026-10-06
+
 ### Fixed
 
 - On Windows, starting an AI CLI installed through npm, pnpm, or yarn crashed
