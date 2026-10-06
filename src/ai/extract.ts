@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { DetectedCli } from "./clis.js";
+import { launchCommand, type DetectedCli } from "./clis.js";
 import type { MemoryCandidate } from "../memory/extract.js";
 
 const run = promisify(execFile);
@@ -144,7 +144,8 @@ export async function runExtraction(
 ): Promise<ExtractRun> {
   if (digest.length === 0) return { entries: [] };
   try {
-    const { stdout } = await exec(cli.path, cli.printArgs(buildExtractPrompt(digest)), {
+    const launch = launchCommand(cli.path, cli.printArgs(buildExtractPrompt(digest)));
+    const { stdout } = await exec(launch.command, launch.args, {
       timeout: EXTRACT_TIMEOUT_MS,
       maxBuffer: 8 * 1024 * 1024,
     });

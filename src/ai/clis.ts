@@ -1,5 +1,5 @@
-import { accessSync, constants, statSync } from "node:fs";
-import { delimiter, resolve } from "node:path";
+import { accessSync, constants, readFileSync, statSync } from "node:fs";
+import { delimiter, resolve, win32 } from "node:path";
 
 export interface AiCli {
   id: string;
@@ -96,6 +96,51 @@ export function findOnPath(
     }
   }
   return null;
+}
+
+export interface Launch {
+  command: string;
+  args: string[];
+}
+
+/**
+ * Turn a resolved CLI path into something `spawn` can start without a shell.
+ *
+ * On Windows a CLI installed through npm, pnpm, or yarn resolves to a `.cmd`
+ * batch shim. Node refuses to spawn those without `shell: true` (EINVAL, since
+ * the CVE-2024-27980 fix), and routing through cmd.exe is not an option here:
+ * the handoff prompt is many lines long, and cmd.exe ends a command at the
+ * first newline. So the shim is read and the program it wraps is started
+ * directly — a JavaScript entry point under the running Node, a native binary
+ * as itself. A shim that cannot be read that way fails with a message that
+ * names the way out, rather than a bare EINVAL.
+ */
+export function launchCommand(
+  path: string,
+  args: string[],
+  platform: NodeJS.Platform = process.platform,
+  read: (path: string) => string = (file) => readFileSync(file, "utf8"),
+): Launch {
+  if (platform !== "win32" || !/\.(cmd|bat)$/i.test(path)) return { command: path, args };
+
+  let shim = "";
+  try {
+    shim = read(path);
+  } catch {
+    // Unreadable falls through to the same explanation as unrecognised.
+  }
+  // npm writes `"%dp0%\…\cli.js" %*`; pnpm and yarn write `"%~dp0\…\cli.js" %*`.
+  const target = /"%(?:~dp0|dp0%)\\([^"]+)"\s*%\*/.exec(shim)?.[1];
+  if (!target) {
+    throw new Error(
+      `${path} is a Windows batch shim Vulcanus cannot start directly. ` +
+        "Install the CLI's standalone build so an .exe is on PATH, then run this again.",
+    );
+  }
+
+  const program = win32.resolve(win32.dirname(path), target);
+  if (/\.[cm]?js$/i.test(program)) return { command: process.execPath, args: [program, ...args] };
+  return { command: program, args };
 }
 
 export function detectAiClis(

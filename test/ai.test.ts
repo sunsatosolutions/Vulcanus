@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { after, describe, it } from "node:test";
-import { AI_CLIS, detectAiClis, findOnPath } from "../src/ai/clis.js";
+import { AI_CLIS, detectAiClis, findOnPath, launchCommand } from "../src/ai/clis.js";
 import { buildHandoffPrompt, editableNotes } from "../src/ai/prompt.js";
 import { detectSourceDirectories, proposeSourceDirectories } from "../src/ai/workdirs.js";
 import { collectProjectDetails, type DetailMode } from "../src/commands/add.js";
@@ -92,6 +92,85 @@ describe("AI CLI detection", () => {
       const args = cli.args("study the codebase");
       assert.ok(args.includes("study the codebase"), `${cli.id} must forward the prompt`);
     }
+  });
+});
+
+/** The shims npm and pnpm write on Windows, trimmed to the lines that matter. */
+const NPM_SHIM = [
+  "@ECHO off",
+  'IF EXIST "%dp0%\\node.exe" (',
+  '  SET "_prog=%dp0%\\node.exe"',
+  ")",
+  'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*',
+].join("\r\n");
+const PNPM_SHIM =
+  '"%~dp0\\node.exe"  "%~dp0\\..\\global\\node_modules\\gemini\\bundle\\gemini.mjs" %*';
+const NATIVE_SHIM = '"%dp0%\\node_modules\\@openai\\codex\\bin\\codex.exe"   %*';
+
+describe("AI CLI launch", () => {
+  const read = (content: string) => () => content;
+
+  it("starts a POSIX binary as it is", () => {
+    assert.deepEqual(launchCommand("/usr/local/bin/claude", ["hi"], "linux", read("")), {
+      command: "/usr/local/bin/claude",
+      args: ["hi"],
+    });
+  });
+
+  it("starts a Windows .exe as it is", () => {
+    const path = "C:\\Tools\\claude.exe";
+    assert.deepEqual(launchCommand(path, ["hi"], "win32", read("")), {
+      command: path,
+      args: ["hi"],
+    });
+  });
+
+  it("unwraps an npm .cmd shim into Node running the script, so no shell is needed", () => {
+    const launch = launchCommand(
+      "C:\\npm\\claude.cmd",
+      ["line one\nline two"],
+      "win32",
+      read(NPM_SHIM),
+    );
+    assert.equal(launch.command, process.execPath);
+    assert.deepEqual(launch.args, [
+      "C:\\npm\\node_modules\\@anthropic-ai\\claude-code\\cli.js",
+      "line one\nline two",
+    ]);
+  });
+
+  it("unwraps a pnpm shim that points outside its own directory", () => {
+    const launch = launchCommand(
+      "C:\\pnpm\\bin\\GEMINI.CMD",
+      ["-p", "x"],
+      "win32",
+      read(PNPM_SHIM),
+    );
+    assert.equal(launch.command, process.execPath);
+    assert.deepEqual(launch.args, [
+      "C:\\pnpm\\global\\node_modules\\gemini\\bundle\\gemini.mjs",
+      "-p",
+      "x",
+    ]);
+  });
+
+  it("starts a native binary behind a shim directly", () => {
+    const launch = launchCommand("C:\\npm\\codex.cmd", ["x"], "win32", read(NATIVE_SHIM));
+    assert.deepEqual(launch, {
+      command: "C:\\npm\\node_modules\\@openai\\codex\\bin\\codex.exe",
+      args: ["x"],
+    });
+  });
+
+  it("explains a shim it cannot read instead of failing with EINVAL", () => {
+    assert.throws(
+      () => launchCommand("C:\\bin\\agent.bat", ["x"], "win32", read("@echo off\r\nnode %*")),
+      /batch shim Vulcanus cannot start directly/,
+    );
+    const missing = () => {
+      throw new Error("ENOENT");
+    };
+    assert.throws(() => launchCommand("C:\\bin\\agent.cmd", [], "win32", missing), /batch shim/);
   });
 });
 

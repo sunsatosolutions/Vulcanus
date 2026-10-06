@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { DetectedCli } from "./clis.js";
+import { launchCommand, type DetectedCli } from "./clis.js";
 import type { AnalysisResult, ProjectCandidate } from "../importers/analyze.js";
 import type { NormalizedConversation } from "../importers/types.js";
 
@@ -148,7 +148,8 @@ export async function runClustering(
   if (digest.length === 0) return { clusters: [] };
 
   try {
-    const { stdout } = await exec(cli.path, cli.printArgs(buildClusterPrompt(digest)), {
+    const launch = launchCommand(cli.path, cli.printArgs(buildClusterPrompt(digest)));
+    const { stdout } = await exec(launch.command, launch.args, {
       timeout: CLUSTER_TIMEOUT_MS,
       maxBuffer: 8 * 1024 * 1024,
     });

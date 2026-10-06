@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+
+- On Windows, starting an AI CLI installed through npm, pnpm, or yarn crashed
+  with `spawn EINVAL`. Those installs put a `.cmd` batch shim on PATH, and Node
+  refuses to spawn one without a shell — which cmd.exe cannot be, since it ends
+  a command at the first newline of the handoff prompt. Vulcanus now reads the
+  shim and starts the program behind it directly: the JavaScript entry point
+  under Node, or a native binary as itself. This covers `--ai`, `--ai-group`,
+  and `--ai-extract` alike. A shim it cannot read fails with a message
+  that says to install the CLI's standalone build, never a bare EINVAL.
+
 ## 0.6.1 — 2026-10-05
 
 ### Fixed

@@ -8,7 +8,7 @@ import { messages, type Locale } from "../i18n.js";
 import { buildPlan } from "../manifest/derive.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { askConfirm, askSelect, askText } from "../prompts.js";
-import { detectAiClis, type DetectedCli } from "./clis.js";
+import { detectAiClis, launchCommand, type DetectedCli } from "./clis.js";
 import { buildHandoffPrompt, editableNotes } from "./prompt.js";
 import { detectSourceDirectories, proposeSourceDirectories } from "./workdirs.js";
 
@@ -126,11 +126,21 @@ export async function planHandoff(
 
 function spawnCli(cli: DetectedCli, prompt: string, cwd: string): Promise<number> {
   return new Promise((settle) => {
-    const child = spawn(cli.path, cli.args(prompt), { cwd, stdio: "inherit" });
-    child.on("error", (error) => {
+    const fail = (error: Error) => {
       p.log.error(`${cli.label}: ${error.message}`);
       settle(-1);
-    });
+    };
+    // Some failures (a Windows .cmd shim, a bad argument) throw synchronously
+    // instead of emitting "error", so both paths are caught.
+    let child;
+    try {
+      const launch = launchCommand(cli.path, cli.args(prompt));
+      child = spawn(launch.command, launch.args, { cwd, stdio: "inherit" });
+    } catch (error) {
+      fail(error as Error);
+      return;
+    }
+    child.on("error", fail);
     child.on("close", (code) => settle(code ?? 0));
   });
 }
