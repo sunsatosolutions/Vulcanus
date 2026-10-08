@@ -1,0 +1,16 @@
+{
+  "name": "vulcanus-webtest-gate",
+  "private": true,
+  "description": "Webtest quality gate for the site: Playwright, axe, Lighthouse. Installed only in the gate job of deploy.yml.",
+  "type": "module",
+  "scripts": {
+    "responsive": "node responsive.mjs",
+    "lighthouse": "node lighthouse.mjs"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "chrome-launcher": "1.2.2",
+    "lighthouse": "13.5.0",
+    "playwright": "1.64.0"
+  }
+}

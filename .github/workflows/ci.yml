@@ -1,5 +1,11 @@
 name: CI
 
+# Runs on every pull request push and every main push, and before every npm
+# publish (release.yml calls it). It deploys nothing: the site reaches
+# production only through promote.yml (main → staging → webtest → rc →
+# approval → production), and deploy.yml looks for a green run of this
+# workflow on main for the commit it promotes.
+
 on:
   push:
     branches: [main]
@@ -7,25 +13,54 @@ on:
   # The release workflow runs this whole matrix before it publishes anything.
   workflow_call:
 
+# A new push to the same pull request cancels the old run; main runs are never
+# cut short.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
   check:
     name: lint & format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
       - run: npm run site:check
+
+  audit:
+    name: audit & secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # The report always prints; only a critical advisory stops the build.
+      - name: npm audit
+        run: |
+          npm audit --omit=dev || true
+          npm audit --omit=dev --audit-level=critical
+
+      - name: Secret scan
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
+        with:
+          extra_args: --only-verified
 
   test:
     name: test (node ${{ matrix.node }}, ${{ matrix.os }})
@@ -36,8 +71,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node: [22, 24, 26]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -48,10 +83,10 @@ jobs:
     name: coverage thresholds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run coverage:check
@@ -60,11 +95,103 @@ jobs:
     name: build & pack
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm pack --dry-run
+
+  site:
+    name: site package & smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/deploy/package-lock.json
+      - run: npm ci --prefix tools/deploy
+
+      # The same packaging deploy.yml uses for a release, so CI proves exactly
+      # what would ship. Both copies are served by a local Worker and smoke
+      # tested as the environment they are for.
+      - name: Package
+        run: npm run site:build
+
+      - name: Smoke test (local Worker, production and staging copies)
+        run: |
+          sha=$(git rev-parse HEAD)
+          status=0
+          for env in production staging; do
+            rm -rf out/site && cp -R "out/package/$env" out/site
+            flag=$([ "$env" = staging ] && echo "--env staging" || true)
+            # shellcheck disable=SC2086
+            tools/deploy/node_modules/.bin/wrangler dev $flag --port 8787 > "worker-$env.log" 2>&1 &
+            pid=$!
+            for _ in $(seq 1 60); do
+              curl -s -o /dev/null http://127.0.0.1:8787/ && break
+              sleep 1
+            done
+            node scripts/site-live-check.mjs --origin http://127.0.0.1:8787 --expect "$env" --sha "$sha" \
+              || { status=1; tail -40 "worker-$env.log"; }
+            # Stopped by PID: `kill %1` in a shell without job control also
+            # kills the step's own shell.
+            kill "$pid" || true
+            wait "$pid" 2>/dev/null || true
+          done
+          exit "$status"
+
+      # ---- Pull requests only: preview ----
+
+      # The staging copy (noindex) is uploaded to the webtest Worker as a
+      # version that takes no traffic, so a preview never enters the live
+      # Worker's version list and this job holds only the staging token. Pull
+      # requests from forks have no token and skip it.
+      - name: Upload preview version
+        id: upload
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "no staging token"; exit 1; }
+          rm -rf out/site && cp -R out/package/staging out/site
+          tools/deploy/node_modules/.bin/wrangler versions upload --env staging \
+            --preview-alias "pr-$PR" --message "PR #$PR $(git rev-parse --short HEAD)" | tee upload.log
+          url=$(grep -oE 'https://pr-[a-z0-9-]+\.[a-z0-9.-]+\.workers\.dev' upload.log | head -1)
+          [ -n "$url" ] || url=$(grep -oE 'https://[a-z0-9-]+\.[a-z0-9.-]+\.workers\.dev' upload.log | head -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test (preview URL)
+        if: steps.upload.outputs.url != ''
+        run: node scripts/site-live-check.mjs --origin "${{ steps.upload.outputs.url }}" --expect staging --wait 60 --sha "$(git rev-parse HEAD)"
+
+      - name: Comment the preview URL on the pull request
+        if: steps.upload.outputs.url != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          URL: ${{ steps.upload.outputs.url }}
+        with:
+          script: |
+            const marker = '<!-- site-preview -->'
+            const body = `${marker}\n**Site preview:** ${process.env.URL}\n\nCommit \`${context.sha.slice(0, 7)}\` · closed to search engines. An early look only; a site release is approved on its release candidate at webtest-vulcanus.sunsato.com.`
+            const { owner, repo } = context.repo
+            const issue_number = context.issue.number
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
+            const old = comments.find((c) => c.body?.includes(marker))
+            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body })
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body })
+
+      - name: Preview skipped
+        if: github.event_name == 'pull_request' && steps.upload.outcome == 'failure'
+        run: echo "::warning::Site preview not uploaded (no CLOUDFLARE_API_TOKEN_STAGING, or vulcanus-staging has not been deployed yet)."

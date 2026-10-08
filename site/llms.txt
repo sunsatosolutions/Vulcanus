@@ -16,6 +16,7 @@ Install it globally: `vulcanus serve`, the generated skills, and the commit hook
 
 ## Docs
 
+- [Full documentation](https://vulcanus.sunsato.com/llms-full.txt): the README in one Markdown file, served from the same release as this page
 - [README](https://raw.githubusercontent.com/sunsatosolutions/Vulcanus/main/README.md): install, commands, vault structure, import, MCP server, validation, decision lifecycle, and editing safety
 - [Token budget](https://raw.githubusercontent.com/sunsatosolutions/Vulcanus/main/docs/token-budget.md): how much a scoped recall saves compared with reading the whole vault, and what that measurement does not prove
 - [Changelog](https://raw.githubusercontent.com/sunsatosolutions/Vulcanus/main/CHANGELOG.md): what changed in each release

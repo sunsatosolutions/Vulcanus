@@ -1,0 +1,147 @@
+# Site promote (Deploy Flow Standard v1.1)
+#
+# Branches only move forward (fast-forward), never by force. The branch is
+# pushed with GITHUB_TOKEN (which triggers no second run) and deploy.yml is
+# called; every guard lives in deploy.yml.
+#
+#   main → staging     moves origin/main onto staging -> webtest-vulcanus.sunsato.com,
+#                      quality gate, and if it passes rc-YYYY-MM-DD.N. While an
+#                      rc awaits approval staging is frozen; if that rc was
+#                      rejected or withdrawn, run with a `supersede` reason.
+#   rc → production    moves the approved rc's commit onto production -> the
+#                      rc's package goes live, prod-YYYY-MM-DD.N, IndexNow.
+#                      Only after the maintainer has approved it on webtest.
+#                      The production branch is created on the first approval.
+#
+# This is the site only. The npm package is released by pushing a v* tag
+# (release.yml); a new version reaches the site through the next promotion.
+
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Direction
+        type: choice
+        options:
+          - main → staging
+          - rc → production
+        required: true
+      rc_tag:
+        description: "rc → production: the approved rc tag (rc-YYYY-MM-DD.N)"
+        required: false
+      approver:
+        description: "rc → production: who approved"
+        required: false
+      supersede:
+        description: "main → staging: the open rc was rejected or withdrawn, and why"
+        required: false
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Fast-forward the branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      branch: ${{ steps.push.outputs.branch }}
+      sha: ${{ steps.push.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: ${{ inputs.action }}
+      RC_TAG: ${{ inputs.rc_tag }}
+      APPROVER: ${{ inputs.approver }}
+      SUPERSEDE: ${{ inputs.supersede }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward
+        id: push
+        run: |
+          git fetch --tags --force origin
+          if [ "$ACTION" = "main → staging" ]; then
+            branch=staging
+            sha=$(git rev-parse origin/main)
+            open=$(.github/scripts/open-rcs.sh)
+            if [ -n "$open" ]; then
+              if [ -z "$SUPERSEDE" ]; then
+                echo "::error::Staging is frozen: an rc awaits approval ($open). If it was rejected or withdrawn, run again with the reason in supersede."
+                exit 1
+              fi
+              for tag in $open; do
+                body=$(gh release view "$tag" --json body --jq .body)
+                printf '<!-- dfs:superseded -->\n> **Superseded** %s by %s: %s\n\n%s\n' \
+                  "$(TZ=Europe/Istanbul date '+%F %H:%M')" "$GITHUB_ACTOR" "$SUPERSEDE" "$body" > body.md
+                gh release edit "$tag" --title "$tag (superseded)" --notes-file body.md
+                echo "$tag superseded: $SUPERSEDE" >> "$GITHUB_STEP_SUMMARY"
+              done
+            fi
+          elif [ "$ACTION" = "rc → production" ]; then
+            branch=production
+            [[ "$RC_TAG" =~ ^rc-[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]+$ ]] || { echo "::error::rc_tag must look like rc-YYYY-MM-DD.N."; exit 1; }
+            [ -n "$APPROVER" ] || { echo "::error::approver is empty."; exit 1; }
+            git rev-parse -q --verify "refs/tags/$RC_TAG" >/dev/null || { echo "::error::No tag $RC_TAG."; exit 1; }
+            .github/scripts/open-rcs.sh | grep -qx "$RC_TAG" || { echo "::error::$RC_TAG is not an open rc (superseded, or already live)."; exit 1; }
+            sha=$(git rev-parse "$RC_TAG^{commit}")
+            git merge-base --is-ancestor "$sha" origin/staging || { echo "::error::$RC_TAG is not on origin/staging."; exit 1; }
+          else
+            echo "::error::Unknown direction: $ACTION"; exit 1
+          fi
+
+          # Fast-forward only: when the branch exists, the new commit must descend from it.
+          if current=$(git rev-parse -q --verify "origin/$branch"); then
+            if [ "$current" = "$sha" ]; then
+              echo "::notice::$branch is already $sha; the deploy runs again."
+            else
+              git merge-base --is-ancestor "$current" "$sha" || { echo "::error::$branch ($current) is not an ancestor of $sha; cannot fast-forward."; exit 1; }
+              git push origin "$sha:refs/heads/$branch"
+            fi
+          else
+            echo "::notice::Creating the $branch branch."
+            git push origin "$sha:refs/heads/$branch"
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "$ACTION: $branch → \`${sha::7}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # Each target receives only its own token (DFS-22).
+  staging:
+    name: Deploy (staging)
+    needs: promote
+    if: needs.promote.outputs.branch == 'staging'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      branch: staging
+      sha: ${{ needs.promote.outputs.sha }}
+    secrets:
+      CLOUDFLARE_API_TOKEN_STAGING: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+  production:
+    name: Deploy (production)
+    needs: promote
+    if: needs.promote.outputs.branch == 'production'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      branch: production
+      sha: ${{ needs.promote.outputs.sha }}
+      rc_tag: ${{ inputs.rc_tag }}
+      approver: ${{ inputs.approver }}
+    secrets:
+      CLOUDFLARE_API_TOKEN_PRODUCTION: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}

@@ -29,9 +29,9 @@ export default tseslint.config(
     },
   },
   {
-    // Release and test-runner helpers: plain Node scripts, outside the TypeScript
-    // project, so the type-aware rules have nothing to work from.
-    files: ["scripts/**/*.mjs", "scripts/**/*.d.mts"],
+    // Release, site, and test-runner helpers: plain Node scripts, outside the
+    // TypeScript project, so the type-aware rules have nothing to work from.
+    files: ["scripts/**/*.mjs", "scripts/**/*.d.mts", "tools/**/*.mjs"],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       parserOptions: { project: false, projectService: false },
@@ -41,6 +41,8 @@ export default tseslint.config(
         fetch: "readonly",
         URL: "readonly",
         setTimeout: "readonly",
+        AbortSignal: "readonly",
+        document: "readonly",
       },
     },
   },

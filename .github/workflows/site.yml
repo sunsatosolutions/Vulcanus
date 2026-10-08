@@ -1,20 +1,12 @@
 name: Site
 
-# Cloudflare Workers Builds deploys site/ on every push to main, after
-# `node scripts/site-check.mjs` passes (the build command in wrangler.jsonc).
-# This workflow is the other half: it waits for that deploy, checks the live
-# page against the repository, and tells search engines it changed. The weekly
-# run catches drift nobody pushed — a dashboard setting, an expiring
-# security.txt, an injected header.
+# Weekly drift check of the live site against the release it should be
+# serving: the newest prod- release's package. It catches what nobody
+# deployed — a dashboard setting, an expiring security.txt, an injected
+# header, AI-bot blocking switched on. Deploys and their own smoke tests live
+# in deploy.yml.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "site/**"
-      - "scripts/site-check.mjs"
-      - "scripts/site-live-check.mjs"
-      - "wrangler.jsonc"
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
@@ -22,27 +14,32 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: site-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   verify:
     name: verify the live site
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 24
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
 
       - name: Static checks
         run: node scripts/site-check.mjs
 
-      - name: Wait for the deploy, then check the live site
-        if: github.event_name == 'push'
-        run: node scripts/site-live-check.mjs --wait 600 --indexnow
-
-      - name: Check the live site
-        if: github.event_name != 'push'
-        run: node scripts/site-live-check.mjs
+      - name: Check the live site against the live release
+        run: |
+          tag=$(git tag -l 'prod-*' | sort -V | tail -1)
+          if [ -z "$tag" ]; then
+            echo "::notice::No prod- release yet; nothing to compare the live site with."
+            exit 0
+          fi
+          sha=$(git rev-parse "$tag^{commit}")
+          mkdir -p dist
+          gh release download "$tag" --dir dist --pattern "vulcanus-site-${sha::7}.tar.gz"
+          rm -rf out && mkdir out && tar -xzf "dist/vulcanus-site-${sha::7}.tar.gz" -C out
+          node scripts/site-live-check.mjs --expect production --sha "$sha"
