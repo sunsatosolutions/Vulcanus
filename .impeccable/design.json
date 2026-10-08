@@ -1,0 +1,505 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T16:22:28.708Z",
+  "title": "Design System: Vulcanus",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Blackened Steel",
+        "canonical": "#0f1113",
+        "approxOklch": "oklch(17.6% 0.005 248.1)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "steel": {
+        "role": "neutral",
+        "displayName": "Steel",
+        "canonical": "#161a1d",
+        "approxOklch": "oklch(21.5% 0.008 240.3)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "steel-2": {
+        "role": "neutral",
+        "displayName": "Steel Two",
+        "canonical": "#1c2024",
+        "approxOklch": "oklch(24.1% 0.01 248.2)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#272c31",
+        "approxOklch": "oklch(29% 0.012 248.2)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#3a4147",
+        "approxOklch": "oklch(37.1% 0.014 244)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "#e8e3d9",
+        "approxOklch": "oklch(91.7% 0.014 84.6)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "iron": {
+        "role": "neutral",
+        "displayName": "Iron",
+        "canonical": "#a3a7ac",
+        "approxOklch": "oklch(72.7% 0.009 253.9)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "Dim",
+        "canonical": "#80868c",
+        "approxOklch": "oklch(61.7% 0.012 248)",
+        "tonalRamp": [
+          "#0f1113",
+          "#161a1d",
+          "#1c2024",
+          "#272c31",
+          "#3a4147",
+          "#80868c",
+          "#a3a7ac",
+          "#e8e3d9"
+        ]
+      },
+      "ember": {
+        "role": "primary",
+        "displayName": "Forge Ember",
+        "canonical": "#e8572a",
+        "approxOklch": "oklch(64.3% 0.189 37)",
+        "tonalRamp": [
+          "oklch(15% 0.113 37)",
+          "oklch(25% 0.113 37)",
+          "oklch(35% 0.189 37)",
+          "oklch(45% 0.189 37)",
+          "oklch(55% 0.189 37)",
+          "oklch(65% 0.189 37)",
+          "oklch(80% 0.189 37)",
+          "oklch(95% 0.113 37)"
+        ]
+      },
+      "straw": {
+        "role": "secondary",
+        "displayName": "Straw",
+        "canonical": "#dcbb72",
+        "approxOklch": "oklch(80.5% 0.099 85.9)",
+        "tonalRamp": [
+          "oklch(15% 0.06 85.9)",
+          "oklch(25% 0.06 85.9)",
+          "oklch(35% 0.099 85.9)",
+          "oklch(45% 0.099 85.9)",
+          "oklch(55% 0.099 85.9)",
+          "oklch(65% 0.099 85.9)",
+          "oklch(80% 0.099 85.9)",
+          "oklch(95% 0.06 85.9)"
+        ]
+      },
+      "gold": {
+        "role": "secondary",
+        "displayName": "Gold",
+        "canonical": "#c99a48",
+        "approxOklch": "oklch(71.5% 0.114 79)",
+        "tonalRamp": [
+          "oklch(15% 0.068 79)",
+          "oklch(25% 0.068 79)",
+          "oklch(35% 0.114 79)",
+          "oklch(45% 0.114 79)",
+          "oklch(55% 0.114 79)",
+          "oklch(65% 0.114 79)",
+          "oklch(80% 0.114 79)",
+          "oklch(95% 0.068 79)"
+        ]
+      },
+      "bronze": {
+        "role": "secondary",
+        "displayName": "Bronze",
+        "canonical": "#b27645",
+        "approxOklch": "oklch(61.8% 0.1 58.7)",
+        "tonalRamp": [
+          "oklch(15% 0.06 58.7)",
+          "oklch(25% 0.06 58.7)",
+          "oklch(35% 0.1 58.7)",
+          "oklch(45% 0.1 58.7)",
+          "oklch(55% 0.1 58.7)",
+          "oklch(65% 0.1 58.7)",
+          "oklch(80% 0.1 58.7)",
+          "oklch(95% 0.06 58.7)"
+        ]
+      },
+      "plum": {
+        "role": "secondary",
+        "displayName": "Plum",
+        "canonical": "#9a6894",
+        "approxOklch": "oklch(58.5% 0.088 330.9)",
+        "tonalRamp": [
+          "oklch(15% 0.053 330.9)",
+          "oklch(25% 0.053 330.9)",
+          "oklch(35% 0.088 330.9)",
+          "oklch(45% 0.088 330.9)",
+          "oklch(55% 0.088 330.9)",
+          "oklch(65% 0.088 330.9)",
+          "oklch(80% 0.088 330.9)",
+          "oklch(95% 0.053 330.9)"
+        ]
+      },
+      "violet": {
+        "role": "secondary",
+        "displayName": "Violet",
+        "canonical": "#8070bd",
+        "approxOklch": "oklch(59.3% 0.116 292)",
+        "tonalRamp": [
+          "oklch(15% 0.07 292)",
+          "oklch(25% 0.07 292)",
+          "oklch(35% 0.116 292)",
+          "oklch(45% 0.116 292)",
+          "oklch(55% 0.116 292)",
+          "oklch(65% 0.116 292)",
+          "oklch(80% 0.116 292)",
+          "oklch(95% 0.07 292)"
+        ]
+      },
+      "blue": {
+        "role": "secondary",
+        "displayName": "Tempered Blue",
+        "canonical": "#5f86c6",
+        "approxOklch": "oklch(61.9% 0.107 259.9)",
+        "tonalRamp": [
+          "oklch(15% 0.064 259.9)",
+          "oklch(25% 0.064 259.9)",
+          "oklch(35% 0.107 259.9)",
+          "oklch(45% 0.107 259.9)",
+          "oklch(55% 0.107 259.9)",
+          "oklch(65% 0.107 259.9)",
+          "oklch(80% 0.107 259.9)",
+          "oklch(95% 0.064 259.9)"
+        ]
+      },
+      "pale-blue": {
+        "role": "secondary",
+        "displayName": "Pale Blue",
+        "canonical": "#8ea5bd",
+        "approxOklch": "oklch(71.2% 0.044 249.6)",
+        "tonalRamp": [
+          "oklch(15% 0.026 249.6)",
+          "oklch(25% 0.026 249.6)",
+          "oklch(35% 0.044 249.6)",
+          "oklch(45% 0.044 249.6)",
+          "oklch(55% 0.044 249.6)",
+          "oklch(65% 0.044 249.6)",
+          "oklch(80% 0.044 249.6)",
+          "oklch(95% 0.026 249.6)"
+        ]
+      },
+      "grey": {
+        "role": "secondary",
+        "displayName": "Spent Grey",
+        "canonical": "#9aa3ab",
+        "approxOklch": "oklch(71.1% 0.016 244.8)",
+        "tonalRamp": [
+          "oklch(15% 0.009 244.8)",
+          "oklch(25% 0.009 244.8)",
+          "oklch(35% 0.016 244.8)",
+          "oklch(45% 0.016 244.8)",
+          "oklch(55% 0.016 244.8)",
+          "oklch(65% 0.016 244.8)",
+          "oklch(80% 0.016 244.8)",
+          "oklch(95% 0.009 244.8)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The single page h1 and the 404 heading; set via font-stretch: 114%."
+      },
+      "display-close": {
+        "displayName": "Display Close",
+        "purpose": "Closing statement above the second install line; font-stretch: 116%, max 18ch."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section h2s; font-stretch: 110%."
+      },
+      "subheading": {
+        "displayName": "Subheading",
+        "purpose": "Second heading inside a long section; font-stretch: 108%."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "h3 in rows and columns, gauge layer names, FAQ summaries; font-stretch: 104 to 108%."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Hero lede in iron, max 37rem; section ledes at 1.12rem, max 42rem."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text; tabular numerals throughout; 1rem below 640px."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Captions, ticks, table heads, rail title, gauge source, 0.75 to 0.88rem in dim; sentence case."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "JetBrains Mono for commands, paths, CLI output and figures quoted from it; never labels or headings."
+      }
+    },
+    "shadows": [
+      {
+        "name": "install-lift",
+        "value": "0 1px 0 rgb(255 255 255 / 0.03) inset, 0 6px 14px -8px rgb(0 0 0 / 0.7)",
+        "purpose": "The install line only; the system is otherwise flat."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing; all state transitions."
+      },
+      {
+        "name": "hover",
+        "value": "0.2s",
+        "purpose": "Colour, underline, border and fill changes on links and controls."
+      },
+      {
+        "name": "rail-state",
+        "value": "0.3s / 0.4s",
+        "purpose": "Rail label colour and swatch opacity; swatch widening."
+      },
+      {
+        "name": "faq-icon",
+        "value": "0.35s",
+        "purpose": "Plus icon rotating 45 degrees on open."
+      },
+      {
+        "name": "rail-marker",
+        "value": "0.55s",
+        "purpose": "Ember marker sliding to the current section."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none; scroll-behavior: auto",
+        "purpose": "prefers-reduced-motion removes every transition and smooth scrolling."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rail",
+        "value": "1100px",
+        "purpose": "Below: temper rail removed, body single column."
+      },
+      {
+        "name": "hero",
+        "value": "900px",
+        "purpose": "Below: hero stacks, gauge turns horizontal, wide-left splits and columns collapse, secondary nav hides."
+      },
+      {
+        "name": "narrow",
+        "value": "640px",
+        "purpose": "Below: rows single column, body 1rem, copy button icon-only."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Install Line",
+      "kind": "input",
+      "refersTo": "install-line",
+      "description": "The one install command with ember prompt and copy control; hero and close.",
+      "html": "<div class=\"ds-root-install\"><div class=\"ds-install\"><span class=\"ds-prompt\" aria-hidden=\"true\">$</span><code>npm install -g @sunsato/vulcanus</code><button class=\"ds-copy\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"5.5\" y=\"5.5\" width=\"8\" height=\"8\" rx=\"1.5\"/><path d=\"M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2\"/></svg><span>Copy</span></button></div></div>",
+      "css": ".ds-root-install{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-install{display:flex;align-items:center;max-width:37rem;background:var(--steel);border:1px solid var(--line-strong);border-radius:var(--radius);font-family:var(--mono);font-size:1rem;box-shadow:0 1px 0 rgb(255 255 255 / 0.03) inset,0 6px 14px -8px rgb(0 0 0 / 0.7);} .ds-prompt{padding-left:1.1rem;color:var(--ember);font-weight:600;user-select:none;} .ds-install code{flex:1;min-width:0;padding:1rem 0.75rem;white-space:nowrap;overflow-x:auto;color:var(--bone);font-variant-ligatures:none;} .ds-copy{display:inline-flex;align-items:center;gap:0.45rem;align-self:stretch;padding:0 1.1rem;border:0;border-left:1px solid var(--line-strong);border-radius:0 var(--radius) var(--radius) 0;background:transparent;color:var(--iron);font:500 0.88rem var(--sans);cursor:pointer;transition:color 0.2s var(--ease-out),background-color 0.2s var(--ease-out);} .ds-copy:hover{color:var(--bone);background:var(--steel-2);} .ds-copy:focus-visible{outline:2px solid var(--ember);outline-offset:3px;} .ds-copy:active{color:var(--straw);} .ds-icon{width:15px;height:15px;}"
+    },
+    {
+      "name": "GitHub Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-github",
+      "description": "Topbar: iron text links and the single outlined control.",
+      "html": "<div class=\"ds-root-nav\"><nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><svg viewBox=\"0 0 26 26\" aria-hidden=\"true\"><rect width=\"26\" height=\"26\" rx=\"5\" fill=\"#e8572a\"/><path d=\"M6.5 7h3.6l2.9 9.1L15.9 7h3.6l-4.7 12.5h-3.6Z\" fill=\"#0f1113\"/></svg>Vulcanus</a><span class=\"ds-links\"><a href=\"#\">How it works</a><a href=\"#\">FAQ</a><a class=\"ds-gh\" href=\"#\">GitHub</a></span></nav></div>",
+      "css": ".ds-root-nav{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-nav{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding:1.4rem 0;border-bottom:1px solid var(--line);} .ds-brand{display:inline-flex;align-items:center;gap:0.65rem;font-weight:700;font-stretch:112%;font-size:1.12rem;letter-spacing:-0.01em;color:var(--bone);text-decoration:none;} .ds-brand svg{width:26px;height:26px;} .ds-links{display:flex;align-items:center;gap:1.6rem;font-size:0.95rem;} .ds-links a{color:var(--iron);text-decoration:none;transition:color 0.2s var(--ease-out);} .ds-links a:hover{color:var(--bone);} .ds-links a:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:2px;} .ds-links .ds-gh{color:var(--bone);padding:0.42rem 0.8rem;border:1px solid var(--line-strong);border-radius:var(--radius);transition:border-color 0.2s var(--ease-out),background-color 0.2s var(--ease-out);} .ds-links .ds-gh:hover{border-color:var(--iron);background:var(--steel);}"
+    },
+    {
+      "name": "Depth Gauge",
+      "kind": "custom",
+      "description": "Signature chart: measured share of the vault read per layer, in temper colours.",
+      "html": "<div class=\"ds-root-gauge\"><figure class=\"ds-gauge\"><div class=\"ds-gtitle\">How deep an agent reads</div><div class=\"ds-chart\"><div class=\"ds-axis\"><span style=\"top:0\">0%</span><span class=\"ds-at-24\">24%</span><span class=\"ds-at-100\">100%</span></div><div class=\"ds-strip\"><i class=\"ds-cold\"></i><i class=\"ds-cap\"></i><i class=\"ds-deep\"></i></div><ol class=\"ds-layers\"><li class=\"ds-l1\"><b>Recall Map</b><em>24%</em></li><li class=\"ds-l2\"><b>Capsule</b><em>+2%</em></li><li class=\"ds-l3\"><b>Hub · Decisions · Rules</b><em>the other 74%</em></li></ol></div></figure></div>",
+      "css": ".ds-root-gauge{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-gauge{margin:0;padding-top:1.4rem;border-top:1px solid var(--line-strong);max-width:26rem;} .ds-gtitle{font-weight:650;font-stretch:108%;} .ds-chart{position:relative;display:grid;grid-template-columns:2.6rem 0.9rem 1fr;column-gap:0.9rem;height:16rem;margin-top:1.2rem;} .ds-axis,.ds-strip,.ds-layers{position:relative;} .ds-axis span{position:absolute;right:0;transform:translateY(-50%);font-size:0.75rem;line-height:1;color:var(--dim);} .ds-strip{border-radius:3px;overflow:hidden;background:var(--steel-2);} .ds-strip i{position:absolute;left:0;right:0;} .ds-cold{top:0;height:24%;background:linear-gradient(180deg,var(--ember) 0 45%,var(--straw) 45% 100%);} .ds-cap{top:24%;height:2%;background:var(--bronze);} .ds-deep{top:26%;height:74%;background:var(--blue);} .ds-layers{list-style:none;margin:0;padding:0;} .ds-layers li{position:absolute;left:0;right:0;display:flex;justify-content:space-between;gap:1rem;padding-left:0.9rem;border-left:2px solid var(--t);} .ds-layers b{font-weight:650;font-stretch:106%;} .ds-layers em{font-style:normal;font-weight:700;font-stretch:110%;color:var(--t);} .ds-l1{top:0;--t:var(--straw);} .ds-l2{top:calc(25% - 0.7rem);--t:var(--bronze);} .ds-l3{top:calc(60% - 0.7rem);--t:var(--blue);} .ds-at-0{top:0;} .ds-at-24{top:24%;} .ds-at-100{top:100%;}"
+    },
+    {
+      "name": "Calibrated Section Rule",
+      "kind": "custom",
+      "description": "Every section opens with a band-coloured hairline, fine and coarse ticks.",
+      "html": "<div class=\"ds-root-rule\"><section class=\"ds-section\"><h2>Structure is the feature</h2><p>Section lede in iron, max 42rem.</p></section></div>",
+      "css": ".ds-root-rule{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-section{--t:var(--straw);--band:color-mix(in srgb,var(--t) 75%,transparent);padding:3rem 0 1rem;background:linear-gradient(var(--band),var(--band)) top left / 100% 1px no-repeat,repeating-linear-gradient(90deg,var(--band) 0 1px,transparent 1px 2rem) top left / 100% 0.5rem no-repeat,repeating-linear-gradient(90deg,var(--t) 0 2px,transparent 2px 10rem) top left / 100% 0.9rem no-repeat;} .ds-section h2{margin:0;font-size:2.4rem;font-stretch:110%;font-weight:750;line-height:1.04;letter-spacing:-0.03em;} .ds-section p{margin:1.1rem 0 0;max-width:42rem;font-size:1.12rem;color:var(--iron);}"
+    },
+    {
+      "name": "Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "Framed real code or CLI output only, with a mono label bar.",
+      "html": "<div class=\"ds-root-plate\"><figure class=\"ds-plate\"><div class=\"ds-plabel\"><span>vulcanus doctor</span><span>exit 0</span></div><pre><span class=\"ds-q\">$ vulcanus doctor</span>\n<span class=\"ds-ok\">✓ 42 notes, every link resolves</span>\n<span class=\"ds-cm\"># no stale decisions</span></pre></figure></div>",
+      "css": ".ds-root-plate{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-plate{--t:var(--blue);margin:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--steel);overflow:hidden;max-width:34rem;} .ds-plabel{display:flex;justify-content:space-between;gap:1rem;padding:0.6rem 1.1rem;border-bottom:1px solid color-mix(in srgb,var(--t) 38%,var(--line));font-family:var(--mono);font-size:0.8rem;color:var(--dim);} .ds-plate pre{margin:0;padding:1.1rem 1.2rem 1.25rem;font-family:var(--mono);font-size:0.85rem;line-height:1.7;color:var(--iron);font-variant-ligatures:none;} .ds-q{color:var(--bone);} .ds-ok{color:var(--pale-blue);} .ds-cm{color:var(--dim);}"
+    },
+    {
+      "name": "Ruled Rows",
+      "kind": "custom",
+      "description": "Structure without cards: band top rule, hairline separators, title column.",
+      "html": "<div class=\"ds-root-rows\"><ul class=\"ds-rows\"><li><h3>vulcanus.json</h3><p>The manifest the vault is derived from.</p></li><li><h3>Recall Map</h3><p>Trigger words route to the right project in one hop.</p></li></ul><div class=\"ds-note\"><strong>Honest limit.</strong> What the measurement does and does not prove.</div></div>",
+      "css": ".ds-root-rows{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-rows{--t:var(--bronze);list-style:none;margin:0;padding:0;border-top:1px solid color-mix(in srgb,var(--t) 75%,transparent);} .ds-rows li{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr);gap:0.4rem 2rem;align-items:baseline;padding:1.25rem 0;border-bottom:1px solid var(--line);} .ds-rows h3{margin:0;font-size:1.08rem;font-stretch:106%;font-weight:650;line-height:1.3;} .ds-rows p{margin:0;color:var(--iron);} .ds-note{margin-top:2rem;max-width:46rem;padding-top:1.1rem;border-top:1px solid color-mix(in srgb,var(--bronze) 75%,transparent);color:var(--iron);font-size:0.98rem;} .ds-note strong{color:var(--bone);font-weight:650;}"
+    },
+    {
+      "name": "Temper Rail",
+      "kind": "nav",
+      "description": "Sticky section index as one temper strip; current entry lit, ember marker.",
+      "html": "<div class=\"ds-root-rail\"><nav class=\"ds-rail\"><div class=\"ds-rtitle\">On this page</div><ol><li class=\"ds-t-straw\"><a href=\"#\">Structure</a></li><li class=\"ds-t-gold\"><a href=\"#\">Import</a></li><li class=\"ds-t-bronze\"><a href=\"#\" aria-current=\"true\">Commands</a></li><li class=\"ds-t-plum\"><a href=\"#\">MCP</a></li><li class=\"ds-t-violet\"><a href=\"#\">Token budget</a></li><li class=\"ds-t-blue\"><a href=\"#\">Checks</a></li><li class=\"ds-t-pale-blue\"><a href=\"#\">Agents</a></li><li class=\"ds-t-grey\"><a href=\"#\">Questions</a></li></ol></nav></div>",
+      "css": ".ds-root-rail{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-rail{width:12.5rem;padding-left:1rem;} .ds-rtitle{font-size:0.82rem;color:var(--dim);margin-bottom:0.9rem;} .ds-rail ol{list-style:none;margin:0;padding:0;} .ds-rail a{display:grid;grid-template-columns:0.5rem 1fr;column-gap:0.9rem;align-items:center;min-height:2.35rem;color:var(--dim);text-decoration:none;font-size:0.92rem;transition:color 0.3s var(--ease-out);position:relative;} .ds-rail a::before{content:\"\";align-self:stretch;background:var(--t);opacity:0.75;transform-origin:left center;transition:opacity 0.3s var(--ease-out),transform 0.4s var(--ease-out);} .ds-rail li:first-child a::before{border-radius:3px 3px 0 0;} .ds-rail li:last-child a::before{border-radius:0 0 3px 3px;} .ds-rail a:hover,.ds-rail a[aria-current=\"true\"]{color:var(--bone);} .ds-rail a:hover::before,.ds-rail a[aria-current=\"true\"]::before{opacity:1;} .ds-rail a[aria-current=\"true\"]::before{transform:scaleX(1.8);} .ds-rail a[aria-current=\"true\"]::after{content:\"\";position:absolute;left:-0.85rem;top:50%;width:0.45rem;height:0.8rem;transform:translateY(-50%);background:var(--ember);clip-path:polygon(0 0,100% 50%,0 100%);} .ds-rail a:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:2px;} .ds-t-straw{--t:var(--straw);} .ds-t-gold{--t:var(--gold);} .ds-t-bronze{--t:var(--bronze);} .ds-t-plum{--t:var(--plum);} .ds-t-violet{--t:var(--violet);} .ds-t-blue{--t:var(--blue);} .ds-t-pale-blue{--t:var(--pale-blue);} .ds-t-grey{--t:var(--grey);}"
+    },
+    {
+      "name": "FAQ",
+      "kind": "custom",
+      "description": "Native details under a band rule; plus icon rotates and takes the band on open.",
+      "html": "<div class=\"ds-root-faq\"><div class=\"ds-faq\"><details open><summary>Does my data leave my machine?<svg class=\"ds-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"M8 2.5v11M2.5 8h11\"/></svg></summary><p>No. It runs locally, with no account.</p></details><details><summary>Which AI tools does it work with?<svg class=\"ds-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"M8 2.5v11M2.5 8h11\"/></svg></summary><p>Any agent that reads files or speaks MCP.</p></details></div></div>",
+      "css": ".ds-root-faq{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-faq{--t:var(--grey);max-width:50rem;border-top:1px solid color-mix(in srgb,var(--t) 75%,transparent);} .ds-faq details{border-bottom:1px solid var(--line);} .ds-faq summary{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;padding:1.2rem 0;cursor:pointer;list-style:none;font-weight:600;font-stretch:104%;font-size:1.06rem;} .ds-faq summary::-webkit-details-marker{display:none;} .ds-faq summary:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:2px;} .ds-icon{width:16px;height:16px;color:var(--dim);transition:transform 0.35s var(--ease-out),color 0.2s var(--ease-out);} .ds-faq summary:hover .ds-icon{color:var(--bone);} .ds-faq details[open] .ds-icon{transform:rotate(45deg);color:var(--t);} .ds-faq p{margin:0;padding:0 0 1.4rem;max-width:44rem;color:var(--iron);}"
+    },
+    {
+      "name": "Checks List",
+      "kind": "custom",
+      "description": "Hairline-ruled list with band-coloured check icons.",
+      "html": "<div class=\"ds-root-checks\"><ul class=\"ds-checks\"><li><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M3 8.5 6.5 12 13 4.5\"/></svg>Every link resolves to exactly one note</li><li><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M3 8.5 6.5 12 13 4.5\"/></svg>No decision past its expiry is still current</li></ul></div>",
+      "css": ".ds-root-checks{--ground:#0f1113;--steel:#161a1d;--steel-2:#1c2024;--line:#272c31;--line-strong:#3a4147;--bone:#e8e3d9;--iron:#a3a7ac;--dim:#80868c;--ember:#e8572a;--straw:#dcbb72;--gold:#c99a48;--bronze:#b27645;--plum:#9a6894;--violet:#8070bd;--blue:#5f86c6;--pale-blue:#8ea5bd;--grey:#9aa3ab;--sans:\"Archivo\",ui-sans-serif,system-ui,sans-serif;--mono:\"JetBrains Mono\",ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;--radius:6px;--ease-out:cubic-bezier(0.16,1,0.3,1);font-family:var(--sans);color:var(--bone);background:var(--ground);padding:24px;} .ds-checks{--t:var(--blue);list-style:none;margin:0;padding:0;max-width:34rem;border-top:1px solid color-mix(in srgb,var(--t) 75%,transparent);} .ds-checks li{display:flex;gap:0.85rem;padding:0.8rem 0;border-bottom:1px solid var(--line);color:var(--iron);} .ds-checks .ds-icon{flex:none;margin-top:0.3em;width:15px;height:15px;color:var(--t);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Temper Chart",
+    "overview": "The page is a smith's temper chart. Steel drawn from the fire passes through a fixed sequence of oxide colours as it cools: straw, gold, bronze, plum, violet, blue, pale blue, grey. Vulcanus uses that sequence as its only colour logic. The ground is blackened steel and never changes; what changes is the colour of the rules, ticks and markers as the reader moves down, so the page cools from the heat of the first viewport to the settled grey of the last questions. Ember is reserved for real heat: the place you type, the hottest layer, the current position, the focus ring.\n\nDensity is that of a well-set technical document: generous section spacing, measured line lengths (37 to 46rem for prose), structure carried by 1px hairlines rather than boxes. Framed surfaces (\"plates\") exist only for real code and real CLI output; everything else is ruled rows, notes and tables. Type is a single variable family, Archivo, whose width axis carries rank: headings are set expanded and heavy, text at normal width. JetBrains Mono appears only where the content is literally code or output.\n\nThe system rejects the dark-plus-neon developer page: no glowing terminal, no glow halos, no badge pills, no gradient keywords, no cards used as layout.",
+    "keyCharacteristics": [
+      "Fixed blackened-steel ground with three type tones (bone, iron, dim).",
+      "Ember as heat only; temper oxides as depth and position, always in scale order.",
+      "Every section opens with a calibrated rule (hairline, fine ticks, coarse ticks) in its band colour.",
+      "Archivo variable: width and weight rise together with rank.",
+      "Flat; hairline-ruled; one soft shadow in the whole system, on the install line.",
+      "Charts are calibrated in measured product figures, never invented units."
+    ],
+    "rules": [
+      {
+        "name": "The Real Heat Rule",
+        "body": "Ember marks something that is actually hot: where you type, where you are, what has focus, the entry layer. It is never a decorative accent, a heading colour, or a background wash.",
+        "section": "colors"
+      },
+      {
+        "name": "The Temper Order Rule",
+        "body": "Oxide colours appear only in scale order (straw, gold, bronze, plum, violet, blue, pale blue, grey), one band per section, top to bottom. A new section takes the next band; a band is never reused out of order or applied as decoration outside its section.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Ground Rule",
+        "body": "The ground stays blackened steel for the whole page. Bands colour rules, ticks, icons and markers; they never tint surfaces or text blocks. Section band rules use the band at 75% (`color-mix`), soft plate-label rules mix 38% of the band into the hairline.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width Is Rank Rule",
+        "body": "Width and weight rise together: text at 100% and 400, titles at 104 to 108% and 600 to 650, headlines at 110%, display at 114 to 116% and 800. Never set body text expanded or a heading at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Is Code Rule",
+        "body": "JetBrains Mono appears only for literal commands, file paths, CLI output and figures quoted from it. Labels, navigation and headings stay in Archivo.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Lift Rule",
+        "body": "Only the install line casts a shadow. Plates, rows, tables and navigation stay flat; nothing glows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the ground blackened steel (ground) on every surface and let only rules, ticks, icons and markers carry band colour.",
+      "Do assign each new section the next band of the temper scale and open it with the calibrated section rule.",
+      "Do reserve ember for the install prompt, the hottest layer, the current-position marker, focus and the caret.",
+      "Do set headings expanded and heavy (width 106 to 116%, weight 650 to 800) and text at normal width.",
+      "Do frame only real code and real CLI output in plates; use ruled rows, notes and tables for everything else.",
+      "Do calibrate charts in measured product figures and cite the source under them.",
+      "Do keep every interaction readable without JavaScript and remove transitions under reduced motion."
+    ],
+    "donts": [
+      "Don't use ember as a decorative accent, heading colour or background wash.",
+      "Don't add glow halos, neon text, a glowing terminal, badge pills or gradient keywords.",
+      "Don't blend temper colours into soft gradients; temper strips use hard stops.",
+      "Don't use cards or boxed panels as page structure.",
+      "Don't add shadows beyond the install line's lift.",
+      "Don't set labels, navigation or headings in JetBrains Mono.",
+      "Don't invent units or figures for a chart; an invented temperature is not product truth."
+    ]
+  }
+}

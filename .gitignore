@@ -13,3 +13,10 @@ dist/
 # site release package and webtest gate reports (scripts/site-build.mjs, tools/webtest)
 /out/
 /gate/
+
+# design working files (screenshots, decision rounds); the surface brief and design.json are kept
+/.impeccable/review/
+/.impeccable/questions/
+/.impeccable/decision/
+/.impeccable/mocks/
+/.impeccable/build/
