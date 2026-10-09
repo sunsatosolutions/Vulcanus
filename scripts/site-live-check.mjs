@@ -11,6 +11,9 @@
  *   --expect <env>     production (default) or staging
  *   --sha <commit>     /version.json must report this commit
  *   --wait <seconds>   poll until /version.json reports --sha
+ *   --preview          a workers.dev preview URL: Cloudflare sets its own
+ *                      X-Robots-Tag there and serves plain http, so those
+ *                      two checks only require noindex and are skipped
  *
  * production: indexable, robots.txt open, AI crawlers get 200 (a 403 means
  * Cloudflare's AI-bot blocking is on), http:// redirects permanently.
@@ -32,6 +35,7 @@ const expect = option("expect", "production");
 const dir = resolve(root, option("dir", `out/package/${expect}`));
 const expectedSha = option("sha", "");
 const waitSeconds = Number(option("wait", "0"));
+const preview = args.includes("--preview");
 
 if (!["production", "staging"].includes(expect)) {
   process.stderr.write(`--expect must be production or staging, not "${expect}"\n`);
@@ -97,6 +101,7 @@ for (const line of (globalRule?.[1] ?? "").split("\n")) {
   if (match) declared.set(match[1].toLowerCase(), match[2].trim());
 }
 for (const [name, value] of declared) {
+  if (preview && name === "x-robots-tag") continue;
   const live = page.headers.get(name);
   if (live !== value) problems.push(`header ${name}: live "${live ?? "(missing)"}" ≠ _headers`);
 }
@@ -130,7 +135,7 @@ const missing = await get("/this-page-does-not-exist");
 if (missing.status !== 404) problems.push(`unknown path returned ${missing.status}, not 404`);
 if (!missing.body.includes("noindex")) problems.push("404 page is not marked noindex");
 
-if (ORIGIN.startsWith("https://")) {
+if (ORIGIN.startsWith("https://") && !preview) {
   const insecure = await fetch(ORIGIN.replace("https://", "http://"), {
     redirect: "manual",
     signal: AbortSignal.timeout(20_000),

@@ -109,7 +109,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -156,7 +155,13 @@ jobs:
       # version that takes no traffic, so a preview never enters the live
       # Worker's version list and this job holds only the staging token. Pull
       # requests from forks have no token and skip it.
-      - name: Upload preview version
+      #
+      # The preview URL sits on the account's workers.dev subdomain, which must
+      # not appear in this public repository's logs or comments: wrangler's
+      # output is captured, the subdomain masked, and only then printed. The
+      # URL is smoke-tested here and never posted; open the preview from the
+      # Cloudflare dashboard (vulcanus-staging › Deployments).
+      - name: Upload and smoke-test the preview
         id: upload
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -166,32 +171,18 @@ jobs:
         run: |
           [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "no staging token"; exit 1; }
           rm -rf out/site && cp -R out/package/staging out/site
+          status=0
           tools/deploy/node_modules/.bin/wrangler versions upload --env staging \
-            --preview-alias "pr-$PR" --message "PR #$PR $(git rev-parse --short HEAD)" | tee upload.log
+            --preview-alias "pr-$PR" --message "PR #$PR $(git rev-parse --short HEAD)" > upload.log 2>&1 || status=1
+          sub=$(grep -oE '\.[a-z0-9-]+\.workers\.dev' upload.log | head -1 | sed -E 's/^\.//; s/\.workers\.dev$//')
+          [ -n "$sub" ] && echo "::add-mask::$sub"
+          sed -E 's/[a-z0-9-]+\.workers\.dev/<subdomain>.workers.dev/g' upload.log
+          [ "$status" = 0 ] || exit 1
           url=$(grep -oE 'https://pr-[a-z0-9-]+\.[a-z0-9.-]+\.workers\.dev' upload.log | head -1)
-          [ -n "$url" ] || url=$(grep -oE 'https://[a-z0-9-]+\.[a-z0-9.-]+\.workers\.dev' upload.log | head -1)
-          echo "url=$url" >> "$GITHUB_OUTPUT"
+          [ -n "$url" ] || { echo "no preview URL in the upload output"; exit 1; }
+          node scripts/site-live-check.mjs --origin "$url" --expect staging --preview --wait 60 --sha "$(git rev-parse HEAD)"
+          echo "Preview uploaded to vulcanus-staging as alias \`pr-$PR\` and smoke-tested. Open it from the Cloudflare dashboard." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Smoke test (preview URL)
-        if: steps.upload.outputs.url != ''
-        run: node scripts/site-live-check.mjs --origin "${{ steps.upload.outputs.url }}" --expect staging --wait 60 --sha "$(git rev-parse HEAD)"
-
-      - name: Comment the preview URL on the pull request
-        if: steps.upload.outputs.url != ''
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          URL: ${{ steps.upload.outputs.url }}
-        with:
-          script: |
-            const marker = '<!-- site-preview -->'
-            const body = `${marker}\n**Site preview:** ${process.env.URL}\n\nCommit \`${context.sha.slice(0, 7)}\` · closed to search engines. An early look only; a site release is approved on its release candidate at webtest-vulcanus.sunsato.com.`
-            const { owner, repo } = context.repo
-            const issue_number = context.issue.number
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
-            const old = comments.find((c) => c.body?.includes(marker))
-            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body })
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body })
-
-      - name: Preview skipped
+      - name: Preview failed
         if: github.event_name == 'pull_request' && steps.upload.outcome == 'failure'
-        run: echo "::warning::Site preview not uploaded (no CLOUDFLARE_API_TOKEN_STAGING, or vulcanus-staging has not been deployed yet)."
+        run: echo "::warning::Site preview not uploaded or its smoke test failed (see the step above; a fork has no CLOUDFLARE_API_TOKEN_STAGING)."

@@ -13,12 +13,6 @@ jobs:
   # The full CI matrix — every OS, every supported Node, coverage, site checks —
   # has to pass on the tagged commit before anything is published.
   ci:
-    # ci.yml's site job comments preview links on pull requests, so a called
-    # run has to be allowed the same permission even though it never uses it
-    # here.
-    permissions:
-      contents: read
-      pull-requests: write
     uses: ./.github/workflows/ci.yml
 
   publish:
