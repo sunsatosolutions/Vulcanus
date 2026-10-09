@@ -1,21 +1,39 @@
 {
   "name": "vulcanus",
   "compatibility_date": "2026-08-13",
-  // Runs before every \`wrangler deploy\`, including the one Workers Builds runs
-  // on each push to main: a page whose CSP hashes, FAQ data, or version have
-  // drifted fails here and is never published. Node built-ins only, so it needs
-  // no install step.
-  // Workers Builds starts in site/ (its root directory setting) and wrangler
-  // finds this file one level up. npm walks up to package.json the same way, so
-  // the command works from either directory.
+  // Runs before every `wrangler deploy`: a page whose CSP hashes, FAQ data, or
+  // version have drifted fails here and is never published. Node built-ins
+  // only, so it needs no install step.
   "build": {
     "command": "npm run --silent site:check"
   },
-  // The marketing site is hand-written static HTML under site/ — there is no
-  // Worker script, so Cloudflare serves the assets directly.
+  // The marketing site is hand-written static HTML — there is no Worker
+  // script, so Cloudflare serves the assets directly. out/site is not site/:
+  // `npm run site:build` packages site/ once per release into a staging and a
+  // production copy, and the deploy step puts the copy for its target here.
+  // Deploys come only from .github/workflows/deploy.yml.
   "assets": {
-    "directory": "./site",
+    "directory": "./out/site",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
+  },
+  "workers_dev": false,
+  "routes": [{ "pattern": "vulcanus.sunsato.com", "custom_domain": true }],
+  "env": {
+    // Webtest: the release candidate is checked here before it goes live.
+    // Closed to search engines (the staging copy carries noindex everywhere).
+    // Pull requests upload preview versions to this Worker, never to the live
+    // one.
+    "staging": {
+      "name": "vulcanus-staging",
+      "workers_dev": false,
+      "preview_urls": true,
+      "routes": [{ "pattern": "webtest-vulcanus.sunsato.com", "custom_domain": true }],
+      "assets": {
+        "directory": "./out/site",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page"
+      }
+    }
   }
 }

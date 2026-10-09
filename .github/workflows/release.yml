@@ -13,6 +13,12 @@ jobs:
   # The full CI matrix — every OS, every supported Node, coverage, site checks —
   # has to pass on the tagged commit before anything is published.
   ci:
+    # ci.yml's site job comments preview links on pull requests, so a called
+    # run has to be allowed the same permission even though it never uses it
+    # here.
+    permissions:
+      contents: read
+      pull-requests: write
     uses: ./.github/workflows/ci.yml
 
   publish:
@@ -21,10 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm-publish
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
           registry-url: https://registry.npmjs.org
 

@@ -25,6 +25,9 @@
 /apple-touch-icon.png
   Cache-Control: public, max-age=604800
 
+/version.json
+  Cache-Control: no-store
+
 /sitemap.xml
   Cache-Control: public, max-age=3600
 
@@ -32,6 +35,10 @@
   Cache-Control: public, max-age=3600
 
 /llms.txt
+  Content-Type: text/markdown; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms-full.txt
   Content-Type: text/markdown; charset=utf-8
   Cache-Control: public, max-age=3600
 

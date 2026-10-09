@@ -11,7 +11,11 @@
  * - the JSON-LD parses, states the package's version, and its FAQPage matches
  *   the visible FAQ question for question, answer for answer;
  * - the sitemap and security.txt dates are real, and security.txt has not
- *   expired.
+ *   expired;
+ * - every indexable page has a title, a description under 160 characters, a
+ *   canonical on the production domain, one h1, lang, and Open Graph tags, and
+ *   is in the sitemap; nothing noindex is; internal links and llms.txt links
+ *   resolve (the Deploy Flow Standard's site-profile checks).
  *
  *   node scripts/site-check.mjs           check, exit 1 on any problem
  *   node scripts/site-check.mjs --write   rewrite the CSP hashes in _headers
@@ -156,6 +160,99 @@ visible.forEach((entry, position) => {
     problems.push(`FAQ ${position + 1} ("${entry.question}"): answer differs from FAQPage JSON-LD`);
   }
 });
+
+// --- Search and agent readiness (Deploy Flow Standard, site profile) ------------
+const ORIGIN = "https://vulcanus.sunsato.com";
+const attribute = (html, pattern) => new RegExp(pattern).exec(html)?.[1];
+const fileFor = (path) => resolve(site, path === "/" ? "index.html" : `.${path}`);
+const exists = (path) => {
+  try {
+    readFileSync(fileFor(path));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const sitemapPaths = [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => {
+  const url = new URL(match[1].trim());
+  if (url.origin !== ORIGIN) problems.push(`sitemap.xml: ${url.href} is not on ${ORIGIN}`);
+  return url.pathname;
+});
+if (
+  !/^<\?xml[^>]*\?>\s*<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/.test(
+    read("sitemap.xml"),
+  )
+) {
+  problems.push("sitemap.xml: not a sitemaps.org <urlset>");
+}
+
+for (const page of PAGES) {
+  const html = read(page);
+  const robots = attribute(html, /<meta name="robots" content="([^"]*)"/) ?? "";
+  const path = page === "index.html" ? "/" : `/${page}`;
+  if (robots.includes("noindex")) {
+    if (sitemapPaths.includes(path)) problems.push(`sitemap.xml lists ${path}, which is noindex`);
+    continue;
+  }
+  if (!sitemapPaths.includes(path)) problems.push(`${page}: indexable but not in sitemap.xml`);
+  if (!attribute(html, /<html lang="([^"]+)"/)) problems.push(`${page}: <html> has no lang`);
+  if (!attribute(html, /<title>([^<]+)<\/title>/)) problems.push(`${page}: no <title>`);
+  const description = attribute(html, /<meta\s+name="description"\s+content="([^"]*)"/);
+  if (!description) problems.push(`${page}: no meta description`);
+  else if (description.length >= 160) {
+    problems.push(`${page}: meta description is ${description.length} characters (limit 159)`);
+  }
+  const canonical = attribute(html, /<link rel="canonical" href="([^"]+)"/);
+  if (canonical !== `${ORIGIN}${path}`) {
+    problems.push(`${page}: canonical is ${canonical}, expected ${ORIGIN}${path}`);
+  }
+  const h1 = html.match(/<h1[\s>]/g)?.length ?? 0;
+  if (h1 !== 1) problems.push(`${page}: ${h1} <h1> elements, expected one`);
+  for (const property of ["og:title", "og:description", "og:url", "og:image"]) {
+    if (!new RegExp(`<meta\\s+property="${property}"`).test(html)) {
+      problems.push(`${page}: no ${property}`);
+    }
+  }
+}
+
+// Internal links resolve: same-site paths to a file, fragments to an id.
+for (const page of PAGES) {
+  const html = read(page);
+  const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]));
+  for (const match of html.matchAll(/\shref="([^"]+)"/g)) {
+    const href = match[1];
+    if (href.startsWith("#")) {
+      if (href.length > 1 && !ids.has(href.slice(1))) {
+        problems.push(`${page}: link ${href} has no matching id`);
+      }
+    } else if (href.startsWith("/") || href.startsWith(`${ORIGIN}/`)) {
+      const path = new URL(href, ORIGIN).pathname;
+      if (!exists(path)) problems.push(`${page}: link ${href} points to no file in site/`);
+    }
+  }
+}
+
+// llms.txt: same-site links resolve in site/, repository links to a committed file.
+const llms = read("llms.txt");
+if (!llms.startsWith("# ")) problems.push("llms.txt: does not start with an H1");
+const generated = new Set(["/llms-full.txt"]); // written by scripts/site-build.mjs
+for (const match of llms.matchAll(/\]\((https?:\/\/[^)]+)\)/g)) {
+  const url = new URL(match[1]);
+  if (url.origin === ORIGIN) {
+    if (!exists(url.pathname) && !generated.has(url.pathname)) {
+      problems.push(`llms.txt: ${url.href} points to no file in site/`);
+    }
+  } else if (url.host === "raw.githubusercontent.com") {
+    const file = url.pathname.split("/").slice(4).join("/");
+    try {
+      readFileSync(resolve(root, file));
+    } catch {
+      problems.push(`llms.txt: ${url.href} points to no committed file`);
+    }
+  }
+}
+if (!llms.includes(`${ORIGIN}/llms-full.txt`)) problems.push("llms.txt: no link to llms-full.txt");
 
 // --- Dates ---------------------------------------------------------------------
 const isDate = (value) => !Number.isNaN(Date.parse(value));

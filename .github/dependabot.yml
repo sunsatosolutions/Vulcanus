@@ -1,0 +1,58 @@
+# Weekly dependency pull requests, monthly for Actions. Every pull request goes
+# through CI. Major versions are upgraded by hand.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  # Wrangler for the site's deploy, preview, and rollback jobs.
+  - package-ecosystem: npm
+    directory: /tools/deploy
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      deploy-tools:
+        update-types: [minor, patch]
+
+  # Webtest quality-gate tools (Playwright, axe, Lighthouse); installed only in
+  # the gate job of deploy.yml.
+  - package-ecosystem: npm
+    directory: /tools/webtest
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      webtest-tools:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  # Actions are pinned to commit SHAs; Dependabot moves the SHA and the
+  # version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci(deps)

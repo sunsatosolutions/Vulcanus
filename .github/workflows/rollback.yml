@@ -1,0 +1,117 @@
+# Site rollback (Deploy Flow Standard v1.1)
+#
+# Returns production to an earlier prod- release's package: the package on the
+# Release is redeployed as it is (no build), /version.json must report that
+# release's commit, then the live smoke test runs. Branches do not move; the
+# production branch stays on the bad commit and the fix comes through the
+# chain (fix branch → PR → main → webtest → rc → production).
+#
+#   tag empty -> the release before the newest prod- release
+#   tag       -> the given prod- release
+#   method    -> wrangler: when there is no package (deploys made before this
+#                flow), roll the Worker back to its previous version on
+#                Cloudflare
+#
+# Runs in the same queue as live deploys (concurrency deploy-production).
+
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: prod- release (empty = the previous one)
+        required: false
+      method:
+        description: artifact = redeploy a prod- package; wrangler = previous Worker version on Cloudflare
+        type: choice
+        options: [artifact, wrangler]
+        default: artifact
+      reason:
+        description: Why
+        required: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Roll back
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      TAG: ${{ inputs.tag }}
+      METHOD: ${{ inputs.method }}
+      REASON: ${{ inputs.reason }}
+      LIVE: https://vulcanus.sunsato.com
+      WRANGLER: tools/deploy/node_modules/.bin/wrangler
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Target release
+        id: target
+        if: inputs.method == 'artifact'
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::Secret CLOUDFLARE_API_TOKEN_PRODUCTION is missing."; exit 1; }
+          if [ -z "$TAG" ]; then
+            TAG=$(git tag -l 'prod-*' | sort -rV | sed -n 2p)
+          fi
+          if [ -z "$TAG" ]; then
+            echo "::error::No earlier prod- release (this is the first one). Use method: wrangler to return to the previous Worker version."
+            exit 1
+          fi
+          [[ "$TAG" == prod-* ]] || { echo "::error::$TAG is not a prod- release."; exit 1; }
+          sha=$(git rev-parse "$TAG^{commit}")
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          # With that release's wrangler.jsonc and smoke test.
+          git checkout -q "$sha"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/deploy/package-lock.json
+      - run: npm ci --prefix tools/deploy
+
+      - name: Redeploy the package
+        if: inputs.method == 'artifact'
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          mkdir -p dist
+          gh release download "$TAG" --dir dist --pattern "vulcanus-site-${SHA::7}.tar.gz" --pattern SHA256SUMS
+          (cd dist && sha256sum -c --ignore-missing SHA256SUMS)
+          rm -rf out && mkdir out && tar -xzf "dist/vulcanus-site-${SHA::7}.tar.gz" -C out
+          cp -R out/package/production out/site
+          grep -q "$SHA" out/site/version.json
+          $WRANGLER deploy --message "rollback $TAG: $REASON (${{ github.actor }})"
+          echo "Live is back on $TAG (\`${SHA::7}\`): $REASON" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test (live)
+        if: inputs.method == 'artifact'
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: node scripts/site-live-check.mjs --origin "$LIVE" --expect production --sha "$SHA" --wait 120
+
+      - name: Previous Worker version (wrangler)
+        if: inputs.method == 'wrangler'
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::Secret CLOUDFLARE_API_TOKEN_PRODUCTION is missing."; exit 1; }
+          # Oldest first; the second to last entry is the previous deploy.
+          version=$($WRANGLER deployments list --json | jq -r '.[-2].versions[0].version_id')
+          echo "Target Worker version: $version"
+          $WRANGLER rollback "$version" --message "$REASON (${{ github.actor }})" --yes
+          echo "Live Worker is back on version $version (wrangler rollback): $REASON" >> "$GITHUB_STEP_SUMMARY"
+          sleep 10
+          curl -sf -o /dev/null "$LIVE/" || { echo "::error::$LIVE/ does not answer after the rollback."; exit 1; }

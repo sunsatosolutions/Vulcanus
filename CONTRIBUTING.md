@@ -125,6 +125,11 @@ output is candidate project *names* with evidence counts. The operator decides.
 
 ## Commits and pull requests
 
+Every change reaches `main` through a pull request, maintainers included; nothing
+is pushed to `main` directly. Give the pull request a conventional title
+(`feat:`, `fix:`, `docs:`, `ci:`, `chore:` …) — site release notes are generated
+from those titles.
+
 Write the commit subject as what the change does to the product ("Add MCP
 server", "Refuse to overwrite a foreign pre-commit hook"), not as a file list.
 Describe user-visible changes in `CHANGELOG.md` under `## Unreleased`; the
@@ -135,10 +140,22 @@ release script stamps that section, so a release with an empty one is refused.
 Maintainers only:
 
 ```bash
+git switch -c release/0.5.0
 npm run release -- minor      # or: patch | major | an explicit version
 git add -A && git commit -m "Release 0.5.0"
+git push -u origin release/0.5.0   # open a pull request: "chore: release 0.5.0"
+```
+
+Once it is merged, tag the merge on `main`:
+
+```bash
+git switch main && git pull
 git tag -a v0.5.0 -m "Release 0.5.0" && git push --follow-tags
 ```
+
+Tag with `-a`. `git push --follow-tags` pushes annotated tags only, so a
+lightweight `git tag v0.5.0` silently never reaches the remote and the publish
+workflow never fires.
 
 Pushing the tag runs `.github/workflows/release.yml`: the full CI matrix (every
 OS, every supported Node, coverage, site checks) runs on the tagged commit first,
@@ -152,14 +169,29 @@ re-running the release, which would try to publish to npm again.
 
 ## The site
 
-`site/` deploys to Cloudflare Workers on every push to `main`. The build command
-in `wrangler.jsonc` runs `npm run site:check` first, so a page whose CSP hashes,
-FAQ structured data, or stated version have drifted is never published — after
-editing any inline `<script>` or `<style>`, run `npm run site:csp` to refresh
-the hashes. `.github/workflows/site.yml` then waits for the deploy, checks the
-live site against the repository (`npm run site:live`), and notifies IndexNow; it
-also runs weekly to catch drift nobody pushed.
+`site/` is hand-written static HTML served by Cloudflare Workers as static
+assets. A merge to `main` deploys nothing; the site follows a promotion chain in
+which what goes live is the exact package that was tested:
 
-Tag with `-a`. `git push --follow-tags` pushes annotated tags only, so a
-lightweight `git tag v0.5.0` silently never reaches the remote and the publish
-workflow never fires.
+1. **CI** (every pull request and every `main` push) runs `npm run site:check` —
+   CSP hashes, FAQ structured data, stated version, titles, descriptions,
+   canonicals, sitemap, internal and `llms.txt` links — then packages the site
+   (`npm run site:build`) and smoke-tests both copies on a local Worker. Pull
+   requests also get a preview link on the webtest Worker.
+2. **Actions › Promote › main → staging** builds the package once (a staging
+   copy closed to search engines and a production copy, from the same commit),
+   deploys the staging copy to `webtest-vulcanus.sunsato.com`, and runs the
+   quality gate: smoke test, Playwright at 375/768/1440 px, axe, Lighthouse. If
+   it passes, an `rc-YYYY-MM-DD.N` pre-release carries the package. Staging is
+   frozen while that rc awaits approval.
+3. **Actions › Promote › rc → production**, after approval on webtest, deploys
+   the rc's production copy unchanged, smoke-tests the live site, publishes a
+   `prod-YYYY-MM-DD.N` release, and notifies IndexNow of the changed URLs only.
+4. **Actions › Rollback** redeploys an earlier `prod-` package. A weekly run of
+   `.github/workflows/site.yml` checks the live site against the live release.
+
+After editing any inline `<script>` or `<style>`, run `npm run site:csp` to
+refresh the hashes. `site/` is never deployed by hand.
+
+A new npm release changes the version the page states, so the site's next
+promotion follows each package release.

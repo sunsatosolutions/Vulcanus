@@ -1,0 +1,442 @@
+# Site deploy (Deploy Flow Standard v1.1, Cloudflare Workers static assets,
+# site profile)
+#
+# The target comes from the branch: staging -> webtest-vulcanus.sunsato.com,
+# production -> vulcanus.sunsato.com. The standard path is promote.yml
+# (workflow_call); a direct push to staging or production runs this workflow
+# with the same guards, so it cannot bypass them.
+#
+# staging:
+#   guard    SHA is on origin/main, CI is green on main for it, no rc awaits
+#            approval (staging frozen; promote.yml opens it with "supersede"),
+#            secrets present
+#   build    once: scripts/site-build.mjs packages the staging and the
+#            production copy from this commit into one tarball. Nothing is
+#            rebuilt later; production gets the production copy of this file.
+#   webtest  deploy the staging copy to vulcanus-staging -> /version.json
+#            reports this SHA and env=staging -> smoke (noindex everywhere)
+#   gate     Playwright 375/768/1440 overflow + screenshots, axe, Lighthouse
+#            (a11y/SEO/best practices >= 95, performance >= 85 warning only)
+#   rc       all green -> rc-YYYY-MM-DD.N tag + pre-release carrying the package
+#
+# production:
+#   guard    SHA == the rc tag's commit, the rc is open and carries the package,
+#            SHA is on origin/staging, secrets present
+#   deploy   changed pages measured first (the rc's production copy against
+#            what is live) -> the rc's production copy (no rebuild) ->
+#            /version.json reports the SHA and env=production -> live smoke
+#            (AI crawlers 200, headers, indexable)
+#   release  prod-YYYY-MM-DD.N tag + GitHub Release (notes, approver, package),
+#            never marked "latest": that stays the npm release -> IndexNow for
+#            the changed URLs only
+#   If the live smoke fails: Actions > Rollback first, then the fix through
+#   the chain.
+#
+# Needs (Settings > Secrets and variables > Actions):
+#   secret   CLOUDFLARE_API_TOKEN_STAGING     webtest deploy, PR previews
+#   secret   CLOUDFLARE_API_TOKEN_PRODUCTION  live deploy, rollback
+#            (both: Account > Workers Scripts edit; Zone sunsato.com > Workers
+#            Routes edit. One per target, and each job sees only its own.)
+#   variable CLOUDFLARE_ACCOUNT_ID
+# Cloudflare Workers Builds must stay disconnected from this repository: a
+# push to main deploys nothing.
+
+name: Deploy
+
+on:
+  push:
+    branches: [staging, production]
+  workflow_call:
+    inputs:
+      branch:
+        description: staging | production
+        type: string
+        required: true
+      sha:
+        description: The commit promote.yml pushed to the branch
+        type: string
+        required: true
+      rc_tag:
+        type: string
+        default: ""
+      approver:
+        type: string
+        default: ""
+    secrets:
+      CLOUDFLARE_API_TOKEN_STAGING:
+        required: false
+      CLOUDFLARE_API_TOKEN_PRODUCTION:
+        required: false
+
+# One deploy per target at a time; the next one waits, none is cut short.
+concurrency:
+  group: deploy-${{ inputs.branch || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+  WEBTEST: https://webtest-vulcanus.sunsato.com
+  LIVE: https://vulcanus.sunsato.com
+  WRANGLER: tools/deploy/node_modules/.bin/wrangler
+
+jobs:
+  guard:
+    name: Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      target: ${{ steps.target.outputs.target }}
+      sha: ${{ steps.target.outputs.sha }}
+      rc_tag: ${{ steps.production.outputs.rc_tag }}
+      approver: ${{ steps.production.outputs.approver }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ inputs.branch || github.ref_name }}
+      SHA: ${{ inputs.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.sha || github.sha }}
+
+      - name: Target
+        id: target
+        run: |
+          case "$BRANCH" in
+            staging|production) ;;
+            *) echo "::error::Unknown target branch: $BRANCH"; exit 1 ;;
+          esac
+          git fetch --tags --force origin
+          head=$(git rev-parse "origin/$BRANCH")
+          if [ "$head" != "$SHA" ]; then
+            echo "::error::origin/$BRANCH is $head, expected $SHA: the branch moved meanwhile."
+            exit 1
+          fi
+          echo "target=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Target $BRANCH, commit $SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Staging guard
+        if: steps.target.outputs.target == 'staging'
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING != '' }}
+        run: |
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "::error::$SHA is not on origin/main."; exit 1; }
+          green=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&branch=main&event=push&status=success" --jq .total_count)
+          if [ "$green" = 0 ]; then
+            echo "::error::No green CI run on main for $SHA. Wait for CI to pass on main first."
+            exit 1
+          fi
+          open=$(.github/scripts/open-rcs.sh)
+          if [ -n "$open" ]; then
+            echo "::error::Staging is frozen: an rc awaits approval ($open). If it was rejected or withdrawn, run Promote > main → staging with a supersede reason."
+            exit 1
+          fi
+          [ "$HAS_TOKEN" = true ] || { echo "::error::Secret CLOUDFLARE_API_TOKEN_STAGING is missing."; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::Variable CLOUDFLARE_ACCOUNT_ID is missing."; exit 1; }
+
+      - name: Production guard
+        id: production
+        if: steps.target.outputs.target == 'production'
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION != '' }}
+          RC_TAG: ${{ inputs.rc_tag }}
+          APPROVER: ${{ inputs.approver }}
+        run: |
+          # On a direct push the rc is the newest rc tag pointing at the commit.
+          if [ -z "$RC_TAG" ]; then
+            RC_TAG=$(git tag -l 'rc-*' --points-at "$SHA" | sort -V | tail -1)
+            APPROVER="${APPROVER:-$GITHUB_ACTOR (direct push)}"
+          fi
+          [ -n "$RC_TAG" ] || { echo "::error::No rc tag for $SHA: only an rc that passed webtest goes live."; exit 1; }
+          [ -n "$APPROVER" ] || { echo "::error::Approver is empty."; exit 1; }
+          rc_sha=$(git rev-parse "$RC_TAG^{commit}")
+          [ "$rc_sha" = "$SHA" ] || { echo "::error::$SHA is not the commit of $RC_TAG ($rc_sha)."; exit 1; }
+          open=$(.github/scripts/open-rcs.sh)
+          grep -qx "$RC_TAG" <<< "$open" || { echo "::error::$RC_TAG is not an open rc (missing, superseded, or already live)."; exit 1; }
+          asset="vulcanus-site-${SHA::7}.tar.gz"
+          gh release view "$RC_TAG" --json assets --jq '.assets[].name' | grep -qx "$asset" || { echo "::error::$RC_TAG pre-release has no $asset."; exit 1; }
+          git merge-base --is-ancestor "$SHA" origin/staging || { echo "::error::$SHA is not on origin/staging."; exit 1; }
+          [ "$HAS_TOKEN" = true ] || { echo "::error::Secret CLOUDFLARE_API_TOKEN_PRODUCTION is missing."; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::Variable CLOUDFLARE_ACCOUNT_ID is missing."; exit 1; }
+          echo "rc_tag=$RC_TAG" >> "$GITHUB_OUTPUT"
+          { echo "approver<<EOF"; echo "$APPROVER"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          echo "rc $RC_TAG, approved by: $APPROVER" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------- staging
+
+  build:
+    name: Build (one package for webtest and production)
+    needs: guard
+    if: needs.guard.outputs.target == 'staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SHA: ${{ needs.guard.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # Node built-ins only: no install step.
+      - name: Check and package
+        run: |
+          node scripts/site-check.mjs
+          node scripts/site-build.mjs
+          for env in staging production; do
+            grep -q "$SHA" "out/package/$env/version.json" || { echo "::error::The $env copy does not carry $SHA."; exit 1; }
+          done
+          mkdir -p dist
+          tar -czf "dist/vulcanus-site-${SHA::7}.tar.gz" -C out package
+          cd dist && sha256sum vulcanus-site-*.tar.gz | tee SHA256SUMS
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package
+          path: |
+            dist/vulcanus-site-*.tar.gz
+            dist/SHA256SUMS
+          retention-days: 30
+
+  staging:
+    name: Webtest deploy and smoke
+    needs: [guard, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SHA: ${{ needs.guard.outputs.sha }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/deploy/package-lock.json
+      - run: npm ci --prefix tools/deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: dist
+
+      - name: Unpack the staging copy
+        run: |
+          (cd dist && sha256sum -c SHA256SUMS)
+          rm -rf out && mkdir out && tar -xzf "dist/vulcanus-site-${SHA::7}.tar.gz" -C out
+          cp -R out/package/staging out/site
+          grep -q "$SHA" out/site/version.json
+
+      - name: Deploy (webtest)
+        run: $WRANGLER deploy --env staging --message "${SHA::7} ${{ github.actor }}"
+
+      # On the first deploy the custom domain's DNS and certificate can take a
+      # few minutes.
+      - name: Smoke test (webtest)
+        run: node scripts/site-live-check.mjs --origin "$WEBTEST" --expect staging --sha "$SHA" --wait 360
+
+  gate:
+    name: Quality gate (site profile)
+    needs: [guard, staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/webtest/package-lock.json
+      - name: Tools
+        working-directory: tools/webtest
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Responsive and axe (375 / 768 / 1440)
+        working-directory: tools/webtest
+        run: node responsive.mjs "$WEBTEST" --shots=../../gate/screenshots
+
+      - name: Lighthouse
+        if: success() || failure()
+        working-directory: tools/webtest
+        run: node lighthouse.mjs "$WEBTEST" --out=../../gate/lighthouse
+
+      - name: Screenshots and reports (for the approver)
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: webtest-gate
+          path: gate
+          retention-days: 30
+
+  rc:
+    name: Release candidate (rc)
+    needs: [guard, gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.guard.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: dist
+
+      - name: rc tag and pre-release
+        run: |
+          git fetch --tags --force origin
+          tag=$(.github/scripts/next-tag.sh rc)
+          live=$(git tag -l 'prod-*' | sort -V | tail -1)
+          notes=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$tag" -f target_commitish="$SHA" ${live:+-f previous_tag_name="$live"} --jq .body)
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          cat > notes.md <<EOF
+          **Site release candidate** \`$tag\` · commit \`${SHA::7}\` · live now: ${live:-none (first release through this flow)}
+
+          This is a release of the website, not of the npm package.
+
+          - Webtest: $WEBTEST ([version.json]($WEBTEST/version.json) shows this commit)
+          - Quality gate passed: [run]($run) · screenshots and Lighthouse reports in the \`webtest-gate\` artifact
+          - The attached \`vulcanus-site-${SHA::7}.tar.gz\` goes live as it is (never rebuilt).
+
+          Going live: Actions > Promote > **rc → production**, \`rc_tag: $tag\`, \`approver\`. If rejected, the change is reverted on main and a new rc is cut.
+
+          $notes
+          EOF
+          gh release create "$tag" --target "$SHA" --prerelease --title "Site $tag" --notes-file notes.md \
+            "dist/vulcanus-site-${SHA::7}.tar.gz" dist/SHA256SUMS
+          echo "rc: [$tag]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag) · $WEBTEST" >> "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------------------- production
+
+  production:
+    name: Live deploy and smoke
+    needs: guard
+    if: needs.guard.outputs.target == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      changed: ${{ steps.changed.outputs.paths }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.guard.outputs.sha }}
+      RC_TAG: ${{ needs.guard.outputs.rc_tag }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/deploy/package-lock.json
+      - run: npm ci --prefix tools/deploy
+
+      # The rc's package, no rebuild.
+      - name: Download and verify the rc package
+        run: |
+          mkdir -p dist
+          gh release download "$RC_TAG" --dir dist --pattern "vulcanus-site-${SHA::7}.tar.gz" --pattern SHA256SUMS
+          (cd dist && sha256sum -c --ignore-missing SHA256SUMS)
+          rm -rf out && mkdir out && tar -xzf "dist/vulcanus-site-${SHA::7}.tar.gz" -C out
+          cp -R out/package/production out/site
+          grep -q "$SHA" out/site/version.json
+
+      # Before the deploy: production still serves the previous release.
+      - name: Changed pages
+        id: changed
+        run: |
+          node scripts/site-indexnow.mjs --changed out/site > changed.txt
+          cat changed.txt
+          { echo "paths<<EOF"; cat changed.txt; echo "EOF"; } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy (live)
+        id: deploy
+        run: $WRANGLER deploy --message "$RC_TAG ${SHA::7} ${{ github.actor }}"
+
+      # A Workers custom domain has no separate CDN cache in front of it;
+      # assets refresh with the deploy.
+      - name: Smoke test (live)
+        run: node scripts/site-live-check.mjs --origin "$LIVE" --expect production --sha "$SHA" --wait 180
+
+      - name: If the live smoke failed
+        if: failure() && steps.deploy.outcome == 'success'
+        run: echo "::error::The live site has a problem. First Actions > Rollback > Run workflow, then the fix through the chain (fix branch → PR → main → webtest → rc)."
+
+  release:
+    name: Release and IndexNow
+    needs: [guard, production]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.guard.outputs.sha }}
+      RC_TAG: ${{ needs.guard.outputs.rc_tag }}
+      APPROVER: ${{ needs.guard.outputs.approver }}
+      CHANGED: ${{ needs.production.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.guard.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # --latest=false: the repository's "latest release" is the npm package's.
+      - name: prod tag and Release
+        run: |
+          git fetch --tags --force origin
+          tag=$(.github/scripts/next-tag.sh prod)
+          prev=$(git tag -l 'prod-*' | sort -V | tail -1)
+          mkdir -p dist
+          gh release download "$RC_TAG" --dir dist --pattern "vulcanus-site-${SHA::7}.tar.gz" --pattern SHA256SUMS
+          notes=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$tag" -f target_commitish="$SHA" ${prev:+-f previous_tag_name="$prev"} --jq .body)
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          count=$(printf '%s' "$CHANGED" | grep -c . || true)
+          cat > notes.md <<EOF
+          **Site live** \`$tag\` · commit \`${SHA::7}\` · rc [\`$RC_TAG\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$RC_TAG)
+
+          This is a release of the website, not of the npm package.
+
+          - Approved by: $APPROVER
+          - Deploy: [run]($run) · $LIVE/version.json shows this commit
+          - Previous live release: ${prev:-none (first release through this flow)} · undo: Actions > Rollback
+          - IndexNow: $count changed URL(s)
+
+          $notes
+          EOF
+          gh release create "$tag" --target "$SHA" --latest=false --title "Site $tag" --notes-file notes.md \
+            "dist/vulcanus-site-${SHA::7}.tar.gz" dist/SHA256SUMS
+          echo "Live: [$tag]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag), approved by $APPROVER" >> "$GITHUB_STEP_SUMMARY"
+
+      # Only changed or new URLs. Nothing is sent when nothing changed.
+      - name: IndexNow
+        run: |
+          # One path per line, passed as separate arguments.
+          # shellcheck disable=SC2086
+          node scripts/site-indexnow.mjs $CHANGED

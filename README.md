@@ -392,7 +392,7 @@ Source layout: `manifest/` derives every path and link expectation, `generate/` 
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the checks, the review bar, and how to add an importer or a language. [`docs/token-budget.md`](docs/token-budget.md) measures what the layered structure actually saves, and how that was measured.
 
-The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file with no build step, deployed to Cloudflare Workers as static assets (`wrangler.jsonc`) on every push to `main`, but only after `npm run site:check` passes. A workflow then verifies the live site against the repository. Releases run the full CI matrix before publishing and smoke-test the published package afterwards; [`CONTRIBUTING.md`](CONTRIBUTING.md) has the details.
+The landing page for [vulcanus.sunsato.com](https://vulcanus.sunsato.com) lives in `site/` — a single static file served by Cloudflare Workers as static assets (`wrangler.jsonc`). It reaches production through a promotion chain: each release is packaged once, tested on a webtest copy closed to search engines, and only that tested package goes live after approval. Releases run the full CI matrix before publishing and smoke-test the published package afterwards; [`CONTRIBUTING.md`](CONTRIBUTING.md) has the details.
 
 ## License
 

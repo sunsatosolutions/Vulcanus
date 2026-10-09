@@ -9,3 +9,7 @@ dist/
 
 # wrangler dev state
 .wrangler/
+
+# site release package and webtest gate reports (scripts/site-build.mjs, tools/webtest)
+/out/
+/gate/
