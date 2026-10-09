@@ -297,4 +297,4 @@ CSS only, inside `prefers-reduced-motion: no-preference`; content is visible wit
 
 - **On load:** the depth gauge fills from the hot top down and its labels arrive in order.
 - **On scroll** (`animation-timeline: view()` inside `@supports`, so browsers without it show everything at once): heads, scenes and rows rise in; wires and graph edges draw; candidate boxes and check marks tick; budget bars fill; a scene's result card arrives last.
-- **Always, slowly:** the agent's dot walks down to the Capsule and pauses; the MCP wire carries a flowing dash. No other loop.
+- **Always, slowly** (2026-10-09, the owner asked for every drawing to keep moving as on sunsato.com): the forge heat drifts (24 s, alternate); a light sweeps down the depth gauge; sparks run along every scene wire and graph edge; the index nodes send out a pulse ring; hot cards breathe; a highlight walks the thirteen commands in reading order; the lit budget squares wave column by column; the doctor's "ok" marks and the ticked candidates pulse in turn; the agent's dot walks down to the Capsule. Loops are 2.6–6.5 s, eased, and only move transform, opacity, colour and dash offset.
