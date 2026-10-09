@@ -17,7 +17,9 @@ function bail(): never {
   process.exit(130);
 }
 
-function unwrap<T>(value: T | symbol): T {
+// @clack/prompts 1.8 types a cancelled prompt as its own CANCEL_SYMBOL rather
+// than any symbol, so the answer type is everything but that symbol.
+function unwrap<T>(value: T | typeof p.CANCEL_SYMBOL): T {
   if (p.isCancel(value)) bail();
   return value;
 }
