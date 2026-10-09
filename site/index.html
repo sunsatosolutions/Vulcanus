@@ -1657,6 +1657,187 @@
         width: 34%;
       }
 
+      /* Scenes laid out in flow rather than placed */
+
+      .scene-flow {
+        aspect-ratio: auto;
+        padding: 1.3rem;
+      }
+      .scene-flow > * {
+        position: relative;
+      }
+      .scene-flow > .sc-wires {
+        position: absolute;
+      }
+      .scene-flow .sc-caption {
+        position: static;
+        margin-top: 1rem;
+      }
+
+      /* Commands: three jobs */
+
+      .scene-cmds {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.4rem 6%;
+        align-items: start;
+      }
+      .scene-cmds .sc-caption {
+        grid-column: 1 / -1;
+        margin-top: 0;
+      }
+      .sc-col-title {
+        margin-bottom: 0.6rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .sc-col ul {
+        display: grid;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .sc-col li {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: var(--steel-2);
+        box-shadow: 0 10px 22px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-col li code {
+        color: var(--bone);
+        font-size: 0.78rem;
+      }
+      .sc-col.is-hot .sc-col-title {
+        color: color-mix(in srgb, var(--t) 60%, var(--bone));
+      }
+      .sc-col.is-hot li {
+        border-color: color-mix(in srgb, var(--t) 70%, transparent);
+      }
+
+      /* Token budget: one square per percent */
+
+      .waffle {
+        display: grid;
+        grid-template-columns: repeat(20, minmax(0, 1fr));
+        grid-template-rows: repeat(5, auto);
+        grid-auto-flow: column;
+        gap: 4px;
+      }
+      .waffle i {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background: #22222b;
+      }
+      .waffle .c-cold {
+        background: var(--straw);
+      }
+      .waffle .c-cap {
+        background: var(--bronze);
+      }
+      .waffle-key {
+        display: grid;
+        gap: 0.35rem;
+        margin: 1.1rem 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.8rem;
+        color: var(--iron);
+      }
+      .waffle-key li {
+        display: grid;
+        grid-template-columns: 0.7rem 3.2rem 1fr;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .waffle-key li::before {
+        content: "";
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 2px;
+        background: #22222b;
+      }
+      .waffle-key .k-cold::before {
+        background: var(--straw);
+      }
+      .waffle-key .k-cap::before {
+        background: var(--bronze);
+      }
+      .waffle-key b {
+        color: var(--bone);
+        font-weight: 700;
+        font-stretch: 108%;
+      }
+
+      /* Obsidian: the graph as a scene */
+
+      .scene-graph {
+        padding: 0;
+      }
+      .scene-graph svg {
+        padding: 1rem 1rem 0.5rem;
+      }
+      .g-labels text {
+        fill: var(--iron);
+        font-family: var(--sans);
+        font-size: 9px;
+      }
+      .g-labels text:first-child {
+        fill: var(--bone);
+        font-weight: 600;
+      }
+      .scene-graph figcaption {
+        margin: 0;
+      }
+
+      /* FAQ: what stays on your machine */
+
+      .l-machine {
+        padding: 0.8rem;
+        border: 1.5px dashed color-mix(in srgb, var(--t) 60%, transparent);
+        border-radius: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+      }
+      .scene-local {
+        display: grid;
+        grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: center;
+      }
+      .scene-local .sc-caption {
+        grid-column: 1 / -1;
+        margin-top: 0;
+      }
+      .l-machine .sc-col-title {
+        grid-column: 1 / -1;
+        margin: 0;
+      }
+      .l-machine .sc-card {
+        padding: 0.6rem 0.65rem;
+      }
+      .l-machine .sc-title {
+        margin-bottom: 0.2rem;
+      }
+      .l-npm {
+        border-style: dashed;
+        opacity: 0.85;
+      }
+      .l-off {
+        display: block;
+        margin-top: 0.45rem;
+        font-size: 0.6rem;
+        color: var(--iron);
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .wire.dashed {
+        stroke-dasharray: 4 4;
+      }
+
       /* Rows and checks in two columns once a scene carries the section */
 
       .rows.grid-rows {
@@ -1832,6 +2013,28 @@
             animation-timeline: view();
             animation-range: entry 20% entry 100%;
           }
+          .waffle {
+            animation: wipe linear both;
+            animation-timeline: view();
+            animation-range: entry 20% entry 100%;
+          }
+          .scene-graph .edge line {
+            stroke-dasharray: 1;
+            animation: draw linear both;
+            animation-timeline: view();
+            animation-range: entry 15% entry 90%;
+          }
+          .scene-graph .n-hub circle,
+          .scene-graph .n-index,
+          .scene-cmds .sc-col,
+          .scene-local .l-npm {
+            animation: arrive linear both;
+            animation-timeline: view();
+            animation-range: entry 40% entry 100%;
+          }
+          .scene-cmds .sc-col.is-hot {
+            animation-range: entry 55% entry 100%;
+          }
           .budget-table .fill {
             transform-origin: left center;
             animation: fill-right linear both;
@@ -1884,6 +2087,13 @@
           padding: 0.4rem 0.6rem;
         }
         .v-deep {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .scene-cmds {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .l-machine,
+        .scene-local {
           grid-template-columns: minmax(0, 1fr);
         }
         .sc-caption {
@@ -2362,12 +2572,34 @@
             </section>
 
             <section id="commands" class="t-bronze" aria-labelledby="commands-title">
-              <div class="section-head reveal">
+              <div class="stage">
+                <div class="section-head reveal">
                 <h2 id="commands-title">Thirteen commands</h2>
                 <p class="section-lede">
                   The vault is plain Markdown you can edit by hand in Obsidian or any editor. These
                   keep it consistent as it grows.
                 </p>
+              </div>
+
+                <figure class="scene scene-flow scene-cmds reveal" aria-labelledby="cmds-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" d="M31 46 C 34 46, 34 46, 37 46" />
+                    <path class="wire" d="M64 46 C 67 46, 67 46, 70 46" />
+                  </svg>
+                  <div class="sc-col">
+                    <div class="sc-col-title">Build it</div>
+                    <ul><li><code>init</code></li><li><code>import</code></li><li><code>add project</code></li><li><code>project</code></li></ul>
+                  </div>
+                  <div class="sc-col is-hot">
+                    <div class="sc-col-title">Keep it honest</div>
+                    <ul><li><code>doctor</code></li><li><code>status</code></li><li><code>stats</code></li><li><code>hooks</code></li><li><code>update</code></li></ul>
+                  </div>
+                  <div class="sc-col">
+                    <div class="sc-col-title">Put it to work</div>
+                    <ul><li><code>serve</code></li><li><code>agents</code></li><li><code>skills</code></li><li><code>sync</code></li></ul>
+                  </div>
+                  <figcaption id="cmds-caption" class="sc-caption">The thirteen commands by the job they do.</figcaption>
+                </figure>
               </div>
 
               <ul class="rows tight block">
@@ -2454,13 +2686,28 @@
             </section>
 
             <section id="budget" class="t-violet" aria-labelledby="budget-title">
-              <div class="section-head reveal">
+              <div class="stage flip">
+                <div class="section-head reveal">
                 <h2 id="budget-title">The saving, measured</h2>
                 <p class="section-lede">
                   The claim is that a layered vault is cheaper to read than a pile of notes.
                   <code>vulcanus stats</code> reports what your own vault costs, so the claim is
                   something you can check rather than something you have to believe.
                 </p>
+              </div>
+
+                <figure class="scene scene-flow scene-waffle reveal" aria-labelledby="waffle-caption">
+                  <div class="waffle" aria-hidden="true"><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cold"></i><i class="c-cap"></i><i class="c-cap"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i></div>
+                  <ul class="waffle-key">
+                    <li class="k-cold"><b>24%</b>Cold start · 3,167 tokens</li>
+                    <li class="k-cap"><b>+2%</b>One project capsule · 203 tokens</li>
+                    <li class="k-rest"><b>74%</b>The rest of the vault · 9,832 tokens</li>
+                  </ul>
+                  <figcaption id="waffle-caption" class="sc-caption">
+                    Each square is one percent of a freshly generated six-project vault; a task reads the
+                    lit squares.
+                  </figcaption>
+                </figure>
               </div>
 
               <table class="budget-table block">
@@ -2710,25 +2957,25 @@ requirement, not an optional extra.
                   </div>
                 </div>
 
-                <figure class="plate graph reveal">
+                <figure class="scene scene-flow scene-graph graph reveal">
                   <svg viewBox="0 0 320 260" role="img" aria-label="Graph view showing project clusters around a central index">
                     <g class="edge">
-                      <line x1="160" y1="128" x2="72" y2="62" />
-                      <line x1="160" y1="128" x2="252" y2="70" />
-                      <line x1="160" y1="128" x2="96" y2="206" />
-                      <line x1="160" y1="128" x2="236" y2="198" />
-                      <line x1="72" y1="62" x2="34" y2="30" />
-                      <line x1="72" y1="62" x2="104" y2="24" />
-                      <line x1="72" y1="62" x2="28" y2="98" />
-                      <line x1="72" y1="62" x2="118" y2="94" />
-                      <line x1="252" y1="70" x2="290" y2="36" />
-                      <line x1="252" y1="70" x2="222" y2="26" />
-                      <line x1="252" y1="70" x2="296" y2="108" />
-                      <line x1="96" y1="206" x2="46" y2="234" />
-                      <line x1="96" y1="206" x2="118" y2="246" />
-                      <line x1="96" y1="206" x2="40" y2="176" />
-                      <line x1="236" y1="198" x2="284" y2="228" />
-                      <line x1="236" y1="198" x2="206" y2="242" />
+                      <line pathLength="1" x1="160" y1="128" x2="72" y2="62" />
+                      <line pathLength="1" x1="160" y1="128" x2="252" y2="70" />
+                      <line pathLength="1" x1="160" y1="128" x2="96" y2="206" />
+                      <line pathLength="1" x1="160" y1="128" x2="236" y2="198" />
+                      <line pathLength="1" x1="72" y1="62" x2="34" y2="30" />
+                      <line pathLength="1" x1="72" y1="62" x2="104" y2="24" />
+                      <line pathLength="1" x1="72" y1="62" x2="28" y2="98" />
+                      <line pathLength="1" x1="72" y1="62" x2="118" y2="94" />
+                      <line pathLength="1" x1="252" y1="70" x2="290" y2="36" />
+                      <line pathLength="1" x1="252" y1="70" x2="222" y2="26" />
+                      <line pathLength="1" x1="252" y1="70" x2="296" y2="108" />
+                      <line pathLength="1" x1="96" y1="206" x2="46" y2="234" />
+                      <line pathLength="1" x1="96" y1="206" x2="118" y2="246" />
+                      <line pathLength="1" x1="96" y1="206" x2="40" y2="176" />
+                      <line pathLength="1" x1="236" y1="198" x2="284" y2="228" />
+                      <line pathLength="1" x1="236" y1="198" x2="206" y2="242" />
                     </g>
                     <g class="n-note">
                       <circle cx="34" cy="30" r="3.5" />
@@ -2751,6 +2998,13 @@ requirement, not an optional extra.
                       <circle cx="236" cy="198" r="6.5" />
                     </g>
                     <circle class="n-index" cx="160" cy="128" r="10" />
+                    <g class="g-labels">
+                      <text x="160" y="152" text-anchor="middle">Flora Index</text>
+                      <text x="72" y="80" text-anchor="middle">Atlas</text>
+                      <text x="252" y="88" text-anchor="middle">Northwind</text>
+                      <text x="96" y="224" text-anchor="middle">Kiln</text>
+                      <text x="236" y="216" text-anchor="middle">Harbor</text>
+                    </g>
                   </svg>
                   <figcaption>
                     <span><i class="k-index"></i>Index</span>
@@ -2762,9 +3016,29 @@ requirement, not an optional extra.
             </section>
 
             <section id="faq" class="t-grey" aria-labelledby="faq-title">
-              <div class="section-head reveal">
+              <div class="stage">
+                <div class="section-head reveal">
                 <h2 id="faq-title">Questions</h2>
                 <p class="section-lede">What people ask before they point an agent at it.</p>
+              </div>
+
+                <figure class="scene scene-flow scene-local reveal" aria-labelledby="local-caption">
+                  <div class="l-machine">
+                    <div class="sc-col-title">Your machine</div>
+                    <div class="sc-card l-vault is-hot"><div class="sc-title">Vault</div><div class="sc-note">Markdown in Git</div></div>
+                    <div class="sc-card l-cli"><div class="sc-title"><code>vulcanus</code></div><div class="sc-note">CLI and MCP server</div></div>
+                    <div class="sc-card l-history"><div class="sc-title">AI history</div><div class="sc-note">read locally, discarded</div></div>
+                    <div class="sc-card l-agents"><div class="sc-title">Your agents</div><div class="sc-note">recall over MCP</div></div>
+                  </div>
+                  <div class="sc-card l-npm">
+                    <div class="sc-title">npm registry</div>
+                    <div class="sc-note">optional once-a-day version check</div>
+                    <code class="l-off">VULCANUS_NO_UPDATE_CHECK=1</code>
+                  </div>
+                  <figcaption id="local-caption" class="sc-caption">
+                    No account and no server. The only automatic call is the optional version check.
+                  </figcaption>
+                </figure>
               </div>
 
               <div class="faq block">

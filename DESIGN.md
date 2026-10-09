@@ -288,7 +288,8 @@ The owner asked for the page to stop reading like a blog and to draw the product
 - **Stage:** a section head beside its scene (`.stage`, 4.4fr / 7fr; `.stage.flip` puts the scene first). Below 900px the scene follows the head.
 - **Scene:** a dotted workshop floor in the section's band (`.scene`: 18px dot grid at 22% of the band, a faint band light from the top-right corner, steel ground, 12px radius). Its parts are absolutely placed drawn cards (`.sc-card`, steel-2, 8px radius, one soft shadow; `.is-hot` takes the band border, `.is-cold` dims to 55%), grey text bars (`.sc-bar`), chips and band-coloured wires (`.sc-wire`, an SVG with `vector-effect: non-scaling-stroke`). Below 560px a scene stacks as a list and drops its wires.
 - **Content:** every word in a scene is the page's own example (Atlas, Northwind, Kiln, Flora and the example run's counts) or a real path or command; a scene that shows behaviour rather than a run says "Illustration".
-- **Scenes on the page:** the vault's layers with an agent stopping at the Capsule (Structure), sources flowing into ticked candidates (Import), one `recall` returning the Capsule (MCP), the doctor run over its graph (Checks), three tools wired to one vault (Agents).
+- **Scenes on the page:** the vault's layers with an agent stopping at the Capsule (Structure), sources flowing into ticked candidates (Import), the thirteen commands grouped by job (Commands), one `recall` returning the Capsule (MCP), one square per percent of the measured vault (Token budget), the doctor run over its graph (Checks), three tools wired to one vault (Agents), the labelled project graph (Obsidian), and what stays on your machine (Questions).
+- **Flow scenes:** a scene whose parts read better in order than placed (`.scene-flow`) lays them out as a grid instead of absolute positions; the waffle (`.waffle`, 20 × 5, filled column-first) is one.
 
 ## Motion (added 2026-10-09)
 
