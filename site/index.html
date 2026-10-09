@@ -185,6 +185,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="alternate" type="text/markdown" href="/llms.txt" title="Vulcanus for LLMs" />
+    <script>document.documentElement.classList.add("js");</script>
     <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin />
 
     <style>
@@ -1370,7 +1371,7 @@
         left: 6%;
         width: 2px;
         border-radius: 2px;
-        background: linear-gradient(180deg, var(--straw) 0 38%, var(--line-strong) 38% 100%);
+        background: linear-gradient(180deg, var(--straw) 0 62%, var(--line-strong) 62% 100%);
       }
       .sc-dot {
         position: absolute;
@@ -1903,13 +1904,15 @@
         0%,
         8% {
           top: 0;
+          opacity: 1;
         }
         42%,
         86% {
-          top: 38%;
+          top: 62%;
+          opacity: 1;
         }
         100% {
-          top: 38%;
+          top: 62%;
           opacity: 0;
         }
       }
@@ -2189,76 +2192,81 @@
           animation: flow 1.6s linear infinite;
         }
 
-        @supports (animation-timeline: view()) {
-          .reveal {
-            animation: rise linear both;
-            animation-timeline: view();
-            animation-range: entry 0% entry 70%;
-          }
-          /* Wires are drawn with non-scaling strokes, where a normalised dash
-             does not hold, so they are wiped in from the left instead. */
-          .scene .sc-wires {
-            animation: wipe linear both;
-            animation-timeline: view();
-            animation-range: entry 15% entry 95%;
-          }
-          .d-edges path {
-            stroke-dasharray: 1;
-            animation: draw linear both;
-            animation-timeline: view();
-            animation-range: entry 15% entry 95%;
-          }
-          .scene .sc-check.on .box {
-            animation: tick linear both;
-            animation-timeline: view();
-          }
-          .scene .sc-check.t1 .box {
-            animation-range: entry 60% entry 85%;
-          }
-          .scene .sc-check.t2 .box {
-            animation-range: entry 75% entry 100%;
-          }
-          .scene-import .sc-chip-ok,
-          .scene-mcp .m-answer,
-          .scene-doctor .d-total,
-          .scene-agents .a-vault {
-            animation: arrive linear both;
-            animation-timeline: view();
-            animation-range: entry 70% entry 100%;
-          }
-          .checks.block li .icon {
-            animation: tick linear both;
-            animation-timeline: view();
-            animation-range: entry 20% entry 100%;
-          }
-          .waffle {
-            animation: wipe linear both;
-            animation-timeline: view();
-            animation-range: entry 20% entry 100%;
-          }
-          .scene-graph .edge line {
-            stroke-dasharray: 1;
-            animation: draw linear both;
-            animation-timeline: view();
-            animation-range: entry 15% entry 90%;
-          }
-          .scene-graph .n-hub circle,
-          .scene-graph .n-index,
-          .scene-cmds .sc-col,
-          .scene-local .l-npm {
-            animation: arrive linear both;
-            animation-timeline: view();
-            animation-range: entry 40% entry 100%;
-          }
-          .scene-cmds .sc-col.is-hot {
-            animation-range: entry 55% entry 100%;
-          }
-          .budget-table .fill {
-            transform-origin: left center;
-            animation: fill-right linear both;
-            animation-timeline: view();
-            animation-range: entry 20% entry 100%;
-          }
+        /* Entrances: each part plays once, in full, when it first comes into
+           view (the script adds .in). Without the script, .js is never set and
+           everything is simply shown. */
+        .js .reveal {
+          opacity: 0;
+          transform: translateY(26px);
+          transition:
+            opacity 0.8s var(--ease-out),
+            transform 0.8s var(--ease-out);
+        }
+        .js .reveal.in {
+          opacity: 1;
+          transform: none;
+        }
+        .js .scene .sc-wires {
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.2s var(--ease-out) 0.25s;
+        }
+        .js .scene.in .sc-wires {
+          clip-path: inset(0);
+        }
+        .js .d-edges path,
+        .js .scene-graph .edge line {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          transition: stroke-dashoffset 1.2s var(--ease-out) 0.3s;
+        }
+        .js .scene.in .d-edges path,
+        .js .scene.in .edge line {
+          stroke-dashoffset: 0;
+        }
+        .js .waffle {
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.4s var(--ease-out) 0.2s;
+        }
+        .js .scene.in .waffle {
+          clip-path: inset(0);
+        }
+        .js .scene-import .sc-chip-ok,
+        .js .scene-mcp .m-answer,
+        .js .scene-doctor .d-total,
+        .js .scene-agents .a-vault,
+        .js .scene-local .l-npm,
+        .js .scene-cmds .sc-col {
+          opacity: 0;
+          translate: 0 10px;
+          transition:
+            opacity 0.7s var(--ease-out) 0.9s,
+            translate 0.7s var(--ease-out) 0.9s;
+        }
+        .js .scene-cmds .sc-col:nth-child(3) {
+          transition-delay: 0.45s;
+        }
+        .js .scene-cmds .sc-col:nth-child(4) {
+          transition-delay: 0.7s;
+        }
+        .js .scene-cmds .sc-col:nth-child(2) {
+          transition-delay: 0.2s;
+        }
+        .js .scene.in .sc-chip-ok,
+        .js .scene.in .m-answer,
+        .js .scene.in .d-total,
+        .js .scene.in .a-vault,
+        .js .scene.in .l-npm,
+        .js .scene.in .sc-col {
+          opacity: 1;
+          translate: none;
+        }
+        .js .budget-table .fill {
+          transform: scaleX(0);
+          transform-origin: left center;
+          transition: transform 1.2s var(--ease-out) 0.2s;
+        }
+        .js .budget-table.in .fill {
+          transform: none;
         }
       }
 
@@ -2677,17 +2685,17 @@
 
                 <figure class="scene scene-import reveal" aria-labelledby="import-caption">
                   <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    <path class="wire" pathLength="1" d="M38 12.8 C 46 12.8, 44 34, 52 34" />
-                    <path class="wire" pathLength="1" d="M38 28.4 C 46 28.4, 44 34, 52 34" />
-                    <path class="wire" pathLength="1" d="M38 44.0 C 46 44.0, 44 34, 52 34" />
-                    <path class="wire" pathLength="1" d="M38 59.6 C 46 59.6, 44 34, 52 34" />
-                    <path class="wire" pathLength="1" d="M38 75.2 C 46 75.2, 44 34, 52 34" />
+                    <path class="wire" d="M36 12.3 C 46 12.3, 45 26, 55 26" />
+                    <path class="wire" d="M36 28.2 C 46 28.2, 45 26, 55 26" />
+                    <path class="wire" d="M36 44.0 C 46 44.0, 45 26, 55 26" />
+                    <path class="wire" d="M36 59.9 C 46 59.9, 45 26, 55 26" />
+                    <path class="wire" d="M36 75.7 C 46 75.7, 45 26, 55 26" />
                   
-                    <path class="spark" d="M38 12.8 C 46 12.8, 44 34, 52 34" />
-                    <path class="spark" d="M38 28.4 C 46 28.4, 44 34, 52 34" />
-                    <path class="spark" d="M38 44.0 C 46 44.0, 44 34, 52 34" />
-                    <path class="spark" d="M38 59.6 C 46 59.6, 44 34, 52 34" />
-                    <path class="spark" d="M38 75.2 C 46 75.2, 44 34, 52 34" />
+                    <path class="spark" d="M36 12.3 C 46 12.3, 45 26, 55 26" />
+                    <path class="spark" d="M36 28.2 C 46 28.2, 45 26, 55 26" />
+                    <path class="spark" d="M36 44.0 C 46 44.0, 45 26, 55 26" />
+                    <path class="spark" d="M36 59.9 C 46 59.9, 45 26, 55 26" />
+                    <path class="spark" d="M36 75.7 C 46 75.7, 45 26, 55 26" />
                   </svg>
                   <ul class="sc-sources">
                     <li><b>ChatGPT</b>data export</li>
@@ -2807,11 +2815,11 @@
 
                 <figure class="scene scene-flow scene-cmds reveal" aria-labelledby="cmds-caption">
                   <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    <path class="wire" d="M31 46 C 34 46, 34 46, 37 46" />
-                    <path class="wire" d="M64 46 C 67 46, 67 46, 70 46" />
+                    <path class="wire" d="M30 48 L 38 48" />
+                    <path class="wire" d="M62 48 L 70 48" />
                   
-                    <path class="spark" d="M31 46 C 34 46, 34 46, 37 46" />
-                    <path class="spark" d="M64 46 C 67 46, 67 46, 70 46" />
+                    <path class="spark" d="M30 48 L 38 48" />
+                    <path class="spark" d="M62 48 L 70 48" />
                   </svg>
                   <div class="sc-col">
                     <div class="sc-col-title">Build it</div>
@@ -2862,9 +2870,9 @@
 
                 <figure class="scene scene-mcp reveal" aria-labelledby="mcp-caption">
                   <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    <path class="wire flow" pathLength="1" d="M30 44 C 30 52, 40 50, 40 58" />
+                    <path class="wire flow" d="M24 26 C 24 40, 40 36, 40 50" />
                   
-                    <path class="spark" d="M30 44 C 30 52, 40 50, 40 58" />
+                    <path class="spark" d="M24 26 C 24 40, 40 36, 40 50" />
                   </svg>
                   <div class="sc-card m-session">
                     <div class="sc-title">Agent session</div>
@@ -2939,7 +2947,7 @@
                 </figure>
               </div>
 
-              <table class="budget-table block">
+              <table class="budget-table block reveal">
                 <caption>What an agent reads, in tokens and as a share of the vault</caption>
                 <thead>
                   <tr>
@@ -3063,13 +3071,13 @@
 
                 <figure class="scene scene-agents reveal" aria-labelledby="agents-caption">
                   <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    <path class="wire" pathLength="1" d="M58 18 C 78 18, 76 66, 78 72" />
-                    <path class="wire" pathLength="1" d="M64 39 C 80 39, 80 66, 81 72" />
-                    <path class="wire" pathLength="1" d="M70 60 C 82 60, 83 68, 84 72" />
+                    <path class="wire" d="M55 15 C 80 15, 77 66, 78 78" />
+                    <path class="wire" d="M61 36 C 81 36, 80 68, 81 78" />
+                    <path class="wire" d="M67 57 C 82 57, 84 70, 84 78" />
                   
-                    <path class="spark" d="M58 18 C 78 18, 76 66, 78 72" />
-                    <path class="spark" d="M64 39 C 80 39, 80 66, 81 72" />
-                    <path class="spark" d="M70 60 C 82 60, 83 68, 84 72" />
+                    <path class="spark" d="M55 15 C 80 15, 77 66, 78 78" />
+                    <path class="spark" d="M61 36 C 81 36, 80 68, 81 78" />
+                    <path class="spark" d="M67 57 C 82 57, 84 70, 84 78" />
                   </svg>
                   <div class="sc-card a-win w1">
                     <div class="sc-title">Claude Code <span class="sc-path">~/.claude/CLAUDE.md</span></div>
@@ -3400,6 +3408,24 @@ requirement, not an optional extra.
     </div>
 
     <script>
+      // Entrances play once, in full, when a part first comes into view.
+      const parts = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window) {
+        const seen = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add("in");
+              seen.unobserve(entry.target);
+            }
+          },
+          { threshold: 0.2, rootMargin: "0px 0px -8% 0px" },
+        );
+        parts.forEach((part) => seen.observe(part));
+      } else {
+        parts.forEach((part) => part.classList.add("in"));
+      }
+
       document.getElementById("year").textContent = String(new Date().getFullYear());
 
       for (const button of document.querySelectorAll(".copy")) {
