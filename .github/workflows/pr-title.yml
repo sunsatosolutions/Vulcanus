@@ -1,0 +1,29 @@
+name: PR title
+
+# Site release notes are generated from pull request titles, so every title
+# has to be a conventional one: `feat: …`, `fix(site): …`, `ci!: …`.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional:
+    name: conventional title
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|ci|chore|refactor|perf|test|build|style|revert)(\([a-z0-9._/-]+\))?!?: .+'
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "ok: $TITLE"
+          else
+            echo "::error::\"$TITLE\" is not a conventional title. Start it with feat:, fix:, docs:, ci:, chore:, refactor:, perf:, test:, build:, style: or revert:, optionally with a (scope)."
+            exit 1
+          fi
