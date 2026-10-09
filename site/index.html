@@ -10,7 +10,7 @@
     />
     <link rel="canonical" href="https://vulcanus.sunsato.com/" />
     <meta name="author" content="Sunsato" />
-    <meta name="theme-color" content="#0f1113" />
+    <meta name="theme-color" content="#08080c" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
 
     <meta property="og:type" content="website" />
@@ -22,7 +22,7 @@
       property="og:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png?v=3" />
+    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png?v=4" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
@@ -36,7 +36,7 @@
       name="twitter:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png?v=3" />
+    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png?v=4" />
 
     <script type="application/ld+json">
       {
@@ -205,11 +205,11 @@
       :root {
         color-scheme: dark;
         /* Blackened steel */
-        --ground: #0f1113;
-        --steel: #161a1d;
-        --steel-2: #1c2024;
-        --line: #272c31;
-        --line-strong: #3a4147;
+        --ground: #08080c;
+        --steel: #121219;
+        --steel-2: #181820;
+        --line: #23232e;
+        --line-strong: #34343f;
         /* Type */
         --bone: #e8e3d9;
         --iron: #a3a7ac;
@@ -248,6 +248,7 @@
       }
 
       body {
+        position: relative;
         margin: 0;
         background: var(--ground);
         color: var(--bone);
@@ -258,6 +259,21 @@
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
         caret-color: var(--ember);
+      }
+
+      /* Forge heat behind the hero: the hot top of the page the rest cools from. */
+      body::before {
+        content: "";
+        position: absolute;
+        inset: -30vh 0 auto 0;
+        height: 110vh;
+        background: radial-gradient(ellipse 60% 50% at 50% 40%, rgb(232 87 42 / 0.14), transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .page {
+        position: relative;
+        z-index: 1;
       }
 
       ::selection {
@@ -1381,7 +1397,7 @@
         <a class="brand" href="/" aria-label="Vulcanus home">
           <svg viewBox="0 0 26 26" aria-hidden="true">
             <rect width="26" height="26" rx="5" fill="#e8572a" />
-            <path d="M6.5 7h3.6l2.9 9.1L15.9 7h3.6l-4.7 12.5h-3.6Z" fill="#0f1113" />
+            <path d="M6.5 7h3.6l2.9 9.1L15.9 7h3.6l-4.7 12.5h-3.6Z" fill="#08080c" />
           </svg>
           Vulcanus
         </a>

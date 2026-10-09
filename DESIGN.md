@@ -2,11 +2,11 @@
 name: Vulcanus
 description: A smith's temper chart for an agent-readable second brain; blackened steel, bone type, ember only where something is hot.
 colors:
-  ground: "#0f1113"
-  steel: "#161a1d"
-  steel-2: "#1c2024"
-  line: "#272c31"
-  line-strong: "#3a4147"
+  ground: "#08080c"
+  steel: "#121219"
+  steel-2: "#181820"
+  line: "#23232e"
+  line-strong: "#34343f"
   bone: "#e8e3d9"
   iron: "#a3a7ac"
   dim: "#80868c"
@@ -140,7 +140,7 @@ The page is a smith's temper chart. Steel drawn from the fire passes through a f
 
 Density is that of a well-set technical document: generous section spacing, measured line lengths (37 to 46rem for prose), structure carried by 1px hairlines rather than boxes. Framed surfaces ("plates") exist only for real code and real CLI output; everything else is ruled rows, notes and tables. Type is a single variable family, Archivo, whose width axis carries rank: headings are set expanded and heavy, text at normal width. JetBrains Mono appears only where the content is literally code or output.
 
-The system rejects the dark-plus-neon developer page: no glowing terminal, no glow halos, no badge pills, no gradient keywords, no cards used as layout.
+The system rejects the dark-plus-neon developer page: no glowing terminal, no glow halos on elements, no badge pills, no gradient keywords, no cards used as layout. The one exception is the forge heat: a single soft ember radial behind the top of the page (`body::before`, ember at 14% opacity), kept from the earlier design at the owner's request (2026-10-09). It marks the hot top the page cools from; nothing else glows.
 
 **Key Characteristics:**
 - Fixed blackened-steel ground with three type tones (bone, iron, dim).
@@ -225,7 +225,7 @@ The system is flat. Depth is conveyed by tone (ground, steel, steel two) and by 
 - **Install lift** (`box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 6px 14px -8px rgb(0 0 0 / 0.7)`): the install line only.
 
 ### Named Rules
-**The One Lift Rule.** Only the install line casts a shadow. Plates, rows, tables and navigation stay flat; nothing glows.
+**The One Lift Rule.** Only the install line casts a shadow. Plates, rows, tables and navigation stay flat; nothing glows except the forge heat behind the page top.
 
 ## Shapes
 
@@ -273,7 +273,7 @@ Topbar: the ember brand tile and wordmark (700, width 112%) on the left; iron te
 
 ### Don't:
 - **Don't** use ember as a decorative accent, heading colour or background wash.
-- **Don't** add glow halos, neon text, a glowing terminal, badge pills or gradient keywords.
+- **Don't** add glow halos, neon text, a glowing terminal, badge pills or gradient keywords. The forge heat behind the page top is the only glow; never add a second.
 - **Don't** blend temper colours into soft gradients; temper strips use hard stops.
 - **Don't** use cards or boxed panels as page structure.
 - **Don't** add shadows beyond the install line's lift.
