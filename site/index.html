@@ -1218,6 +1218,679 @@
         color: var(--bone);
       }
 
+      /* ---------- Stages: a section head beside its drawn scene ---------- */
+
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 4.4fr) minmax(0, 7fr);
+        gap: clamp(2rem, 4vw, 3.5rem);
+        align-items: center;
+      }
+      .stage.flip {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 4.4fr);
+      }
+      .stage.flip > .scene {
+        order: -1;
+      }
+
+      /* Scenes: the product drawn with its own words, on the workshop floor */
+
+      .scene {
+        --dots: color-mix(in srgb, var(--t) 22%, transparent);
+        position: relative;
+        margin: 0;
+        aspect-ratio: 6 / 5.2;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 1px 1px, var(--dots) 1px, transparent 1.4px) 0 0 / 18px 18px,
+          radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--t) 9%, transparent), transparent 60%),
+          var(--steel);
+        overflow: hidden;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+      .scene > * {
+        position: absolute;
+      }
+      .sc-wires {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .wire {
+        fill: none;
+        stroke: color-mix(in srgb, var(--t) 70%, transparent);
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .sc-card {
+        background: var(--steel-2);
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 0.7rem 0.8rem 0.75rem;
+        box-shadow: 0 12px 26px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-card.is-hot {
+        border-color: var(--t);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--t) 16%, transparent), 0 12px 26px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-card.is-cold {
+        opacity: 0.55;
+      }
+      .sc-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.45rem;
+        font-weight: 650;
+        font-stretch: 104%;
+        color: var(--bone);
+      }
+      .sc-title code {
+        color: var(--bone);
+      }
+      .sc-note {
+        font-weight: 400;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-chip {
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--t) 20%, transparent);
+        color: color-mix(in srgb, var(--t) 55%, var(--bone));
+        font-size: 0.68rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .sc-bar {
+        display: block;
+        height: 0.36rem;
+        margin-top: 0.42rem;
+        border-radius: 3px;
+        background: #26262f;
+      }
+      .sc-bar.w40 {
+        width: 40%;
+      }
+      .sc-bar.w50 {
+        width: 50%;
+      }
+      .sc-bar.w60 {
+        width: 60%;
+      }
+      .sc-bar.w70 {
+        width: 70%;
+      }
+      .sc-bar.w80 {
+        width: 80%;
+      }
+      .sc-caption {
+        position: absolute;
+        left: 4%;
+        right: 4%;
+        bottom: 3.5%;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-caption code {
+        font-size: 0.95em;
+      }
+
+      /* The vault: an agent reads down to the Capsule and stops */
+
+      .sc-files {
+        top: 5%;
+        left: 4%;
+        right: 4%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--iron);
+      }
+      .sc-files span {
+        padding: 0.12rem 0.4rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+      }
+      .sc-files span:first-child {
+        border-color: transparent;
+        padding-left: 0;
+        color: var(--bone);
+        font-weight: 600;
+      }
+      .sc-rail {
+        top: 23%;
+        bottom: 21%;
+        left: 6%;
+        width: 2px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--straw) 0 38%, var(--line-strong) 38% 100%);
+      }
+      .sc-dot {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 0.7rem;
+        height: 0.7rem;
+        margin: -0.35rem 0 0 -0.35rem;
+        border-radius: 50%;
+        background: var(--ember);
+        box-shadow: 0 0 0 4px rgb(255 107 53 / 0.18);
+      }
+      .v-map {
+        top: 21%;
+        left: 12%;
+        right: 4%;
+      }
+      .sc-route {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.18rem 0;
+        color: var(--iron);
+      }
+      .sc-route b {
+        min-width: 4.6rem;
+        font-weight: 600;
+        color: var(--bone);
+      }
+      .sc-route i {
+        flex: 0 0 1.4rem;
+        height: 1px;
+        background: var(--line-strong);
+      }
+      .sc-route:first-of-type i {
+        background: var(--t);
+      }
+      .v-capsule {
+        top: 50%;
+        left: 12%;
+        right: 4%;
+      }
+      .v-deep {
+        top: 70%;
+        left: 12%;
+        right: 4%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      .v-deep .sc-card {
+        padding: 0.55rem 0.6rem 0.6rem;
+        font-size: 0.72rem;
+      }
+
+      /* Import: sources flow into the candidates you tick */
+
+      .sc-sources {
+        top: 5%;
+        left: 4%;
+        width: 34%;
+        height: 78%;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        grid-template-rows: repeat(5, 1fr);
+        gap: 0.45rem;
+      }
+      .sc-sources li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 0.7rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: var(--steel-2);
+        color: var(--dim);
+        font-size: 0.7rem;
+      }
+      .sc-sources b {
+        color: var(--bone);
+        font-weight: 600;
+        font-size: 0.78rem;
+      }
+      .i-candidates {
+        top: 9%;
+        left: 52%;
+        right: 4%;
+      }
+      .sc-check {
+        display: grid;
+        grid-template-columns: 0.9rem auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .sc-check b {
+        font-weight: 600;
+        color: var(--bone);
+      }
+      .sc-check em {
+        font-style: normal;
+        font-size: 0.7rem;
+        color: var(--dim);
+        text-align: right;
+      }
+      .sc-check .box {
+        width: 0.8rem;
+        height: 0.8rem;
+        border: 1.5px solid var(--line-strong);
+        border-radius: 3px;
+      }
+      .sc-check.on .box {
+        border-color: var(--t);
+        background:
+          linear-gradient(45deg, transparent 42%, var(--ground) 42% 58%, transparent 58%) no-repeat,
+          var(--t);
+      }
+      .sc-foot {
+        margin-top: 0.45rem;
+        font-size: 0.7rem;
+        color: var(--dim);
+      }
+      .sc-chip-ok {
+        left: 52%;
+        right: 4%;
+        top: 68%;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid color-mix(in srgb, var(--pale-blue) 45%, transparent);
+        border-radius: 7px;
+        color: var(--pale-blue);
+        font-size: 0.72rem;
+        background: color-mix(in srgb, var(--pale-blue) 8%, transparent);
+      }
+
+      /* MCP: one recall returns the Capsule and the read order */
+
+      .m-session {
+        top: 7%;
+        left: 4%;
+        width: 62%;
+      }
+      .sc-msg {
+        padding: 0.45rem 0.6rem;
+        border-radius: 7px;
+        background: #22222c;
+        color: var(--bone);
+      }
+      .sc-call {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+        color: var(--iron);
+        font-size: 0.72rem;
+      }
+      .sc-call span {
+        color: var(--dim);
+      }
+      .sc-call code {
+        color: color-mix(in srgb, var(--t) 55%, var(--bone));
+      }
+      .sc-call em {
+        font-family: var(--mono);
+        font-style: normal;
+        font-size: 0.68rem;
+      }
+      .m-answer {
+        top: 47%;
+        left: 30%;
+        right: 4%;
+      }
+      .sc-next {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.6rem;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-next b {
+        color: var(--bone);
+        font-weight: 600;
+      }
+      .sc-next i {
+        width: 1rem;
+        height: 1px;
+        background: var(--line-strong);
+      }
+      .sc-warn {
+        margin-top: 0.5rem;
+        padding: 0.3rem 0.5rem;
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--ember) 12%, transparent);
+        color: var(--ember-soft);
+        font-size: 0.7rem;
+      }
+
+      /* Doctor: the graph, checked */
+
+      .scene-doctor {
+        aspect-ratio: auto;
+        padding: 1.2rem;
+      }
+      .scene-doctor > * {
+        position: relative;
+      }
+      .scene-doctor .sc-caption {
+        position: static;
+        margin-top: 0.8rem;
+      }
+      .d-graph {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0.2rem 0 0.5rem;
+      }
+      .d-edges path {
+        fill: none;
+        stroke: var(--line-strong);
+        stroke-width: 1.2;
+      }
+      .d-notes circle {
+        fill: var(--dim);
+      }
+      .d-hubs circle {
+        fill: var(--t);
+      }
+      .d-index {
+        fill: var(--ember);
+      }
+      .d-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.28rem 0;
+        border-top: 1px solid var(--line);
+        color: var(--iron);
+      }
+      .d-line b {
+        color: var(--t);
+        font-weight: 600;
+      }
+      .d-total {
+        margin-top: 0.5rem;
+        color: var(--pale-blue);
+        font-weight: 600;
+      }
+
+      /* Agents: three tools, one vault */
+
+      .a-win {
+        width: 54%;
+      }
+      .a-win.w1 {
+        top: 7%;
+        left: 4%;
+      }
+      .a-win.w2 {
+        top: 28%;
+        left: 10%;
+      }
+      .a-win.w3 {
+        top: 49%;
+        left: 16%;
+      }
+      .sc-path {
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 0.66rem;
+        color: var(--dim);
+      }
+      .sc-quote {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--straw);
+      }
+      .a-vault {
+        right: 4%;
+        top: 72%;
+        width: 34%;
+      }
+
+      /* Rows and checks in two columns once a scene carries the section */
+
+      .rows.grid-rows {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+      .rows.grid-rows > li {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .checks.block {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+
+      /* ---------- Motion ---------- */
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(26px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes draw {
+        from {
+          stroke-dashoffset: 1;
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+      @keyframes wipe {
+        from {
+          clip-path: inset(0 100% 0 0);
+        }
+        to {
+          clip-path: inset(0);
+        }
+      }
+      @keyframes descend {
+        0%,
+        8% {
+          top: 0;
+        }
+        42%,
+        86% {
+          top: 38%;
+        }
+        100% {
+          top: 38%;
+          opacity: 0;
+        }
+      }
+      @keyframes tick {
+        from {
+          transform: scale(0.4);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      @keyframes fill-down {
+        from {
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          clip-path: inset(0);
+        }
+      }
+      @keyframes fill-right {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        /* On load: the depth gauge fills from the hot top down. */
+        .strip .seg {
+          animation: fill-down 1.1s var(--ease-out) both;
+        }
+        .strip .seg-capsule {
+          animation-delay: 0.35s;
+        }
+        .strip .seg-deep {
+          animation-delay: 0.45s;
+        }
+        .layers li {
+          animation: arrive 0.7s var(--ease-out) both;
+        }
+        .layers .layer-cold {
+          animation-delay: 0.3s;
+        }
+        .layers .layer-capsule {
+          animation-delay: 0.55s;
+        }
+        .layers .layer-deep {
+          animation-delay: 0.8s;
+        }
+
+        /* Always on, slowly: the agent walks down to the Capsule and stops. */
+        .sc-dot {
+          animation: descend 5.5s var(--ease-out) infinite;
+        }
+        .wire.flow {
+          stroke-dasharray: 5 5;
+          animation: flow 1.6s linear infinite;
+        }
+
+        @supports (animation-timeline: view()) {
+          .reveal {
+            animation: rise linear both;
+            animation-timeline: view();
+            animation-range: entry 0% entry 70%;
+          }
+          /* Wires are drawn with non-scaling strokes, where a normalised dash
+             does not hold, so they are wiped in from the left instead. */
+          .scene .sc-wires {
+            animation: wipe linear both;
+            animation-timeline: view();
+            animation-range: entry 15% entry 95%;
+          }
+          .d-edges path {
+            stroke-dasharray: 1;
+            animation: draw linear both;
+            animation-timeline: view();
+            animation-range: entry 15% entry 95%;
+          }
+          .scene .sc-check.on .box {
+            animation: tick linear both;
+            animation-timeline: view();
+          }
+          .scene .sc-check.t1 .box {
+            animation-range: entry 60% entry 85%;
+          }
+          .scene .sc-check.t2 .box {
+            animation-range: entry 75% entry 100%;
+          }
+          .scene-import .sc-chip-ok,
+          .scene-mcp .m-answer,
+          .scene-doctor .d-total,
+          .scene-agents .a-vault {
+            animation: arrive linear both;
+            animation-timeline: view();
+            animation-range: entry 70% entry 100%;
+          }
+          .checks.block li .icon {
+            animation: tick linear both;
+            animation-timeline: view();
+            animation-range: entry 20% entry 100%;
+          }
+          .budget-table .fill {
+            transform-origin: left center;
+            animation: fill-right linear both;
+            animation-timeline: view();
+            animation-range: entry 20% entry 100%;
+          }
+        }
+      }
+
+      @media (max-width: 900px) {
+        .stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .stage.flip {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .stage.flip > .scene {
+          order: 0;
+        }
+        .rows.grid-rows,
+        .checks.block {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* Narrow screens: the scene stacks as a list; wires and the walking dot go. */
+      @media (max-width: 560px) {
+        .scene {
+          aspect-ratio: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          padding: 1rem;
+        }
+        .scene > * {
+          position: static;
+          width: auto;
+        }
+        .sc-wires,
+        .sc-rail {
+          display: none;
+        }
+        .sc-sources {
+          display: flex;
+          flex-wrap: wrap;
+          height: auto;
+          gap: 0.4rem;
+        }
+        .sc-sources li {
+          padding: 0.4rem 0.6rem;
+        }
+        .v-deep {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .sc-caption {
+          position: static;
+        }
+      }
+
       /* Spacing between a section's head and its content wins over component resets. */
       .block {
         margin-top: clamp(2.2rem, 4vw, 3rem);
@@ -1487,85 +2160,124 @@
         <div class="body">
           <div class="sections">
             <section id="how" class="t-straw" aria-labelledby="how-title">
-              <div class="section-head">
-                <h2 id="how-title">Structure is the feature</h2>
-                <p class="section-lede">
-                  A folder of notes is not memory — an agent still has to read all of it. Vulcanus
-                  writes a layered graph: routing at the top, a compressed capsule per project,
-                  authoritative detail underneath. Agents read down only as far as the task actually
-                  requires.
-                </p>
-              </div>
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="how-title">Structure is the feature</h2>
+                  <p class="section-lede">
+                    A folder of notes is not memory — an agent still has to read all of it. Vulcanus
+                    writes a layered graph: routing at the top, a compressed capsule per project,
+                    authoritative detail underneath. Agents read down only as far as the task actually
+                    requires.
+                  </p>
+                </div>
 
-              <div class="split wide-left block">
-                <figure class="plate tree">
-                  <figcaption class="plate-label"><span>YourVault/</span><span>generated by vulcanus init</span></figcaption>
-                  <pre tabindex="0"><span class="dir">YourVault</span>
-├─ AGENTS.md            <span class="cm"># how agents behave here</span>
-├─ vulcanus.json        <span class="cm"># the source of truth</span>
-├─ <span class="dir">00_System/</span>
-│  ├─ Index             <span class="cm"># the map</span>
-│  ├─ Recall Map        <span class="cm"># triggers → the right note</span>
-│  ├─ Admin Profile     <span class="cm"># who you are, how you work</span>
-│  └─ Rules             <span class="cm"># what not to invent</span>
-├─ <span class="dir">02_Projects/</span>
-│  └─ <span class="dir">Atlas/</span>
-│     ├─ Atlas Capsule     <span class="cm"># read this first</span>
-│     ├─ Atlas Hub         <span class="cm"># navigation</span>
-│     ├─ Atlas Context     <span class="cm"># identity and scope</span>
-│     ├─ Atlas Decisions   <span class="cm"># confirmed choices</span>
-│     └─ Atlas Rules       <span class="cm"># future constraints</span>
-└─ <span class="dir">_imports/</span>          <span class="cm"># raw exports, git-ignored</span></pre>
+                <figure class="scene scene-vault reveal" aria-labelledby="vault-caption">
+                  <div class="sc-files" aria-label="Vault root">
+                    <span>YourVault/</span><span>AGENTS.md</span><span>vulcanus.json</span><span>00_System/</span><span>02_Projects/</span><span>_imports/</span>
+                  </div>
+                  <div class="sc-rail" aria-hidden="true"><span class="sc-dot"></span></div>
+                  <div class="sc-card v-map">
+                    <div class="sc-title">Recall Map <span class="sc-note">triggers → the right note</span></div>
+                    <div class="sc-route"><b>Atlas</b><i></i>Atlas Capsule</div>
+                    <div class="sc-route"><b>Northwind</b><i></i>Northwind Capsule</div>
+                    <div class="sc-route"><b>Kiln</b><i></i>Kiln Capsule</div>
+                  </div>
+                  <div class="sc-card v-capsule is-hot">
+                    <div class="sc-title">Atlas Capsule <span class="sc-chip">read this first</span></div>
+                    <span class="sc-bar w80"></span><span class="sc-bar w60"></span><span class="sc-bar w70"></span>
+                  </div>
+                  <div class="v-deep">
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Context</div><span class="sc-bar w70"></span><span class="sc-bar w50"></span></div>
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Decisions</div><span class="sc-bar w60"></span><span class="sc-bar w80"></span></div>
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Rules</div><span class="sc-bar w80"></span><span class="sc-bar w40"></span></div>
+                  </div>
+                  <figcaption id="vault-caption" class="sc-caption">
+                    An agent routes through the Recall Map and stops at the Capsule; Context, Decisions
+                    and Rules open only when the task needs them.
+                  </figcaption>
                 </figure>
-
-                <ul class="rows">
-                  <li>
-                    <h3>Capsules keep it cheap</h3>
-                    <p>
-                      Each project opens with a compressed must-remember note. Most questions never
-                      need more than that, so context windows stay small and answers stay grounded.
-                    </p>
-                  </li>
-                  <li>
-                    <h3>Uncertainty is explicit</h3>
-                    <p>
-                      Anything unconfirmed lives under <em>Needs Confirmation</em> and is never
-                      presented as fact. Corrections outrank older notes by design.
-                    </p>
-                  </li>
-                  <li>
-                    <h3>Git is the memory history</h3>
-                    <p>
-                      Every change is a commit, and a decision that changes is marked rather than
-                      erased: the new one names what it replaced. You can see when it changed, what it
-                      replaced, and why — the part chat history can never give you.
-                    </p>
-                  </li>
-                  <li>
-                    <h3>The vault speaks your language</h3>
-                    <p>
-                      English, Turkish, German, Spanish — and not just the setup questions. The
-                      capsules, hubs, rules and section headings are written in the language the vault
-                      records, so the memory you read every day is in the language you think in. The
-                      agent protocol stays English on purpose: it carries the version stamp
-                      <code>doctor</code> checks.
-                    </p>
-                  </li>
-                </ul>
               </div>
+
+              <ul class="rows grid-rows block">
+                <li class="reveal">
+                  <h3>Capsules keep it cheap</h3>
+                  <p>
+                    Each project opens with a compressed must-remember note. Most questions never need
+                    more than that, so context windows stay small and answers stay grounded.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>Uncertainty is explicit</h3>
+                  <p>
+                    Anything unconfirmed lives under <em>Needs Confirmation</em> and is never presented
+                    as fact. Corrections outrank older notes by design.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>Git is the memory history</h3>
+                  <p>
+                    Every change is a commit, and a decision that changes is marked rather than erased:
+                    the new one names what it replaced. You can see when it changed, what it replaced,
+                    and why — the part chat history can never give you.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>The vault speaks your language</h3>
+                  <p>
+                    English, Turkish, German, Spanish — and not just the setup questions. The capsules,
+                    hubs, rules and section headings are written in the language the vault records, so
+                    the memory you read every day is in the language you think in. The agent protocol
+                    stays English on purpose: it carries the version stamp <code>doctor</code> checks.
+                  </p>
+                </li>
+              </ul>
             </section>
 
             <section id="import" class="t-gold" aria-labelledby="import-title">
-              <div class="section-head">
-                <h2 id="import-title">Start from what you already said</h2>
-                <p class="section-lede">
-                  You have thousands of conversations describing your projects. The first question
-                  Vulcanus asks is whether to read them.
-                </p>
+              <div class="stage flip">
+                <div class="section-head reveal">
+                  <h2 id="import-title">Start from what you already said</h2>
+                  <p class="section-lede">
+                    You have thousands of conversations describing your projects. The first question
+                    Vulcanus asks is whether to read them.
+                  </p>
+                  <p class="section-lede">
+                    Run it again later and it proposes only what is new: conversations already read are
+                    remembered, so a second import is not a second pile of the same candidates.
+                  </p>
+                </div>
+
+                <figure class="scene scene-import reveal" aria-labelledby="import-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" pathLength="1" d="M38 12.8 C 46 12.8, 44 34, 52 34" />
+                    <path class="wire" pathLength="1" d="M38 28.4 C 46 28.4, 44 34, 52 34" />
+                    <path class="wire" pathLength="1" d="M38 44.0 C 46 44.0, 44 34, 52 34" />
+                    <path class="wire" pathLength="1" d="M38 59.6 C 46 59.6, 44 34, 52 34" />
+                    <path class="wire" pathLength="1" d="M38 75.2 C 46 75.2, 44 34, 52 34" />
+                  </svg>
+                  <ul class="sc-sources">
+                    <li><b>ChatGPT</b>data export</li>
+                    <li><b>Claude Code</b>local sessions</li>
+                    <li><b>Codex</b>268 rollout sessions</li>
+                    <li><b>Cursor</b>workspace history</li>
+                    <li><b>Gemini CLI</b>saved chats</li>
+                  </ul>
+                  <div class="sc-card i-candidates">
+                    <div class="sc-title">Project candidates <span class="sc-note">conversations</span></div>
+                    <div class="sc-check on t1"><span class="box"></span><b>Atlas</b><em>104 · high</em></div>
+                    <div class="sc-check on t2"><span class="box"></span><b>Northwind</b><em>58 · high</em></div>
+                    <div class="sc-check t3"><span class="box"></span><b>Kiln</b><em>6 · medium</em></div>
+                    <div class="sc-foot">257 conversations read, 23 candidates</div>
+                  </div>
+                  <div class="sc-chip-ok i-result">Flora · 103 notes and 567 links validated</div>
+                  <figcaption id="import-caption" class="sc-caption">
+                    The example run: history is read locally, only the names you tick become notes.
+                  </figcaption>
+                </figure>
               </div>
 
-              <div class="stack block">
-                <div class="table-scroll" tabindex="0">
+              <div class="split block">
+                <div class="table-scroll reveal" tabindex="0">
                   <table>
                     <thead>
                       <tr>
@@ -1608,57 +2320,30 @@
                     </tbody>
                   </table>
                 </div>
-
-                <figure class="plate">
-                  <figcaption class="plate-label"><span>vulcanus init</span><span>example run</span></figcaption>
-                  <pre tabindex="0"><span class="q">◆  Import an existing AI history to seed your project tree?</span>
-│  <span class="a">●</span> Codex local sessions — ~/.codex, 268 rollout sessions
-│  ○ ChatGPT data export — 16 conversation files
-│  ○ No, I'll define projects myself
-│
-◇  257 conversations read, 23 project candidates found
-│
-<span class="q">◆  Project candidates</span>
-│  <span class="a">◼</span> Atlas       104 conversations, high confidence
-│  <span class="a">◼</span> Northwind    58 conversations, high confidence
-│  ◻ Kiln          6 conversations, medium confidence
-│
-<span class="q">◆  Vault name</span>  <span class="a">Flora</span>
-<span class="q">◆  Your name</span>   <span class="a">Ada</span>
-│
-◇  <span class="ok">103 notes and 567 links validated</span>
-└  Flora → ~/Flora</pre>
-                </figure>
+                <div class="note reveal">
+                  <strong>Nothing reaches the vault without your say.</strong> Conversations are read
+                  locally and discarded. Only the project names you confirm and the decisions you
+                  accept become notes — in the wording you accepted, never as transcripts. The import
+                  log records how many conversations were scanned, never their content.
+                </div>
               </div>
 
-              <div class="note block">
-                <strong>Nothing reaches the vault without your say.</strong> Conversations are read
-                locally and discarded. Only the project names you confirm and the decisions you accept
-                become notes — in the wording you accepted, never as transcripts. The import log
-                records how many conversations were scanned, never their content.
-              </div>
-
-              <p class="section-lede">
-                Run it again later and it proposes only what is new: conversations already read are
-                remembered, so a second import is not a second pile of the same candidates.
-              </p>
-
-              <h3 class="sub-heading">And the decisions you already made</h3>
-              <p class="section-lede">
+              <h3 class="sub-heading reveal">And the decisions you already made</h3>
+              <p class="section-lede reveal">
                 Your history holds more than project names: the choices you settled and the rules you
                 kept repeating. Say yes to one more question and Vulcanus finds them — in English,
                 Turkish, German, or Spanish — and asks you about each one.
               </p>
 
               <div class="columns block">
-                <div>
+                <div class="reveal">
                   <h3>Your words, not the assistant's</h3>
                   <p>
                     Only your own messages are read, matched against phrases like “we decided” and
                     “from now on”, and ranked by how often you repeated them and how recently.
                   </p>
                 </div>
-                <div>
+                <div class="reveal">
                   <h3>Nothing lands unreviewed</h3>
                   <p>
                     Accept it, edit it, keep it as a rule, skip it, or stop. Up to fifteen per
@@ -1666,7 +2351,7 @@
                     asked again.
                   </p>
                 </div>
-                <div>
+                <div class="reveal">
                   <h3>Revisions, not contradictions</h3>
                   <p>
                     A statement that revises a recorded decision is offered as its replacement, so the
@@ -1677,7 +2362,7 @@
             </section>
 
             <section id="commands" class="t-bronze" aria-labelledby="commands-title">
-              <div class="section-head">
+              <div class="section-head reveal">
                 <h2 id="commands-title">Thirteen commands</h2>
                 <p class="section-lede">
                   The vault is plain Markdown you can edit by hand in Obsidian or any editor. These
@@ -1703,16 +2388,43 @@
             </section>
 
             <section id="mcp" class="t-plum" aria-labelledby="mcp-title">
-              <div class="section-head">
-                <h2 id="mcp-title">Memory as tools, not file reads</h2>
-                <p class="section-lede">
-                  <code>vulcanus serve</code> exposes the vault over MCP, so an agent asks for what it
-                  needs instead of guessing which file to open.
-                </p>
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="mcp-title">Memory as tools, not file reads</h2>
+                  <p class="section-lede">
+                    <code>vulcanus serve</code> exposes the vault over MCP, so an agent asks for what it
+                    needs instead of guessing which file to open.
+                  </p>
+                  <figure class="plate one-line block">
+                    <figcaption class="plate-label"><span>Claude Code</span><span>add the server</span></figcaption>
+                    <pre tabindex="0"><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
+                  </figure>
+                </div>
+
+                <figure class="scene scene-mcp reveal" aria-labelledby="mcp-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire flow" pathLength="1" d="M30 44 C 30 52, 40 50, 40 58" />
+                  </svg>
+                  <div class="sc-card m-session">
+                    <div class="sc-title">Agent session</div>
+                    <div class="sc-msg">Fix the checkout flow in Atlas.</div>
+                    <div class="sc-call"><span>tool</span><code>recall</code><em>project: "Atlas"</em></div>
+                  </div>
+                  <div class="sc-card m-answer is-hot">
+                    <div class="sc-title">Atlas Capsule <span class="sc-chip">returned</span></div>
+                    <span class="sc-bar w80"></span><span class="sc-bar w60"></span>
+                    <div class="sc-next">Read next <b>Hub</b><i></i><b>Decisions</b></div>
+                    <div class="sc-warn">One decision is superseded: read its replacement</div>
+                  </div>
+                  <figcaption id="mcp-caption" class="sc-caption">
+                    Illustration: one <code>recall</code> returns the Capsule, the read order, and what is
+                    no longer current.
+                  </figcaption>
+                </figure>
               </div>
 
-              <ul class="rows block">
-                <li>
+              <ul class="rows grid-rows block">
+                <li class="reveal">
                   <h3><code>recall</code></h3>
                   <p>
                     One project's Capsule plus the order to read deeper. The call an agent makes
@@ -1720,34 +2432,29 @@
                     the project is one you marked private, and which decisions are no longer current.
                   </p>
                 </li>
-                <li>
+                <li class="reveal">
                   <h3><code>search</code></h3>
                   <p>
                     Layer-aware: Capsule and Recall Map hits rank above everything else, and memory
                     that is no longer current ranks last.
                   </p>
                 </li>
-                <li>
+                <li class="reveal">
                   <h3><code>append_decision</code> · <code>append_rule</code></h3>
                   <p>
                     Confirmed outcomes go back into the right note, in the vault's own format. Pass
                     <code>supersedes</code> and the decision it replaces is marked in the same call.
                   </p>
                 </li>
-                <li>
+                <li class="reveal">
                   <h3><code>update_capsule</code></h3>
                   <p>Refresh one section of a summary — never a blind whole-file rewrite.</p>
                 </li>
               </ul>
-
-              <figure class="plate one-line block">
-                <figcaption class="plate-label"><span>Claude Code</span><span>add the server</span></figcaption>
-                <pre tabindex="0"><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
-              </figure>
             </section>
 
             <section id="budget" class="t-violet" aria-labelledby="budget-title">
-              <div class="section-head">
+              <div class="section-head reveal">
                 <h2 id="budget-title">The saving, measured</h2>
                 <p class="section-lede">
                   The claim is that a layered vault is cheaper to read than a pile of notes.
@@ -1795,52 +2502,115 @@
             </section>
 
             <section id="checks" class="t-blue" aria-labelledby="checks-title">
-              <div class="split">
-                <div>
-                  <div class="section-head">
-                    <h2 id="checks-title">It checks its own work</h2>
-                    <p class="section-lede">
-                      Memory rots quietly: a renamed note, a link that stopped resolving, a project
-                      nothing routes to. Every check is derived from your manifest, so it stays
-                      correct as the vault grows.
-                    </p>
-                  </div>
+              <div class="stage flip">
+                <div class="section-head reveal">
+                  <h2 id="checks-title">It checks its own work</h2>
+                  <p class="section-lede">
+                    Memory rots quietly: a renamed note, a link that stopped resolving, a project
+                    nothing routes to. Every check is derived from your manifest, so it stays correct as
+                    the vault grows.
+                  </p>
                   <div class="note block">
-                    <strong>Your writing is never overwritten.</strong> Notes, hubs, and the index
-                    hold what you wrote, so an upgrade links a new project in rather than regenerating
-                    the file around it. The agent protocol is merged: sections you added stay,
-                    sections the protocol gained arrive.
+                    <strong>Your writing is never overwritten.</strong> Notes, hubs, and the index hold
+                    what you wrote, so an upgrade links a new project in rather than regenerating the
+                    file around it. The agent protocol is merged: sections you added stay, sections the
+                    protocol gained arrive.
                   </div>
                 </div>
 
-                <ul class="checks">
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note carries complete, well-formed frontmatter</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every link resolves — and resolves to exactly one note</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every hub links to the notes it owns</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note links back to its hub</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every project is reachable from the routing layer</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No duplicate or case-colliding note names</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Raw exports are actually ignored by Git</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Agents are following the current protocol, not a superseded one</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Superseded decisions link both ways, and nothing replaces itself in a loop</li>
-                  <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No decision past its expiry date is still presented as current</li>
-                </ul>
+                <figure class="scene scene-doctor reveal" aria-labelledby="doctor-caption">
+                  <div class="sc-card d-run">
+                    <div class="sc-title"><code>vulcanus doctor</code></div>
+                    <svg class="d-graph" viewBox="0 0 300 120" aria-hidden="true">
+                      <g class="d-edges">
+                        <path pathLength="1" d="M150 60 L70 30" /><path pathLength="1" d="M150 60 L230 30" />
+                        <path pathLength="1" d="M150 60 L80 95" /><path pathLength="1" d="M150 60 L225 95" />
+                        <path pathLength="1" d="M70 30 L28 18" /><path pathLength="1" d="M70 30 L30 52" />
+                        <path pathLength="1" d="M230 30 L272 16" /><path pathLength="1" d="M230 30 L274 50" />
+                        <path pathLength="1" d="M80 95 L36 106" /><path pathLength="1" d="M225 95 L268 106" />
+                      </g>
+                      <g class="d-notes">
+                        <circle cx="28" cy="18" r="3.5" /><circle cx="30" cy="52" r="3.5" />
+                        <circle cx="272" cy="16" r="3.5" /><circle cx="274" cy="50" r="3.5" />
+                        <circle cx="36" cy="106" r="3.5" /><circle cx="268" cy="106" r="3.5" />
+                      </g>
+                      <g class="d-hubs">
+                        <circle cx="70" cy="30" r="6" /><circle cx="230" cy="30" r="6" />
+                        <circle cx="80" cy="95" r="6" /><circle cx="225" cy="95" r="6" />
+                      </g>
+                      <circle class="d-index" cx="150" cy="60" r="9" />
+                    </svg>
+                    <div class="d-line">frontmatter <b>ok</b></div>
+                    <div class="d-line">links resolve to exactly one note <b>ok</b></div>
+                    <div class="d-line">every project reachable <b>ok</b></div>
+                    <div class="d-line">supersedes links both ways <b>ok</b></div>
+                    <div class="d-total">103 notes and 567 links validated</div>
+                  </div>
+                  <figcaption id="doctor-caption" class="sc-caption">
+                    The example vault from the import run, checked against its manifest.
+                  </figcaption>
+                </figure>
               </div>
+
+              <ul class="checks block">
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note carries complete, well-formed frontmatter</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every link resolves — and resolves to exactly one note</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every hub links to the notes it owns</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note links back to its hub</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every project is reachable from the routing layer</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No duplicate or case-colliding note names</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Raw exports are actually ignored by Git</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Agents are following the current protocol, not a superseded one</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Superseded decisions link both ways, and nothing replaces itself in a loop</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No decision past its expiry date is still presented as current</li>
+              </ul>
             </section>
 
             <section id="agents" class="t-pale" aria-labelledby="agents-title">
-              <div class="section-head">
-                <h2 id="agents-title">Make your agents actually use it</h2>
-                <p class="section-lede">
-                  A vault nobody reads is a folder. Vulcanus writes the enforcement layer too — so
-                  recalling your memory becomes a standing rule instead of something you remember to
-                  mention.
-                </p>
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="agents-title">Make your agents actually use it</h2>
+                  <p class="section-lede">
+                    A vault nobody reads is a folder. Vulcanus writes the enforcement layer too — so
+                    recalling your memory becomes a standing rule instead of something you remember to
+                    mention.
+                  </p>
+                </div>
+
+                <figure class="scene scene-agents reveal" aria-labelledby="agents-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" pathLength="1" d="M58 18 C 78 18, 76 66, 78 72" />
+                    <path class="wire" pathLength="1" d="M64 39 C 80 39, 80 66, 81 72" />
+                    <path class="wire" pathLength="1" d="M70 60 C 82 60, 83 68, 84 72" />
+                  </svg>
+                  <div class="sc-card a-win w1">
+                    <div class="sc-title">Claude Code <span class="sc-path">~/.claude/CLAUDE.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w70"></span>
+                  </div>
+                  <div class="sc-card a-win w2">
+                    <div class="sc-title">Codex <span class="sc-path">~/.codex/AGENTS.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w60"></span>
+                  </div>
+                  <div class="sc-card a-win w3">
+                    <div class="sc-title">Gemini CLI <span class="sc-path">~/.gemini/GEMINI.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w80"></span>
+                  </div>
+                  <div class="sc-card a-vault is-hot">
+                    <div class="sc-title">~/Flora</div>
+                    <div class="sc-note">recall before work, consolidate after</div>
+                  </div>
+                  <figcaption id="agents-caption" class="sc-caption">
+                    One pasted block per tool; every session then recalls from the same vault.
+                  </figcaption>
+                </figure>
               </div>
 
               <div class="split block">
                 <div>
-                  <ul class="rows stacked">
+                  <ul class="rows stacked reveal">
                     <li>
                       <h3>Inside the vault — already done</h3>
                       <p>
@@ -1860,7 +2630,7 @@
                     </li>
                   </ul>
 
-                  <div class="table-scroll block" tabindex="0">
+                  <div class="table-scroll block reveal" tabindex="0">
                     <table>
                       <thead>
                         <tr>
@@ -1879,7 +2649,7 @@
                   </div>
                 </div>
 
-                <figure class="plate">
+                <figure class="plate reveal">
                   <figcaption class="plate-label"><span>vulcanus agents</span><span>paste into global instructions</span></figcaption>
                   <pre tabindex="0"><span class="q">## Flora is my second brain —</span>
 <span class="q">## use it in every session</span>
@@ -1912,7 +2682,7 @@ requirement, not an optional extra.
             <section id="obsidian" class="t-grey" aria-labelledby="obsidian-title">
               <div class="split">
                 <div>
-                  <div class="section-head">
+                  <div class="section-head reveal">
                     <h2 id="obsidian-title">See your memory as a graph</h2>
                     <p class="section-lede">
                       The vault is a valid Obsidian vault the moment it exists — no plugin, no import
@@ -1940,7 +2710,7 @@ requirement, not an optional extra.
                   </div>
                 </div>
 
-                <figure class="plate graph">
+                <figure class="plate graph reveal">
                   <svg viewBox="0 0 320 260" role="img" aria-label="Graph view showing project clusters around a central index">
                     <g class="edge">
                       <line x1="160" y1="128" x2="72" y2="62" />
@@ -1992,7 +2762,7 @@ requirement, not an optional extra.
             </section>
 
             <section id="faq" class="t-grey" aria-labelledby="faq-title">
-              <div class="section-head">
+              <div class="section-head reveal">
                 <h2 id="faq-title">Questions</h2>
                 <p class="section-lede">What people ask before they point an agent at it.</p>
               </div>

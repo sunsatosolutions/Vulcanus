@@ -225,7 +225,7 @@ The system is flat. Depth is conveyed by tone (ground, steel, steel two) and by 
 - **Install lift** (`box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 6px 14px -8px rgb(0 0 0 / 0.7)`): the install line only.
 
 ### Named Rules
-**The One Lift Rule.** Only the install line casts a shadow. Plates, rows, tables and navigation stay flat; nothing glows except the forge heat behind the page top.
+**The One Lift Rule.** Only the install line and the cards inside a scene cast a shadow. Plates, rows, tables and navigation stay flat; nothing glows except the forge heat behind the page top.
 
 ## Shapes
 
@@ -279,3 +279,21 @@ Topbar: the ember brand tile and wordmark (700, width 112%) on the left; iron te
 - **Don't** add shadows beyond the install line's lift.
 - **Don't** set labels, navigation or headings in JetBrains Mono.
 - **Don't** invent units or figures for a chart; an invented temperature is not product truth.
+
+
+## Scenes (added 2026-10-09)
+
+The owner asked for the page to stop reading like a blog and to draw the product the way the other Sunsato sites do: no screenshots, the product drawn in code with its own words.
+
+- **Stage:** a section head beside its scene (`.stage`, 4.4fr / 7fr; `.stage.flip` puts the scene first). Below 900px the scene follows the head.
+- **Scene:** a dotted workshop floor in the section's band (`.scene`: 18px dot grid at 22% of the band, a faint band light from the top-right corner, steel ground, 12px radius). Its parts are absolutely placed drawn cards (`.sc-card`, steel-2, 8px radius, one soft shadow; `.is-hot` takes the band border, `.is-cold` dims to 55%), grey text bars (`.sc-bar`), chips and band-coloured wires (`.sc-wire`, an SVG with `vector-effect: non-scaling-stroke`). Below 560px a scene stacks as a list and drops its wires.
+- **Content:** every word in a scene is the page's own example (Atlas, Northwind, Kiln, Flora and the example run's counts) or a real path or command; a scene that shows behaviour rather than a run says "Illustration".
+- **Scenes on the page:** the vault's layers with an agent stopping at the Capsule (Structure), sources flowing into ticked candidates (Import), one `recall` returning the Capsule (MCP), the doctor run over its graph (Checks), three tools wired to one vault (Agents).
+
+## Motion (added 2026-10-09)
+
+CSS only, inside `prefers-reduced-motion: no-preference`; content is visible without it.
+
+- **On load:** the depth gauge fills from the hot top down and its labels arrive in order.
+- **On scroll** (`animation-timeline: view()` inside `@supports`, so browsers without it show everything at once): heads, scenes and rows rise in; wires and graph edges draw; candidate boxes and check marks tick; budget bars fill; a scene's result card arrives last.
+- **Always, slowly:** the agent's dot walks down to the Capsule and pauses; the MCP wire carries a flowing dash. No other loop.
