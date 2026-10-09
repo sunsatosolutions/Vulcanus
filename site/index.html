@@ -22,7 +22,7 @@
       property="og:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png?v=2" />
+    <meta property="og:image" content="https://vulcanus.sunsato.com/og.png?v=4" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
@@ -36,7 +36,7 @@
       name="twitter:description"
       content="Answer a few questions. Get a validated, Git-versioned memory vault that Claude Code, Cursor, and Codex can recall over MCP instead of starting cold."
     />
-    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png?v=2" />
+    <meta name="twitter:image" content="https://vulcanus.sunsato.com/og.png?v=4" />
 
     <script type="application/ld+json">
       {
@@ -185,676 +185,2298 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="alternate" type="text/markdown" href="/llms.txt" title="Vulcanus for LLMs" />
+    <script>document.documentElement.classList.add("js");</script>
+    <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin />
 
     <style>
-      :root {
-        --bg: #08080c;
-        --bg-soft: #101018;
-        --panel: #121219;
-        --line: #23232e;
-        --text: #e8e8ef;
-        --muted: #9a9aab;
-        --dim: #7e7e90;
-        --ember: #ff6b35;
-        --ember-2: #f7931e;
-        --ok: #4ade80;
-        --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial,
-          sans-serif;
+      @font-face {
+        font-family: "Archivo";
+        src: url("/fonts/archivo.woff2") format("woff2");
+        font-weight: 100 900;
+        font-stretch: 62% 125%;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+        font-weight: 100 800;
+        font-display: swap;
       }
 
-      * {
+      :root {
+        color-scheme: dark;
+        /* Blackened steel */
+        --ground: #08080c;
+        --steel: #121219;
+        --steel-2: #181820;
+        --line: #23232e;
+        --line-strong: #34343f;
+        /* Type */
+        --bone: #e8e3d9;
+        --iron: #a3a7ac;
+        --dim: #80868c;
+        /* Heat, used only where something is hot */
+        --ember: #e8572a;
+        --ember-soft: #f08a5d;
+        /* The temper scale: oxide colours steel takes as it is drawn */
+        --straw: #dcbb72;
+        --gold: #c99a48;
+        --bronze: #b27645;
+        --plum: #9a6894;
+        --violet: #8070bd;
+        --blue: #5f86c6;
+        --pale-blue: #8ea5bd;
+        --grey: #9aa3ab;
+
+        --sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --gutter: clamp(16px, 4vw, 40px);
+        --radius: 6px;
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
       }
 
       html {
         scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
+        scrollbar-color: var(--line-strong) var(--ground);
+        -webkit-text-size-adjust: 100%;
       }
 
       body {
+        position: relative;
         margin: 0;
-        background: var(--bg);
-        color: var(--text);
+        background: var(--ground);
+        color: var(--bone);
         font-family: var(--sans);
+        font-size: 1.0625rem;
         line-height: 1.6;
+        font-variant-numeric: tabular-nums;
         -webkit-font-smoothing: antialiased;
-        overflow-x: hidden;
+        text-rendering: optimizeLegibility;
+        caret-color: var(--ember);
       }
 
-      /* Forge glow behind the hero. */
+      /* Forge heat: a soft ember glow held at the top of the viewport. */
       body::before {
         content: "";
         position: fixed;
         inset: -30vh 0 auto 0;
         height: 90vh;
-        background: radial-gradient(
-          ellipse 60% 50% at 50% 40%,
-          rgba(255, 107, 53, 0.14),
-          transparent 70%
-        );
+        background: radial-gradient(ellipse 60% 50% at 50% 40%, rgb(255 107 53 / 0.14), transparent 70%);
         pointer-events: none;
         z-index: 0;
       }
-
-      .wrap {
+      .page {
         position: relative;
         z-index: 1;
-        width: min(100% - 2.5rem, 68rem);
-        margin-inline: auto;
       }
 
-      /* ---------- nav ---------- */
-      nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 1.5rem 0;
+      ::selection {
+        background: var(--straw);
+        color: var(--ground);
       }
 
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        font-weight: 650;
-        letter-spacing: -0.01em;
+      a {
+        color: inherit;
+        text-decoration-line: underline;
+        text-decoration-color: var(--line-strong);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.22em;
+        transition: text-decoration-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+      }
+      a:hover {
+        text-decoration-color: var(--bone);
       }
 
-      .brand svg {
-        width: 1.4rem;
-        height: 1.4rem;
+      :focus-visible {
+        outline: 2px solid var(--ember);
+        outline-offset: 3px;
+        border-radius: 2px;
       }
 
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 1.4rem;
-        font-size: 0.9rem;
-      }
-
-      .nav-links a {
-        color: var(--muted);
-        text-decoration: none;
-        transition: color 0.15s;
-      }
-
-      .nav-links a:hover {
-        color: var(--text);
-      }
-
-      .nav-links a.gh {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.3rem 0.7rem;
-        border: 1px solid var(--line);
-        border-radius: 0.45rem;
-        color: var(--text);
-      }
-
-      .nav-links a.gh:hover {
-        border-color: var(--ember);
-        color: var(--ember);
-      }
-
-      .nav-links a.gh svg {
-        width: 1rem;
-        height: 1rem;
-      }
-
-      .sponsor-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1.4rem;
-        padding: 0.6rem 1.1rem;
-        border: 1px solid var(--line);
-        border-radius: 0.55rem;
-        background: rgba(255, 107, 53, 0.06);
-        color: var(--text);
-        font-size: 0.92rem;
-        text-decoration: none;
-        transition:
-          border-color 0.15s,
-          background 0.15s;
-      }
-
-      .sponsor-btn:hover {
-        border-color: var(--ember);
-        background: rgba(255, 107, 53, 0.12);
-      }
-
-      .sponsor-btn svg {
-        width: 1.05rem;
-        height: 1.05rem;
-        color: var(--ember);
-      }
-
-      @media (max-width: 640px) {
-        .nav-links a:not(.persist) {
-          display: none;
-        }
-      }
-
-      /* ---------- hero ---------- */
-      header {
-        padding: 4.5rem 0 3rem;
-        text-align: center;
-      }
-
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.3rem 0.85rem;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.02);
-        color: var(--muted);
-        font-size: 0.8rem;
-        letter-spacing: 0.02em;
-      }
-
-      .eyebrow b {
-        color: var(--ember);
-        font-weight: 600;
-      }
-
-      h1 {
-        margin: 1.6rem 0 0;
-        font-size: clamp(2.4rem, 7vw, 4.2rem);
-        line-height: 1.05;
-        letter-spacing: -0.035em;
-        font-weight: 700;
-      }
-
-      h1 .fire {
-        background: linear-gradient(100deg, var(--ember), var(--ember-2));
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-
-      .lede {
-        margin: 1.4rem auto 0;
-        max-width: 40rem;
-        color: var(--muted);
-        font-size: clamp(1rem, 2.2vw, 1.18rem);
-      }
-
-      /* ---------- install ---------- */
-      .install {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        width: fit-content;
-        max-width: 100%;
-        margin: 2.2rem auto 0;
-        padding: 0.85rem 0.85rem 0.85rem 1.1rem;
-        border: 1px solid var(--line);
-        border-radius: 0.7rem;
-        background: var(--panel);
+      code,
+      pre,
+      kbd {
         font-family: var(--mono);
-        font-size: 0.95rem;
-        overflow-x: auto;
+        font-size: 0.86em;
+        font-variant-ligatures: none;
       }
-
-      .install .prompt {
-        color: var(--ember);
-        user-select: none;
-      }
-
-      .install code {
+      :not(pre) > code {
+        color: var(--bone);
+        background: var(--steel-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0.05em 0.35em;
         white-space: nowrap;
       }
 
-      .copy {
-        flex-shrink: 0;
-        padding: 0.3rem 0.7rem;
-        border: 1px solid var(--line);
-        border-radius: 0.4rem;
-        background: transparent;
-        color: var(--muted);
-        font-family: var(--sans);
-        font-size: 0.78rem;
-        cursor: pointer;
-        transition: all 0.15s;
-      }
-
-      .copy:hover {
-        border-color: var(--ember);
-        color: var(--ember);
-      }
-
-      .copy[data-copied="true"] {
-        border-color: var(--ok);
-        color: var(--ok);
-      }
-
-      .sub-install {
-        margin-top: 0.8rem;
-        color: var(--dim);
-        font-size: 0.85rem;
-      }
-
-      .sub-install code {
-        font-family: var(--mono);
-        color: var(--muted);
-      }
-
-      .inline-link {
-        color: var(--muted);
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .inline-link:hover {
-        color: var(--ember);
-      }
-
-      /* ---------- terminal ---------- */
-      .terminal {
-        /* No auto side margins: as a grid item those would defeat `stretch` and
-           size the box to its widest line instead of the column. */
-        margin: 3.5rem 0 0;
-        border: 1px solid var(--line);
-        border-radius: 0.8rem;
-        background: var(--bg-soft);
-        overflow: hidden;
-        box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
-      }
-
-      .terminal-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.7rem 0.9rem;
-        border-bottom: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.015);
-      }
-
-      .dot {
-        width: 0.65rem;
-        height: 0.65rem;
-        border-radius: 50%;
-        background: #2c2c38;
-      }
-
-      .terminal-title {
-        margin-left: 0.5rem;
-        color: var(--dim);
-        font-family: var(--mono);
-        font-size: 0.78rem;
-      }
-
-      .terminal pre {
+      h1,
+      h2,
+      h3 {
         margin: 0;
-        padding: 1.2rem;
-        overflow-x: auto;
-        font-family: var(--mono);
-        font-size: 0.82rem;
-        line-height: 1.75;
-        color: var(--muted);
-        text-align: left;
-      }
-
-      .terminal .q {
-        color: var(--text);
-      }
-
-      .terminal .a {
-        color: var(--ember);
-      }
-
-      .terminal .ok {
-        color: var(--ok);
-      }
-
-      /* ---------- sections ---------- */
-      section {
-        padding: 5rem 0;
-        border-top: 1px solid var(--line);
-      }
-
-      h2 {
-        margin: 0 0 0.6rem;
-        font-size: clamp(1.5rem, 3.5vw, 2rem);
-        letter-spacing: -0.025em;
-        font-weight: 650;
-      }
-
-      .section-lede {
-        max-width: 42rem;
-        margin: 0 0 2.5rem;
-        color: var(--muted);
-      }
-
-      .grid {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-      }
-
-      .card {
-        padding: 1.3rem;
-        border: 1px solid var(--line);
-        border-radius: 0.7rem;
-        background: var(--panel);
-      }
-
-      .card h3 {
-        margin: 0 0 0.4rem;
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-
-      .card h3 code {
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.3rem;
-        background: rgba(255, 107, 53, 0.1);
-        color: var(--ember);
-        font-family: var(--mono);
-        font-size: 0.85rem;
-      }
-
-      .card p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-
-      .split {
-        display: grid;
-        gap: 2.5rem;
-        grid-template-columns: 1fr;
-      }
-
-      /* Grid children default to min-width:auto, which lets a wide code block
-         push the whole page sideways. Let them shrink and scroll internally. */
-      .split > * {
-        min-width: 0;
-      }
-
-      @media (min-width: 56rem) {
-        .split {
-          grid-template-columns: 1fr 1fr;
-          align-items: start;
-        }
-      }
-
-      .tree {
-        margin: 0;
-        padding: 1.3rem;
-        border: 1px solid var(--line);
-        border-radius: 0.7rem;
-        background: var(--panel);
-        overflow-x: auto;
-        font-family: var(--mono);
-        font-size: 0.8rem;
-        line-height: 1.8;
-        color: var(--muted);
-      }
-
-      .tree .dir {
-        color: var(--text);
-      }
-
-      .tree .cm {
-        color: var(--dim);
-      }
-
-      ul.checks {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      ul.checks li {
-        position: relative;
-        padding: 0.5rem 0 0.5rem 1.6rem;
-        border-bottom: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.92rem;
-      }
-
-      ul.checks li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        color: var(--ok);
         font-weight: 700;
+        text-wrap: balance;
       }
-
-      ul.checks li:last-child {
-        border-bottom: 0;
-      }
-
-      .graph-card {
-        padding: 1.2rem;
-        border: 1px solid var(--line);
-        border-radius: 0.7rem;
-        background: var(--panel);
-      }
-
-      .graph-card svg {
-        display: block;
-        width: 100%;
-        height: auto;
-      }
-
-      .graph-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1.2rem;
-        margin-top: 0.8rem;
-        padding-top: 0.9rem;
-        border-top: 1px solid var(--line);
-        color: var(--dim);
-        font-size: 0.8rem;
-      }
-
-      .graph-legend span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-      }
-
-      .graph-legend i {
-        width: 0.6rem;
-        height: 0.6rem;
-        border-radius: 50%;
-      }
-
-      .graph-legend .k-index {
-        background: var(--ember);
-      }
-
-      .graph-legend .k-hub {
-        background: var(--ember-2);
-      }
-
-      .graph-legend .k-note {
-        background: #4a4a5c;
-      }
-
-      .card p code,
-      td code {
-        padding: 0.1rem 0.35rem;
-        border-radius: 0.25rem;
-        background: rgba(255, 255, 255, 0.05);
-        font-family: var(--mono);
-        font-size: 0.85em;
-        color: var(--text);
-      }
-
-      .note {
-        margin-top: 1.6rem;
-        padding: 1rem 1.2rem;
-        border: 1px solid var(--line);
-        border-left: 2px solid var(--ember);
-        border-radius: 0.5rem;
-        background: rgba(255, 107, 53, 0.04);
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-
-      .note strong {
-        color: var(--text);
-      }
-
-      .note a {
-        color: var(--ember);
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-      }
-
-      th,
-      td {
-        padding: 0.7rem 0.9rem;
-        border-bottom: 1px solid var(--line);
-        text-align: left;
-      }
-
-      th {
-        color: var(--dim);
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
-
-      td:first-child {
-        white-space: nowrap;
-        font-family: var(--mono);
-        font-size: 0.85rem;
-        color: var(--text);
-      }
-
-      td {
-        color: var(--muted);
-      }
-
-      .table-scroll {
-        overflow-x: auto;
-      }
-
-      /* ---------- footer ---------- */
-      footer {
-        padding: 3rem 0 4rem;
-        border-top: 1px solid var(--line);
-        color: var(--dim);
-        font-size: 0.87rem;
-      }
-
-      .footer-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-      }
-
-      .faq {
-        display: grid;
-        gap: 0.75rem;
-        max-width: 48rem;
-      }
-
-      .faq details {
-        border: 1px solid var(--line);
-        border-radius: 0.7rem;
-        background: var(--panel);
-      }
-
-      .faq summary {
-        padding: 1.1rem 1.3rem;
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .faq summary:hover {
-        color: var(--ember);
-      }
-
-      .faq details p {
+      p {
         margin: 0;
-        padding: 0 1.3rem 1.2rem;
-        color: var(--muted);
-        font-size: 0.95rem;
-      }
-
-      .faq code {
-        font-family: var(--mono);
-        font-size: 0.85em;
-        color: var(--text);
-      }
-
-      footer a {
-        color: var(--muted);
-        text-decoration: none;
-      }
-
-      footer a:hover {
-        color: var(--ember);
+        text-wrap: pretty;
       }
 
       .skip {
         position: absolute;
-        left: 1rem;
-        top: -3rem;
+        left: var(--gutter);
+        top: -4rem;
         z-index: 10;
-        padding: 0.5rem 0.9rem;
-        border-radius: 0.4rem;
-        background: var(--ember);
-        color: #08080c;
-        font-weight: 600;
+        padding: 0.6rem 0.9rem;
+        background: var(--bone);
+        color: var(--ground);
+        border-radius: var(--radius);
         text-decoration: none;
+        font-weight: 600;
       }
-
       .skip:focus {
         top: 1rem;
       }
 
-      .grid.one-col {
-        grid-template-columns: 1fr;
+      .page {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 var(--gutter);
       }
 
-      .gap-below {
-        margin-bottom: 1rem;
+      .defs {
+        position: absolute;
       }
 
-      .gap-above {
+      .icon {
+        width: 1em;
+        height: 1em;
+        flex: none;
+      }
+
+      /* ---------- Top bar ---------- */
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 1.4rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        font-weight: 700;
+        font-stretch: 112%;
+        font-size: 1.12rem;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+      }
+      .brand svg {
+        width: 26px;
+        height: 26px;
+      }
+      .toplinks {
+        display: flex;
+        align-items: center;
+        gap: 1.6rem;
+        font-size: 0.95rem;
+      }
+      .toplinks a {
+        color: var(--iron);
+        text-decoration: none;
+      }
+      .toplinks a:hover {
+        color: var(--bone);
+      }
+      .toplinks .gh {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: var(--bone);
+        padding: 0.42rem 0.8rem;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
+      }
+      .toplinks .gh:hover {
+        border-color: var(--iron);
+        background: var(--steel);
+      }
+
+      /* ---------- Hero ---------- */
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+        gap: clamp(2.5rem, 6vw, 6rem);
+        align-items: start;
+        padding: clamp(3.5rem, 8vw, 7rem) 0 clamp(4rem, 8vw, 6.5rem);
+      }
+      .hero h1 {
+        font-size: clamp(2.6rem, 5.6vw, 4.9rem);
+        font-stretch: 114%;
+        font-weight: 800;
+        line-height: 0.97;
+        letter-spacing: -0.035em;
+      }
+      .hero h1 .line {
+        display: block;
+      }
+      .lede {
+        margin-top: 1.8rem;
+        max-width: 37rem;
+        font-size: clamp(1.1rem, 1.6vw, 1.28rem);
+        line-height: 1.55;
+        color: var(--iron);
+      }
+
+      .install {
+        margin-top: 2.4rem;
+        display: flex;
+        align-items: center;
+        max-width: 37rem;
+        background: var(--steel);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        font-family: var(--mono);
+        font-size: 1rem;
+        box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 6px 14px -8px rgb(0 0 0 / 0.7);
+      }
+      .install .prompt {
+        padding-left: 1.1rem;
+        color: var(--ember);
+        font-weight: 600;
+        user-select: none;
+      }
+      .install code {
+        flex: 1;
+        min-width: 0;
+        padding: 1rem 0.75rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        color: var(--bone);
+        font-size: 1em;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        scrollbar-width: none;
+      }
+      .copy {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        align-self: stretch;
+        padding: 0 1.1rem;
+        border: 0;
+        border-left: 1px solid var(--line-strong);
+        border-radius: 0 var(--radius) var(--radius) 0;
+        background: transparent;
+        color: var(--iron);
+        font: 500 0.88rem var(--sans);
+        cursor: pointer;
+        transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
+      }
+      .copy:hover {
+        color: var(--bone);
+        background: var(--steel-2);
+      }
+      .copy[data-copied] {
+        color: var(--straw);
+      }
+      .copy .icon {
+        width: 15px;
+        height: 15px;
+      }
+      .after-install {
+        margin-top: 0.9rem;
+        max-width: 37rem;
+        font-size: 0.93rem;
+        color: var(--dim);
+      }
+
+      /* The depth gauge: a temper strip calibrated to what an agent reads */
+
+      .gauge {
+        margin: 0.6rem 0 0;
+        padding: 1.4rem 0 0;
+        border-top: 1px solid var(--line-strong);
+      }
+      .gauge-title {
+        font-size: 1rem;
+        font-weight: 650;
+        font-stretch: 108%;
+      }
+      .gauge-note {
+        margin-top: 0.3rem;
+        max-width: 30rem;
+        font-size: 0.86rem;
+        color: var(--dim);
+      }
+      .chart {
+        position: relative;
+        display: grid;
+        grid-template-columns: 2.6rem 0.9rem minmax(0, 1fr);
+        column-gap: 0.9rem;
+        height: 27rem;
+        margin-top: 1.5rem;
+      }
+      .axis,
+      .strip,
+      .layers {
+        position: relative;
+      }
+      .axis .tick {
+        position: absolute;
+        right: 0;
+        transform: translateY(-50%);
+        font-size: 0.75rem;
+        line-height: 1;
+        color: var(--dim);
+        white-space: nowrap;
+      }
+      .axis .tick::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -0.9rem;
+        width: 0.55rem;
+        height: 1px;
+        background: var(--line-strong);
+      }
+      .at-0 {
+        top: 0;
+      }
+      .at-24 {
+        top: 24%;
+      }
+      .at-26 {
+        top: 26%;
+      }
+      .at-100 {
+        top: 100%;
+      }
+      .axis .at-24 {
+        transform: translateY(-1rem);
+      }
+      .axis .at-26 {
+        transform: translateY(0.1rem);
+      }
+      .strip {
+        border-radius: 3px;
+        overflow: hidden;
+        background: var(--steel-2);
+      }
+      .seg {
+        position: absolute;
+        left: 0;
+        right: 0;
+      }
+      .seg-cold {
+        top: 0;
+        height: 24%;
+        background: linear-gradient(180deg, var(--ember) 0 45%, var(--straw) 45% 100%);
+      }
+      .seg-capsule {
+        top: 24%;
+        height: 2%;
+        background: var(--bronze);
+      }
+      .seg-deep {
+        top: 26%;
+        height: 74%;
+        background: var(--blue);
+      }
+      .layers {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .layers li {
+        position: absolute;
+        left: 0;
+        right: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 1rem;
+        padding-left: 0.9rem;
+        border-left: 2px solid var(--t);
+      }
+      /* Leader from the strip to the label, at the label's depth. */
+      .layers li::before {
+        content: "";
+        position: absolute;
+        left: calc(-0.9rem - 2px);
+        top: 0.7rem;
+        width: calc(0.9rem + 2px);
+        height: 2px;
+        background: var(--t);
+      }
+      .layer-cold {
+        top: 0;
+      }
+      .layer-capsule {
+        top: calc(25% - 0.7rem);
+      }
+      .layer-deep {
+        top: calc(60% - 0.7rem);
+      }
+      .layers .name {
+        font-weight: 650;
+        font-stretch: 106%;
+        line-height: 1.3;
+      }
+      .layers .role {
+        grid-column: 1;
+        margin-top: 0.25rem;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--iron);
+      }
+      .layers .share {
+        grid-column: 2;
+        grid-row: 1;
+        font-weight: 700;
+        font-stretch: 110%;
+        font-size: 1.05rem;
+        white-space: nowrap;
+        color: var(--t);
+      }
+      .layer-deep .share {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .gauge-source {
+        margin-top: 1.4rem;
+        font-size: 0.82rem;
+        color: var(--dim);
+      }
+
+      /* Temper colours */
+      .t-heat {
+        --t: var(--ember);
+      }
+      .t-straw {
+        --t: var(--straw);
+      }
+      .t-gold {
+        --t: var(--gold);
+      }
+      .t-bronze {
+        --t: var(--bronze);
+      }
+      .t-plum {
+        --t: var(--plum);
+      }
+      .t-violet {
+        --t: var(--violet);
+      }
+      .t-blue {
+        --t: var(--blue);
+      }
+      .t-pale {
+        --t: var(--pale-blue);
+      }
+      .t-grey {
+        --t: var(--grey);
+      }
+
+      /* ---------- Body: sections beside the temper rail ---------- */
+
+      .body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 12.5rem;
+        gap: clamp(3rem, 6vw, 6rem);
+      }
+
+      .rail {
+        position: sticky;
+        top: 2rem;
+        align-self: start;
+        margin-top: clamp(4rem, 8vw, 6.5rem);
+      }
+      .rail-title {
+        font-size: 0.82rem;
+        color: var(--dim);
+        margin-bottom: 0.9rem;
+      }
+      .rail ol {
+        position: relative;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .rail li a {
+        display: grid;
+        grid-template-columns: 0.5rem 1fr;
+        column-gap: 0.9rem;
+        align-items: center;
+        min-height: 2.35rem;
+        color: var(--dim);
+        text-decoration: none;
+        font-size: 0.92rem;
+        transition: color 0.3s var(--ease-out);
+      }
+      .rail li a::before {
+        content: "";
+        align-self: stretch;
+        background: var(--t);
+        opacity: 0.75;
+        transition: opacity 0.3s var(--ease-out), transform 0.4s var(--ease-out);
+        transform-origin: left center;
+      }
+      .rail li:first-child a::before {
+        border-radius: 3px 3px 0 0;
+      }
+      .rail li:last-child a::before {
+        border-radius: 0 0 3px 3px;
+      }
+      .rail a:hover,
+      .rail a[aria-current="true"] {
+        color: var(--bone);
+      }
+      .rail a:hover::before,
+      .rail a[aria-current="true"]::before {
+        opacity: 1;
+      }
+      .rail a[aria-current="true"]::before {
+        transform: scaleX(1.8);
+      }
+      .rail .marker {
+        position: absolute;
+        left: -0.85rem;
+        top: 0;
+        width: 0.45rem;
+        height: 2.35rem;
+        opacity: 0;
+        transform: translateY(var(--marker-y, 0));
+        transition: transform 0.55s var(--ease-out), opacity 0.3s var(--ease-out);
+      }
+      .rail .marker svg {
+        width: 100%;
+        height: 100%;
+        fill: var(--ember);
+      }
+      .rail[data-live] .marker {
+        opacity: 1;
+      }
+
+      section {
+        --band: color-mix(in srgb, var(--t) 75%, transparent);
+        --band-soft: color-mix(in srgb, var(--t) 38%, var(--line));
+        padding: clamp(4.5rem, 8vw, 7rem) 0 clamp(4rem, 8vw, 6.5rem);
+        background:
+          linear-gradient(var(--band), var(--band)) top left / 100% 1px no-repeat,
+          repeating-linear-gradient(90deg, var(--band) 0 1px, transparent 1px 2rem) top left / 100% 0.5rem no-repeat,
+          repeating-linear-gradient(90deg, var(--t) 0 2px, transparent 2px 10rem) top left / 100% 0.9rem no-repeat;
+      }
+      .section-head {
+        max-width: 46rem;
+      }
+      h2 {
+        font-size: clamp(2rem, 3.6vw, 3rem);
+        font-stretch: 110%;
+        font-weight: 750;
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+      }
+      .section-lede {
+        margin-top: 1.1rem;
+        max-width: 42rem;
+        font-size: 1.12rem;
+        color: var(--iron);
+      }
+      .section-lede + .section-lede {
+        margin-top: 0.9rem;
+      }
+      h3 {
+        font-size: 1.08rem;
+        font-stretch: 106%;
+        font-weight: 650;
+        line-height: 1.3;
+        letter-spacing: -0.005em;
+      }
+      .sub-heading {
+        margin-top: clamp(3rem, 6vw, 4.5rem);
+        font-size: clamp(1.4rem, 2.2vw, 1.8rem);
+        font-stretch: 108%;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .block {
+        margin-top: clamp(2.2rem, 4vw, 3rem);
+      }
+
+      /* Plates: framed code and output */
+
+      .plate {
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--steel);
+        overflow: hidden;
+      }
+      .plate-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.6rem 1.1rem;
+        border-bottom: 1px solid var(--band-soft, var(--line));
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+      .plate pre {
+        margin: 0;
+        padding: 1.1rem 1.2rem 1.25rem;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        line-height: 1.7;
+        color: var(--iron);
+      }
+      .plate .q {
+        color: var(--bone);
+      }
+      .plate .a {
+        color: var(--straw);
+      }
+      .plate .ok {
+        color: var(--pale-blue);
+      }
+      .plate .cm {
+        color: var(--dim);
+      }
+      .plate .dir {
+        color: var(--bone);
+        font-weight: 600;
+      }
+      .plate.one-line pre {
+        color: var(--bone);
+      }
+
+      /* Ruled rows instead of cards */
+
+      .rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--band, var(--line));
+      }
+      .rows > li {
+        align-items: baseline;
+        display: grid;
+        grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+        gap: 0.4rem 2rem;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .rows > li p {
+        color: var(--iron);
+        max-width: 40rem;
+      }
+      .rows.tight > li {
+        grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+        padding: 0.9rem 0;
+      }
+      .split .rows > li,
+      .rows.stacked > li {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .rows h3 code {
+        font-size: 0.92em;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--bone);
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+      .columns > div {
+        padding-top: 1.1rem;
+        border-top: 1px solid var(--t);
+      }
+      .columns p {
+        margin-top: 0.55rem;
+        color: var(--iron);
+        font-size: 0.98rem;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: clamp(2rem, 4vw, 3.5rem);
+        align-items: start;
+      }
+
+      .stack {
+        display: grid;
+        gap: clamp(2rem, 4vw, 3rem);
+      }
+      .split.wide-left {
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      }
+      .plate.tree pre {
+        font-size: 0.8rem;
+      }
+
+      .note {
+        max-width: 46rem;
+        padding: 1.1rem 0 0;
+        border-top: 1px solid var(--band, var(--line));
+        color: var(--iron);
+        font-size: 0.98rem;
+      }
+      .note strong {
+        color: var(--bone);
+        font-weight: 650;
+      }
+      .note + .note {
+        margin-top: 1.6rem;
+      }
+
+      /* Tables */
+
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.98rem;
+      }
+      th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--dim);
+        padding: 0 1.25rem 0.75rem 0;
+        border-bottom: 1px solid var(--band, var(--line-strong));
+      }
+      td {
+        padding: 0.85rem 1.25rem 0.85rem 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--iron);
+        vertical-align: top;
+      }
+      td:first-child {
+        color: var(--bone);
+        white-space: nowrap;
+      }
+
+      /* Token budget: the measurement with its bars */
+
+      .budget-table caption {
+        caption-side: top;
+        text-align: left;
+        padding-bottom: 1rem;
+        font-size: 0.85rem;
+        color: var(--dim);
+      }
+      .budget-table td:nth-child(2) {
+        font-family: var(--mono);
+        font-size: 0.92rem;
+        color: var(--bone);
+        white-space: nowrap;
+      }
+      .budget-table td:nth-child(3) {
+        width: 46%;
+        color: var(--bone);
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .budget-table .bar {
+        display: inline-block;
+        vertical-align: middle;
+        width: calc(100% - 4rem);
+        height: 0.5rem;
+        margin-right: 0.9rem;
+        border-radius: 2px;
+        background: var(--steel-2);
+        overflow: hidden;
+      }
+      .budget-table .fill {
+        display: block;
+        height: 100%;
+        background: var(--t);
+      }
+      .budget-table .w24 {
+        width: 24%;
+      }
+      .budget-table .w26 {
+        width: 26%;
+      }
+      .budget-table .w100 {
+        width: 100%;
+      }
+
+      /* Checks */
+
+      .checks {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--band, var(--line));
+      }
+      .checks li {
+        display: flex;
+        gap: 0.85rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--iron);
+      }
+      .checks .icon {
+        margin-top: 0.3em;
+        width: 15px;
+        height: 15px;
+        color: var(--t);
+      }
+
+      /* Graph */
+
+      .graph {
+        margin: 0;
+      }
+      .graph svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .graph .edge {
+        stroke: var(--line-strong);
+        stroke-width: 1;
+      }
+      .graph .n-note {
+        fill: var(--dim);
+      }
+      .graph .n-hub {
+        fill: var(--straw);
+      }
+      .graph .n-index {
+        fill: var(--ember);
+      }
+      .graph figcaption {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.4rem;
+        padding: 0.9rem 1.1rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.85rem;
+        color: var(--dim);
+      }
+      .graph figcaption span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .graph figcaption i {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+      }
+      .graph .k-index {
+        background: var(--ember);
+      }
+      .graph .k-hub {
+        background: var(--straw);
+      }
+      .graph .k-note {
+        background: var(--dim);
+      }
+
+      /* FAQ */
+
+      .faq {
+        border-top: 1px solid var(--band, var(--line));
+        max-width: 50rem;
+      }
+      .faq details {
+        border-bottom: 1px solid var(--line);
+      }
+      .faq summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.2rem 0;
+        cursor: pointer;
+        list-style: none;
+        font-weight: 600;
+        font-stretch: 104%;
+        font-size: 1.06rem;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary .icon {
+        width: 16px;
+        height: 16px;
+        color: var(--dim);
+        transition: transform 0.35s var(--ease-out), color 0.2s var(--ease-out);
+      }
+      .faq summary:hover .icon {
+        color: var(--bone);
+      }
+      .faq details[open] summary .icon {
+        transform: rotate(45deg);
+        color: var(--t);
+      }
+      .faq details p {
+        padding: 0 0 1.4rem;
+        max-width: 44rem;
+        color: var(--iron);
+      }
+
+      /* Close: back to heat */
+
+      .close {
+        position: relative;
+        padding: clamp(5rem, 10vw, 8rem) 0 clamp(4rem, 8vw, 6rem);
+        border-top: 0;
+      }
+      .close::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 0.35rem;
+        border-radius: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--ember) 0 12%,
+          var(--straw) 12% 24%,
+          var(--gold) 24% 36%,
+          var(--bronze) 36% 48%,
+          var(--plum) 48% 60%,
+          var(--violet) 60% 72%,
+          var(--blue) 72% 84%,
+          var(--pale-blue) 84% 100%
+        );
+      }
+      .close h2 {
+        max-width: 18ch;
+        font-size: clamp(2.3rem, 5vw, 4rem);
+        font-stretch: 116%;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .close .section-lede {
+        color: var(--iron);
+      }
+      .close-links {
+        margin-top: 1.4rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.8rem 1.6rem;
+        font-size: 0.95rem;
+        color: var(--dim);
+      }
+      .sponsor {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--iron);
+        text-decoration: none;
+      }
+      .sponsor .icon {
+        color: var(--iron);
+      }
+      .sponsor:hover {
+        color: var(--bone);
+      }
+
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1rem 2rem;
+        padding: 2rem 0 2.6rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.9rem;
+        color: var(--dim);
+      }
+      footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.3rem;
+      }
+      footer a {
+        color: var(--iron);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--bone);
+      }
+
+      /* ---------- Stages: a section head beside its drawn scene ---------- */
+
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 4.4fr) minmax(0, 7fr);
+        gap: clamp(2rem, 4vw, 3.5rem);
+        align-items: center;
+      }
+      .stage.flip {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 4.4fr);
+      }
+      .stage.flip > .scene {
+        order: -1;
+      }
+
+      /* Scenes: the product drawn with its own words, on the workshop floor */
+
+      .scene {
+        --dots: color-mix(in srgb, var(--t) 22%, transparent);
+        position: relative;
+        margin: 0;
+        aspect-ratio: 6 / 5.2;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 1px 1px, var(--dots) 1px, transparent 1.4px) 0 0 / 18px 18px,
+          radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--t) 9%, transparent), transparent 60%),
+          var(--steel);
+        overflow: hidden;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+      .scene > * {
+        position: absolute;
+      }
+      .sc-wires {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .wire {
+        fill: none;
+        stroke: color-mix(in srgb, var(--t) 70%, transparent);
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .sc-card {
+        background: var(--steel-2);
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 0.7rem 0.8rem 0.75rem;
+        box-shadow: 0 12px 26px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-card.is-hot {
+        border-color: var(--t);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--t) 16%, transparent), 0 12px 26px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-card.is-cold {
+        opacity: 0.55;
+      }
+      .sc-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.45rem;
+        font-weight: 650;
+        font-stretch: 104%;
+        color: var(--bone);
+      }
+      .sc-title code {
+        color: var(--bone);
+      }
+      .sc-note {
+        font-weight: 400;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-chip {
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--t) 20%, transparent);
+        color: color-mix(in srgb, var(--t) 55%, var(--bone));
+        font-size: 0.68rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .sc-bar {
+        display: block;
+        height: 0.36rem;
+        margin-top: 0.42rem;
+        border-radius: 3px;
+        background: #26262f;
+      }
+      .sc-bar.w40 {
+        width: 40%;
+      }
+      .sc-bar.w50 {
+        width: 50%;
+      }
+      .sc-bar.w60 {
+        width: 60%;
+      }
+      .sc-bar.w70 {
+        width: 70%;
+      }
+      .sc-bar.w80 {
+        width: 80%;
+      }
+      .sc-caption {
+        position: absolute;
+        left: 4%;
+        right: 4%;
+        bottom: 3.5%;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-caption code {
+        font-size: 0.95em;
+      }
+
+      /* The vault: an agent reads down to the Capsule and stops */
+
+      .sc-files {
+        top: 5%;
+        left: 4%;
+        right: 4%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--iron);
+      }
+      .sc-files span {
+        padding: 0.12rem 0.4rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+      }
+      .sc-files span:first-child {
+        border-color: transparent;
+        padding-left: 0;
+        color: var(--bone);
+        font-weight: 600;
+      }
+      .sc-rail {
+        top: 23%;
+        bottom: 21%;
+        left: 6%;
+        width: 2px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--straw) 0 62%, var(--line-strong) 62% 100%);
+      }
+      .sc-dot {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 0.7rem;
+        height: 0.7rem;
+        margin: -0.35rem 0 0 -0.35rem;
+        border-radius: 50%;
+        background: var(--ember);
+        box-shadow: 0 0 0 4px rgb(255 107 53 / 0.18);
+      }
+      .v-map {
+        top: 21%;
+        left: 12%;
+        right: 4%;
+      }
+      .sc-route {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.18rem 0;
+        color: var(--iron);
+      }
+      .sc-route b {
+        min-width: 4.6rem;
+        font-weight: 600;
+        color: var(--bone);
+      }
+      .sc-route i {
+        flex: 0 0 1.4rem;
+        height: 1px;
+        background: var(--line-strong);
+      }
+      .sc-route:first-of-type i {
+        background: var(--t);
+      }
+      .v-capsule {
+        top: 50%;
+        left: 12%;
+        right: 4%;
+      }
+      .v-deep {
+        top: 70%;
+        left: 12%;
+        right: 4%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+      .v-deep .sc-card {
+        padding: 0.55rem 0.6rem 0.6rem;
+        font-size: 0.72rem;
+      }
+
+      /* Import: sources flow into the candidates you tick */
+
+      .sc-sources {
+        top: 5%;
+        left: 4%;
+        width: 34%;
+        height: 78%;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        grid-template-rows: repeat(5, 1fr);
+        gap: 0.45rem;
+      }
+      .sc-sources li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 0.7rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: var(--steel-2);
+        color: var(--dim);
+        font-size: 0.7rem;
+      }
+      .sc-sources b {
+        color: var(--bone);
+        font-weight: 600;
+        font-size: 0.78rem;
+      }
+      .i-candidates {
+        top: 9%;
+        left: 52%;
+        right: 4%;
+      }
+      .sc-check {
+        display: grid;
+        grid-template-columns: 0.9rem auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .sc-check b {
+        font-weight: 600;
+        color: var(--bone);
+      }
+      .sc-check em {
+        font-style: normal;
+        font-size: 0.7rem;
+        color: var(--dim);
+        text-align: right;
+      }
+      .sc-check .box {
+        width: 0.8rem;
+        height: 0.8rem;
+        border: 1.5px solid var(--line-strong);
+        border-radius: 3px;
+      }
+      .sc-check.on .box {
+        border-color: var(--t);
+        background:
+          linear-gradient(45deg, transparent 42%, var(--ground) 42% 58%, transparent 58%) no-repeat,
+          var(--t);
+      }
+      .sc-foot {
+        margin-top: 0.45rem;
+        font-size: 0.7rem;
+        color: var(--dim);
+      }
+      .sc-chip-ok {
+        left: 52%;
+        right: 4%;
+        top: 68%;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid color-mix(in srgb, var(--pale-blue) 45%, transparent);
+        border-radius: 7px;
+        color: var(--pale-blue);
+        font-size: 0.72rem;
+        background: color-mix(in srgb, var(--pale-blue) 8%, transparent);
+      }
+
+      /* MCP: one recall returns the Capsule and the read order */
+
+      .m-session {
+        top: 7%;
+        left: 4%;
+        width: 62%;
+      }
+      .sc-msg {
+        padding: 0.45rem 0.6rem;
+        border-radius: 7px;
+        background: #22222c;
+        color: var(--bone);
+      }
+      .sc-call {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+        color: var(--iron);
+        font-size: 0.72rem;
+      }
+      .sc-call span {
+        color: var(--dim);
+      }
+      .sc-call code {
+        color: color-mix(in srgb, var(--t) 55%, var(--bone));
+      }
+      .sc-call em {
+        font-family: var(--mono);
+        font-style: normal;
+        font-size: 0.68rem;
+      }
+      .m-answer {
+        top: 47%;
+        left: 30%;
+        right: 4%;
+      }
+      .sc-next {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.6rem;
+        font-size: 0.72rem;
+        color: var(--dim);
+      }
+      .sc-next b {
+        color: var(--bone);
+        font-weight: 600;
+      }
+      .sc-next i {
+        width: 1rem;
+        height: 1px;
+        background: var(--line-strong);
+      }
+      .sc-warn {
+        margin-top: 0.5rem;
+        padding: 0.3rem 0.5rem;
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--ember) 12%, transparent);
+        color: var(--ember-soft);
+        font-size: 0.7rem;
+      }
+
+      /* Doctor: the graph, checked */
+
+      .scene-doctor {
+        aspect-ratio: auto;
+        padding: 1.2rem;
+      }
+      .scene-doctor > * {
+        position: relative;
+      }
+      .scene-doctor .sc-caption {
+        position: static;
+        margin-top: 0.8rem;
+      }
+      .d-graph {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0.2rem 0 0.5rem;
+      }
+      .d-edges path {
+        fill: none;
+        stroke: var(--line-strong);
+        stroke-width: 1.2;
+      }
+      .d-notes circle {
+        fill: var(--dim);
+      }
+      .d-hubs circle {
+        fill: var(--t);
+      }
+      .d-index {
+        fill: var(--ember);
+      }
+      .d-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.28rem 0;
+        border-top: 1px solid var(--line);
+        color: var(--iron);
+      }
+      .d-line b {
+        color: var(--t);
+        font-weight: 600;
+      }
+      .d-total {
+        margin-top: 0.5rem;
+        color: var(--pale-blue);
+        font-weight: 600;
+      }
+
+      /* Agents: three tools, one vault */
+
+      .a-win {
+        width: 54%;
+      }
+      .a-win.w1 {
+        top: 7%;
+        left: 4%;
+      }
+      .a-win.w2 {
+        top: 28%;
+        left: 10%;
+      }
+      .a-win.w3 {
+        top: 49%;
+        left: 16%;
+      }
+      .sc-path {
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 0.66rem;
+        color: var(--dim);
+      }
+      .sc-quote {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--straw);
+      }
+      .a-vault {
+        right: 4%;
+        top: 72%;
+        width: 34%;
+      }
+
+      /* Scenes laid out in flow rather than placed */
+
+      .scene-flow {
+        aspect-ratio: auto;
+        padding: 1.3rem;
+      }
+      .scene-flow > * {
+        position: relative;
+      }
+      .scene-flow > .sc-wires {
+        position: absolute;
+      }
+      .scene-flow .sc-caption {
+        position: static;
         margin-top: 1rem;
       }
 
-      .terminal.flush-top {
+      /* Commands: three jobs */
+
+      .scene-cmds {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.4rem 6%;
+        align-items: start;
+      }
+      .scene-cmds .sc-caption {
+        grid-column: 1 / -1;
         margin-top: 0;
       }
-
-      section.closing {
-        text-align: center;
+      .sc-col-title {
+        margin-bottom: 0.6rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .sc-col ul {
+        display: grid;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .sc-col li {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: var(--steel-2);
+        box-shadow: 0 10px 22px -16px rgb(0 0 0 / 0.9);
+      }
+      .sc-col li code {
+        color: var(--bone);
+        font-size: 0.78rem;
+      }
+      .sc-col.is-hot .sc-col-title {
+        color: color-mix(in srgb, var(--t) 60%, var(--bone));
+      }
+      .sc-col.is-hot li {
+        border-color: color-mix(in srgb, var(--t) 70%, transparent);
       }
 
-      section.closing .section-lede {
-        margin-inline: auto;
+      /* Token budget: one square per percent */
+
+      .waffle {
+        display: grid;
+        grid-template-columns: repeat(20, minmax(0, 1fr));
+        grid-template-rows: repeat(5, auto);
+        grid-auto-flow: column;
+        gap: 4px;
+      }
+      .waffle i {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background: #22222b;
+      }
+      .waffle .c-cold {
+        background: var(--straw);
+      }
+      .waffle .c-cap {
+        background: var(--bronze);
+      }
+      .waffle-key {
+        display: grid;
+        gap: 0.35rem;
+        margin: 1.1rem 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.8rem;
+        color: var(--iron);
+      }
+      .waffle-key li {
+        display: grid;
+        grid-template-columns: 0.7rem 3.2rem 1fr;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .waffle-key li::before {
+        content: "";
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 2px;
+        background: #22222b;
+      }
+      .waffle-key .k-cold::before {
+        background: var(--straw);
+      }
+      .waffle-key .k-cap::before {
+        background: var(--bronze);
+      }
+      .waffle-key b {
+        color: var(--bone);
+        font-weight: 700;
+        font-stretch: 108%;
       }
 
-      .sub-heading {
-        margin: 3.5rem 0 0.6rem;
-        font-size: 1.15rem;
-        font-weight: 650;
-        letter-spacing: -0.015em;
+      /* Obsidian: the graph as a scene */
+
+      .scene-graph {
+        padding: 0;
+      }
+      .scene-graph svg {
+        padding: 1rem 1rem 0.5rem;
+      }
+      .g-labels text {
+        fill: var(--iron);
+        font-family: var(--sans);
+        font-size: 9px;
+      }
+      .g-labels text:first-child {
+        fill: var(--bone);
+        font-weight: 600;
+      }
+      .scene-graph figcaption {
+        margin: 0;
+      }
+
+      /* FAQ: what stays on your machine */
+
+      .l-machine {
+        padding: 0.8rem;
+        border: 1.5px dashed color-mix(in srgb, var(--t) 60%, transparent);
+        border-radius: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+      }
+      .scene-local {
+        display: grid;
+        grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: center;
+      }
+      .scene-local .sc-caption {
+        grid-column: 1 / -1;
+        margin-top: 0;
+      }
+      .l-machine .sc-col-title {
+        grid-column: 1 / -1;
+        margin: 0;
+      }
+      .l-machine .sc-card {
+        padding: 0.6rem 0.65rem;
+      }
+      .l-machine .sc-title {
+        margin-bottom: 0.2rem;
+      }
+      .l-npm {
+        border-style: dashed;
+        opacity: 0.85;
+      }
+      .l-off {
+        display: block;
+        margin-top: 0.45rem;
+        font-size: 0.6rem;
+        color: var(--iron);
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .wire.dashed {
+        stroke-dasharray: 4 4;
+      }
+
+      /* Rows and checks in two columns once a scene carries the section */
+
+      .rows.grid-rows {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+      .rows.grid-rows > li {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .checks.block {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(1.5rem, 3vw, 2.5rem);
+      }
+
+      /* Ambient loop parts: invisible until motion is allowed */
+      .spark,
+      .d-sparks path,
+      .g-sparks line {
+        fill: none;
+        stroke: none;
+      }
+      .ring {
+        fill: none;
+        stroke: none;
+      }
+
+      /* ---------- Motion ---------- */
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(26px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes draw {
+        from {
+          stroke-dashoffset: 1;
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+      @keyframes wipe {
+        from {
+          clip-path: inset(0 100% 0 0);
+        }
+        to {
+          clip-path: inset(0);
+        }
+      }
+      @keyframes descend {
+        0%,
+        8% {
+          top: 0;
+          opacity: 1;
+        }
+        42%,
+        86% {
+          top: 62%;
+          opacity: 1;
+        }
+        100% {
+          top: 62%;
+          opacity: 0;
+        }
+      }
+      @keyframes tick {
+        from {
+          transform: scale(0.4);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      @keyframes fill-down {
+        from {
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          clip-path: inset(0);
+        }
+      }
+      @keyframes fill-right {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @keyframes spark {
+        0% {
+          stroke-dashoffset: 14;
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        85% {
+          opacity: 1;
+        }
+        100% {
+          stroke-dashoffset: -420;
+          opacity: 0;
+        }
+      }
+      @keyframes spark-unit {
+        0% {
+          stroke-dashoffset: 0.16;
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          stroke-dashoffset: -1;
+          opacity: 0;
+        }
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0.8;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(3);
+        }
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--t) 14%, transparent), 0 12px 26px -16px rgb(0 0 0 / 0.9);
+        }
+        50% {
+          box-shadow: 0 0 0 7px color-mix(in srgb, var(--t) 6%, transparent), 0 12px 26px -16px rgb(0 0 0 / 0.9);
+        }
+      }
+      @keyframes seq-box {
+        0%,
+        40%,
+        100% {
+          border-color: var(--line-strong);
+          background-color: var(--steel-2);
+        }
+        12%,
+        24% {
+          border-color: var(--t);
+          background-color: color-mix(in srgb, var(--t) 12%, var(--steel-2));
+        }
+      }
+      @keyframes seq-text {
+        0%,
+        40%,
+        100% {
+          opacity: 1;
+        }
+        15%,
+        25% {
+          opacity: 0.35;
+        }
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          opacity: 1;
+          transform: none;
+        }
+        30% {
+          opacity: 0.55;
+          transform: scale(0.82);
+        }
+        60% {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes sheen {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(400%);
+        }
+      }
+      @keyframes drift {
+        from {
+          transform: translate(-2%, -1%) scale(1);
+        }
+        to {
+          transform: translate(2%, 1.5%) scale(1.06);
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        /* On load: the depth gauge fills from the hot top down. */
+        /* Always on, slowly, like the drawings on the other Sunsato sites. */
+        body::before {
+          animation: drift 24s ease-in-out infinite alternate;
+        }
+        .strip {
+          position: relative;
+        }
+        .strip::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 25%;
+          background: linear-gradient(180deg, transparent, rgb(255 255 255 / 0.28), transparent);
+          animation: sheen 5s ease-in-out 1.6s infinite;
+        }
+        .spark {
+          stroke: color-mix(in srgb, var(--t) 45%, var(--bone));
+          stroke-width: 2.5;
+          stroke-linecap: round;
+          vector-effect: non-scaling-stroke;
+          stroke-dasharray: 14 600;
+          animation: spark 3.2s ease-in-out infinite;
+        }
+        .sc-wires .spark:nth-of-type(2n) {
+          animation-delay: 0.6s;
+        }
+        .sc-wires .spark:nth-of-type(3n) {
+          animation-delay: 1.2s;
+        }
+        .sc-wires .spark:nth-of-type(4n) {
+          animation-delay: 1.8s;
+        }
+        .sc-wires .spark:nth-of-type(5n) {
+          animation-delay: 2.4s;
+        }
+        .d-sparks path,
+        .g-sparks line {
+          stroke: color-mix(in srgb, var(--t) 50%, var(--bone));
+          stroke-width: 1.6;
+          stroke-linecap: round;
+          stroke-dasharray: 0.16 2;
+          animation: spark-unit 2.6s ease-in-out infinite;
+        }
+        .d-sparks path:nth-child(2n),
+        .g-sparks line:nth-child(2n) {
+          animation-delay: 0.9s;
+        }
+        .d-sparks path:nth-child(3n),
+        .g-sparks line:nth-child(3n) {
+          animation-delay: 1.7s;
+        }
+        .ring {
+          stroke: var(--ember);
+          stroke-width: 1.5;
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: pulse 2.6s ease-out infinite;
+        }
+        .scene .sc-card.is-hot {
+          animation: breathe 3.2s ease-in-out infinite;
+        }
+        .scene-cmds li {
+          animation: seq-box 6.5s ease-in-out infinite;
+        }
+        .scene-cmds .q2 { animation-delay: 0.5s; }
+        .scene-cmds .q3 { animation-delay: 1s; }
+        .scene-cmds .q4 { animation-delay: 1.5s; }
+        .scene-cmds .q5 { animation-delay: 2s; }
+        .scene-cmds .q6 { animation-delay: 2.5s; }
+        .scene-cmds .q7 { animation-delay: 3s; }
+        .scene-cmds .q8 { animation-delay: 3.5s; }
+        .scene-cmds .q9 { animation-delay: 4s; }
+        .scene-cmds .q10 { animation-delay: 4.5s; }
+        .scene-cmds .q11 { animation-delay: 5s; }
+        .scene-cmds .q12 { animation-delay: 5.5s; }
+        .scene-cmds .q13 { animation-delay: 6s; }
+        .waffle [class*=" k"] {
+          animation: wave 3.2s ease-in-out infinite;
+        }
+        .waffle .k1 { animation-delay: 0.15s; }
+        .waffle .k2 { animation-delay: 0.3s; }
+        .waffle .k3 { animation-delay: 0.45s; }
+        .waffle .k4 { animation-delay: 0.6s; }
+        .waffle .k5 { animation-delay: 0.75s; }
+        .d-line b {
+          animation: seq-text 4s ease-in-out infinite;
+        }
+        .d-line .o2 { animation-delay: 0.6s; }
+        .d-line .o3 { animation-delay: 1.2s; }
+        .d-line .o4 { animation-delay: 1.8s; }
+        .sc-check.on .box {
+          animation: wave 3.2s ease-in-out infinite;
+        }
+        .sc-check.t2 .box {
+          animation-delay: 0.4s;
+        }
+
+        .strip .seg {
+          animation: fill-down 1.1s var(--ease-out) both;
+        }
+        .strip .seg-capsule {
+          animation-delay: 0.35s;
+        }
+        .strip .seg-deep {
+          animation-delay: 0.45s;
+        }
+        .layers li {
+          animation: arrive 0.7s var(--ease-out) both;
+        }
+        .layers .layer-cold {
+          animation-delay: 0.3s;
+        }
+        .layers .layer-capsule {
+          animation-delay: 0.55s;
+        }
+        .layers .layer-deep {
+          animation-delay: 0.8s;
+        }
+
+        /* Always on, slowly: the agent walks down to the Capsule and stops. */
+        .sc-dot {
+          animation: descend 5.5s var(--ease-out) infinite;
+        }
+        .wire.flow {
+          stroke-dasharray: 5 5;
+          animation: flow 1.6s linear infinite;
+        }
+
+        /* Entrances: each part plays once, in full, when it first comes into
+           view (the script adds .in). Without the script, .js is never set and
+           everything is simply shown. */
+        .js .reveal {
+          opacity: 0;
+          transform: translateY(26px);
+          transition:
+            opacity 0.8s var(--ease-out),
+            transform 0.8s var(--ease-out);
+        }
+        .js .reveal.in {
+          opacity: 1;
+          transform: none;
+        }
+        .js .scene .sc-wires {
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.2s var(--ease-out) 0.25s;
+        }
+        .js .scene.in .sc-wires {
+          clip-path: inset(0);
+        }
+        .js .d-edges path,
+        .js .scene-graph .edge line {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          transition: stroke-dashoffset 1.2s var(--ease-out) 0.3s;
+        }
+        .js .scene.in .d-edges path,
+        .js .scene.in .edge line {
+          stroke-dashoffset: 0;
+        }
+        .js .waffle {
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 1.4s var(--ease-out) 0.2s;
+        }
+        .js .scene.in .waffle {
+          clip-path: inset(0);
+        }
+        .js .scene-import .sc-chip-ok,
+        .js .scene-mcp .m-answer,
+        .js .scene-doctor .d-total,
+        .js .scene-agents .a-vault,
+        .js .scene-local .l-npm,
+        .js .scene-cmds .sc-col {
+          opacity: 0;
+          translate: 0 10px;
+          transition:
+            opacity 0.7s var(--ease-out) 0.9s,
+            translate 0.7s var(--ease-out) 0.9s;
+        }
+        .js .scene-cmds .sc-col:nth-child(3) {
+          transition-delay: 0.45s;
+        }
+        .js .scene-cmds .sc-col:nth-child(4) {
+          transition-delay: 0.7s;
+        }
+        .js .scene-cmds .sc-col:nth-child(2) {
+          transition-delay: 0.2s;
+        }
+        .js .scene.in .sc-chip-ok,
+        .js .scene.in .m-answer,
+        .js .scene.in .d-total,
+        .js .scene.in .a-vault,
+        .js .scene.in .l-npm,
+        .js .scene.in .sc-col {
+          opacity: 1;
+          translate: none;
+        }
+        .js .budget-table .fill {
+          transform: scaleX(0);
+          transform-origin: left center;
+          transition: transform 1.2s var(--ease-out) 0.2s;
+        }
+        .js .budget-table.in .fill {
+          transform: none;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .stage.flip {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .stage.flip > .scene {
+          order: 0;
+        }
+        .rows.grid-rows,
+        .checks.block {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* Narrow screens: the scene stacks as a list; wires and the walking dot go. */
+      @media (max-width: 560px) {
+        .scene {
+          aspect-ratio: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          padding: 1rem;
+        }
+        .scene > * {
+          position: static;
+          width: auto;
+        }
+        .sc-wires,
+        .sc-rail {
+          display: none;
+        }
+        .sc-sources {
+          display: flex;
+          flex-wrap: wrap;
+          height: auto;
+          gap: 0.4rem;
+        }
+        .sc-sources li {
+          padding: 0.4rem 0.6rem;
+        }
+        .v-deep {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .scene-cmds {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .l-machine,
+        .scene-local {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .sc-caption {
+          position: static;
+        }
+      }
+
+      /* Spacing between a section's head and its content wins over component resets. */
+      .block {
+        margin-top: clamp(2.2rem, 4vw, 3rem);
+      }
+
+      /* ---------- Responsive ---------- */
+
+      @media (max-width: 1100px) {
+        .body {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .rail {
+          display: none;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .gauge {
+          margin-top: 0;
+        }
+        .chart {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto 0.75rem auto;
+          row-gap: 0.5rem;
+          height: auto;
+        }
+        .axis {
+          grid-row: 1;
+          height: 1rem;
+        }
+        .axis .tick {
+          top: auto;
+          bottom: 0;
+          right: auto;
+          transform: none;
+        }
+        .axis .tick::after {
+          display: none;
+        }
+        .axis .at-0 {
+          left: 0;
+        }
+        .axis .at-24 {
+          left: 24%;
+          transform: translateX(-50%);
+        }
+        .axis .at-26 {
+          display: none;
+        }
+        .axis .at-100 {
+          left: auto;
+          right: 0;
+        }
+        .strip {
+          grid-row: 2;
+        }
+        .seg {
+          top: 0 !important;
+          bottom: 0;
+          height: auto !important;
+        }
+        .seg-cold {
+          left: 0;
+          right: auto;
+          width: 24%;
+          background: linear-gradient(90deg, var(--ember) 0 45%, var(--straw) 45% 100%);
+        }
+        .seg-capsule {
+          left: 24%;
+          right: auto;
+          width: 2%;
+        }
+        .seg-deep {
+          left: 26%;
+          right: 0;
+        }
+        .layers {
+          grid-row: 3;
+          margin-top: 1rem;
+          display: grid;
+          gap: 1rem;
+        }
+        .layers li {
+          position: static;
+        }
+        .layers li::before {
+          display: none;
+        }
+        .split,
+        .split.wide-left {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .columns {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .toplinks .opt {
+          display: none;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          font-size: 1rem;
+        }
+        .rows > li,
+        .rows.tight > li {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .install {
+          font-size: 0.86rem;
+        }
+        .install .prompt {
+          padding-left: 0.85rem;
+        }
+        .install code {
+          padding: 0.9rem 0.55rem;
+        }
+        .copy {
+          padding: 0 0.85rem;
+        }
+        .copy .label {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
+        td:first-child {
+          white-space: normal;
+        }
+        .budget-table td:nth-child(3) {
+          width: auto;
+        }
+        .budget-table .bar {
+          width: 3rem;
+          margin-right: 0.5rem;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
         }
-        * {
+        *,
+        *::before,
+        *::after {
           transition: none !important;
         }
       }
@@ -863,489 +2485,669 @@
 
   <body>
     <a class="skip" href="#main">Skip to content</a>
-    <div class="wrap">
-      <nav>
-        <div class="brand">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 2c1.2 3.4.2 5.3-1.3 6.9C9 10.7 7 12.4 7 15.2A5 5 0 0 0 17 15.4c0-1.7-.7-3-1.6-4.2-.4 1-1 1.7-1.8 2.1.6-2.6-.4-5.2-1.6-11.3Z"
-              fill="url(#g)"
-            />
-            <defs>
-              <linearGradient id="g" x1="7" y1="2" x2="18" y2="20">
-                <stop stop-color="#ff6b35" />
-                <stop offset="1" stop-color="#f7931e" />
-              </linearGradient>
-            </defs>
+
+    <svg width="0" height="0" class="defs" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="i-copy" viewBox="0 0 16 16">
+          <rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <path d="M10.75 5.25V3.75a1.5 1.5 0 0 0-1.5-1.5h-5.5a1.5 1.5 0 0 0-1.5 1.5v5.5a1.5 1.5 0 0 0 1.5 1.5h1.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 16 16">
+          <path d="m3 8.5 3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 16 16">
+          <path d="M8 2.5v11M2.5 8h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Vulcanus home">
+          <svg viewBox="0 0 26 26" aria-hidden="true">
+            <rect width="26" height="26" rx="5" fill="#e8572a" />
+            <path d="M6.5 7h3.6l2.9 9.1L15.9 7h3.6l-4.7 12.5h-3.6Z" fill="#08080c" />
           </svg>
           Vulcanus
-        </div>
-        <div class="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#import">Import</a>
-          <a href="#mcp">MCP</a>
-          <a href="#budget">Token budget</a>
-          <a href="#agents">Agents</a>
-          <a href="#obsidian">Obsidian</a>
-          <a href="#faq">FAQ</a>
-          <a
-            class="persist gh"
-            href="https://github.com/sunsatosolutions/Vulcanus"
-            rel="noopener"
-            aria-label="Vulcanus on GitHub"
-          >
-            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        </a>
+        <nav class="toplinks" aria-label="Primary">
+          <a class="opt" href="#how">How it works</a>
+          <a class="opt" href="#mcp">MCP</a>
+          <a class="opt" href="#budget">Token budget</a>
+          <a class="opt" href="#faq">FAQ</a>
+          <a class="gh" href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener" aria-label="Vulcanus on GitHub">
+            <svg class="icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path
                 d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
               />
             </svg>
             GitHub
           </a>
-        </div>
-      </nav>
-
-      <main id="main">
-      <header>
-        <span class="eyebrow">A <b>Sunsato</b> product</span>
-
-        <h1>Forge a second brain<br />your agents can <span class="fire">read</span></h1>
-
-        <p class="lede">
-          Every session your AI starts cold. Vulcanus builds the memory it should have started with:
-          a Git-versioned vault of linked Markdown, structured so an agent finds the right context in
-          one hop instead of reading everything.
-        </p>
-
-        <div class="install">
-          <span class="prompt">$</span>
-          <code id="install-cmd">npm install -g @sunsato/vulcanus</code>
-          <button class="copy" type="button" data-target="install-cmd">Copy</button>
-        </div>
-        <p class="sub-install">
-          Then run <code>vulcanus</code>. Installed globally, so your agents can reach it too. No
-          account, runs locally, Node 22.12+.
-        </p>
-
-        <div class="terminal">
-          <div class="terminal-bar">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-            <span class="terminal-title">vulcanus init</span>
-          </div>
-          <pre><span class="q">◆  Import an existing AI history to seed your project tree?</span>
-│  <span class="a">●</span> Codex local sessions — ~/.codex, 268 rollout sessions
-│  ○ ChatGPT data export — 16 conversation files
-│  ○ No, I'll define projects myself
-│
-◇  257 conversations read, 23 project candidates found
-│
-<span class="q">◆  Project candidates</span>
-│  <span class="a">◼</span> Atlas       104 conversations, high confidence
-│  <span class="a">◼</span> Northwind    58 conversations, high confidence
-│  ◻ Kiln          6 conversations, medium confidence
-│
-<span class="q">◆  Vault name</span>  <span class="a">Flora</span>
-<span class="q">◆  Your name</span>   <span class="a">Ada</span>
-│
-◇  <span class="ok">103 notes and 567 links validated</span>
-└  Flora → ~/Flora</pre>
-        </div>
+        </nav>
       </header>
 
-      <section id="how">
-        <h2>Structure is the feature</h2>
-        <p class="section-lede">
-          A folder of notes is not memory — an agent still has to read all of it. Vulcanus writes a
-          layered graph: routing at the top, a compressed capsule per project, authoritative detail
-          underneath. Agents read down only as far as the task actually requires.
-        </p>
-
-        <div class="split">
-          <pre class="tree"><span class="dir">YourVault</span>
-├─ AGENTS.md            <span class="cm"># how agents behave here</span>
-├─ vulcanus.json        <span class="cm"># the source of truth</span>
-├─ <span class="dir">00_System/</span>
-│  ├─ Index             <span class="cm"># the map</span>
-│  ├─ Recall Map        <span class="cm"># triggers → the right note</span>
-│  ├─ Admin Profile     <span class="cm"># who you are, how you work</span>
-│  └─ Rules             <span class="cm"># what not to invent</span>
-├─ <span class="dir">02_Projects/</span>
-│  └─ <span class="dir">Atlas/</span>
-│     ├─ Atlas Capsule     <span class="cm"># read this first</span>
-│     ├─ Atlas Hub         <span class="cm"># navigation</span>
-│     ├─ Atlas Context     <span class="cm"># identity and scope</span>
-│     ├─ Atlas Decisions   <span class="cm"># confirmed choices</span>
-│     └─ Atlas Rules       <span class="cm"># future constraints</span>
-└─ <span class="dir">_imports/</span>          <span class="cm"># raw exports, git-ignored</span></pre>
-
+      <main id="main">
+        <div class="hero">
           <div>
-            <div class="grid one-col">
-              <div class="card">
-                <h3>Capsules keep it cheap</h3>
-                <p>
-                  Each project opens with a compressed must-remember note. Most questions never need
-                  more than that, so context windows stay small and answers stay grounded.
-                </p>
-              </div>
-              <div class="card">
-                <h3>Uncertainty is explicit</h3>
-                <p>
-                  Anything unconfirmed lives under <em>Needs Confirmation</em> and is never presented
-                  as fact. Corrections outrank older notes by design.
-                </p>
-              </div>
-              <div class="card">
-                <h3>Git is the memory history</h3>
-                <p>
-                  Every change is a commit, and a decision that changes is marked rather than erased:
-                  the new one names what it replaced. You can see when it changed, what it replaced,
-                  and why — the part chat history can never give you.
-                </p>
-              </div>
-              <div class="card">
-                <h3>The vault speaks your language</h3>
-                <p>
-                  English, Turkish, German, Spanish — and not just the setup questions. The capsules,
-                  hubs, rules and section headings are written in the language the vault records, so
-                  the memory you read every day is in the language you think in. The agent protocol
-                  stays English on purpose: it carries the version stamp <code>doctor</code> checks.
-                </p>
-              </div>
+            <h1><span class="line">Forge a second brain</span> <span class="line">your agents can read</span></h1>
+
+            <p class="lede">
+              Every session your AI starts cold. Vulcanus builds the memory it should have started
+              with: a Git-versioned vault of linked Markdown, structured so an agent finds the right
+              context in one hop instead of reading everything.
+            </p>
+
+            <div class="install">
+              <span class="prompt" aria-hidden="true">$</span>
+              <code id="install-cmd">npm install -g @sunsato/vulcanus</code>
+              <button class="copy" type="button" data-target="install-cmd">
+                <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>
+                <span class="label">Copy</span>
+              </button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="import">
-        <h2>Start from what you already said</h2>
-        <p class="section-lede">
-          You have thousands of conversations describing your projects. The first question Vulcanus
-          asks is whether to read them.
-        </p>
-
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>What it reads</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>ChatGPT</td>
-                <td>Data export, including exports split across many conversation files</td>
-              </tr>
-              <tr>
-                <td>Claude</td>
-                <td>Data export, using Claude Projects as the grouping signal</td>
-              </tr>
-              <tr>
-                <td>Claude Code</td>
-                <td>Local sessions — no export needed, working directories name the projects</td>
-              </tr>
-              <tr>
-                <td>Codex</td>
-                <td>Local rollout sessions, grouped the same way</td>
-              </tr>
-              <tr>
-                <td>Gemini CLI</td>
-                <td>Local sessions, plus chats you saved under a name with <code>/chat save</code></td>
-              </tr>
-              <tr>
-                <td>Cursor</td>
-                <td>Per-workspace chat history, with the workspace folder naming the project</td>
-              </tr>
-              <tr>
-                <td>Markdown folder</td>
-                <td>
-                  Notes you already keep — never scanned on its own, only when you name the
-                  directory
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="note">
-          <strong>Nothing reaches the vault without your say.</strong> Conversations are read
-          locally and discarded. Only the project names you confirm and the decisions you accept
-          become notes — in the wording you accepted, never as transcripts. The import log records
-          how many conversations were scanned, never their content.
-        </div>
-
-        <p class="section-lede">
-          Run it again later and it proposes only what is new: conversations already read are
-          remembered, so a second import is not a second pile of the same candidates.
-        </p>
-
-        <h3 class="sub-heading">And the decisions you already made</h3>
-        <p class="section-lede">
-          Your history holds more than project names: the choices you settled and the rules you
-          kept repeating. Say yes to one more question and Vulcanus finds them — in English,
-          Turkish, German, or Spanish — and asks you about each one.
-        </p>
-
-        <div class="grid">
-          <div class="card">
-            <h3>Your words, not the assistant's</h3>
-            <p>
-              Only your own messages are read, matched against phrases like “we decided” and “from
-              now on”, and ranked by how often you repeated them and how recently.
+            <p class="after-install">
+              Then run <code>vulcanus</code>. Installed globally, so your agents can reach it too. No
+              account, runs locally, Node 22.12+. A <a href="https://sunsato.com">Sunsato</a> product.
             </p>
           </div>
-          <div class="card">
-            <h3>Nothing lands unreviewed</h3>
-            <p>
-              Accept it, edit it, keep it as a rule, skip it, or stop. Up to fifteen per project,
-              never accepted unattended, and what the vault already records is not asked again.
-            </p>
-          </div>
-          <div class="card">
-            <h3>Revisions, not contradictions</h3>
-            <p>
-              A statement that revises a recorded decision is offered as its replacement, so the
-              old one is marked as superseded instead of sitting beside it, contradicting it.
-            </p>
-          </div>
-        </div>
-      </section>
 
-      <section id="commands">
-        <h2>Thirteen commands</h2>
-        <p class="section-lede">
-          The vault is plain Markdown you can edit by hand in Obsidian or any editor. These keep it
-          consistent as it grows.
-        </p>
-
-        <div class="grid">
-          <div class="card">
-            <h3><code>init</code></h3>
-            <p>Answer the questions, get a validated vault. This is the default command.</p>
-          </div>
-          <div class="card">
-            <h3><code>doctor</code></h3>
-            <p>Validate structure, links, and coverage against the manifest.</p>
-          </div>
-          <div class="card">
-            <h3><code>add project</code></h3>
-            <p>Add a project and wire it into the graph — routes, hubs, and links included.</p>
-          </div>
-          <div class="card">
-            <h3><code>import</code></h3>
-            <p>Propose more projects — and the decisions you already made — from an AI export.</p>
-          </div>
-          <div class="card">
-            <h3><code>agents</code></h3>
-            <p>Print the block that makes your AI tools recall the vault from everywhere.</p>
-          </div>
-          <div class="card">
-            <h3><code>skills</code></h3>
-            <p>Generate agent skills that run these commands, and install them where agents look.</p>
-          </div>
-          <div class="card">
-            <h3><code>update</code></h3>
-            <p>Bring an existing vault up to a newer CLI, without touching your writing.</p>
-          </div>
-          <div class="card">
-            <h3><code>sync</code></h3>
-            <p>Validate, then commit and push. It refuses to commit a broken vault.</p>
-          </div>
-          <div class="card">
-            <h3><code>status</code></h3>
-            <p>One screen: projects, notes, doctor result, git state, and stale capsules.</p>
-          </div>
-          <div class="card">
-            <h3><code>stats</code></h3>
-            <p>What a cold-start agent must read, and how much task-scoped recall saves.</p>
-          </div>
-          <div class="card">
-            <h3><code>serve</code></h3>
-            <p>Expose the vault to MCP clients as typed tools instead of raw file reads.</p>
-          </div>
-          <div class="card">
-            <h3><code>project</code></h3>
-            <p>Remove, rename, or archive a project — every link and route follows.</p>
-          </div>
-          <div class="card">
-            <h3><code>hooks</code></h3>
-            <p>A pre-commit hook that keeps a broken memory graph out of your history.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="mcp">
-        <h2>Memory as tools, not file reads</h2>
-        <p class="section-lede">
-          <code>vulcanus serve</code> exposes the vault over MCP, so an agent asks for what it needs
-          instead of guessing which file to open.
-        </p>
-
-        <div class="grid">
-          <div class="card">
-            <h3><code>recall</code></h3>
-            <p>
-              One project's Capsule plus the order to read deeper. The call an agent makes before
-              touching anything — and it says so when the Capsule has fallen behind, when the
-              project is one you marked private, and which decisions are no longer current.
-            </p>
-          </div>
-          <div class="card">
-            <h3><code>search</code></h3>
-            <p>
-              Layer-aware: Capsule and Recall Map hits rank above everything else, and memory that
-              is no longer current ranks last.
-            </p>
-          </div>
-          <div class="card">
-            <h3><code>append_decision</code> · <code>append_rule</code></h3>
-            <p>
-              Confirmed outcomes go back into the right note, in the vault's own format. Pass
-              <code>supersedes</code> and the decision it replaces is marked in the same call.
-            </p>
-          </div>
-          <div class="card">
-            <h3><code>update_capsule</code></h3>
-            <p>Refresh one section of a summary — never a blind whole-file rewrite.</p>
-          </div>
-        </div>
-
-        <pre><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
-      </section>
-
-      <section id="budget">
-        <h2>The saving, measured</h2>
-        <p class="section-lede">
-          The claim is that a layered vault is cheaper to read than a pile of notes.
-          <code>vulcanus stats</code> reports what your own vault costs, so the claim is something
-          you can check rather than something you have to believe.
-        </p>
-
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>What an agent reads</th>
-                <th>Tokens</th>
-                <th>Share of the vault</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Cold start — protocol, routing, operator profile</td>
-                <td>3,167</td>
-                <td>24%</td>
-              </tr>
-              <tr>
-                <td>Cold start + one project capsule</td>
-                <td>3,370</td>
-                <td>26%</td>
-              </tr>
-              <tr>
-                <td>The whole vault</td>
-                <td>13,202</td>
-                <td>100%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="note">
-          A six-project vault, freshly generated. A capsule costs about a fifth of its cluster, and
-          the entry layer is paid once per session — so each further task costs roughly 200 tokens
-          to route instead of a full re-read. Counts are estimated at ~4 characters per token: the
-          ratio is the measurement, not the absolute number, and
-          <a href="https://github.com/sunsatosolutions/Vulcanus/blob/main/docs/token-budget.md"
-            >the write-up</a
-          >
-          is explicit about what it does not prove.
-        </div>
-      </section>
-
-      <section>
-        <div class="split">
-          <div>
-            <h2>It checks its own work</h2>
-            <p class="section-lede">
-              Memory rots quietly: a renamed note, a link that stopped resolving, a project nothing
-              routes to. Every check is derived from your manifest, so it stays correct as the vault
-              grows.
-            </p>
-            <div class="note">
-              <strong>Your writing is never overwritten.</strong> Notes, hubs, and the index hold
-              what you wrote, so an upgrade links a new project in rather than regenerating the file
-              around it. The agent protocol is merged: sections you added stay, sections the
-              protocol gained arrive.
+          <figure class="gauge" aria-labelledby="gauge-title">
+            <figcaption>
+              <div class="gauge-title" id="gauge-title">How deep an agent reads</div>
+              <p class="gauge-note">Share of the vault read by each depth. Each layer opens only when the one above is not enough.</p>
+            </figcaption>
+            <div class="chart">
+              <div class="axis" aria-hidden="true">
+                <span class="tick at-0">0%</span>
+                <span class="tick at-24">24%</span>
+                <span class="tick at-26">26%</span>
+                <span class="tick at-100">100%</span>
+              </div>
+              <div class="strip" aria-hidden="true">
+                <span class="seg seg-cold"></span>
+                <span class="seg seg-capsule"></span>
+                <span class="seg seg-deep"></span>
+              </div>
+              <ol class="layers">
+                <li class="layer-cold t-straw">
+                  <span class="name">AGENTS.md · Recall Map</span>
+                  <span class="role">The protocol and the routing layer: trigger words lead to the right project in one hop.</span>
+                  <span class="share">24%</span>
+                </li>
+                <li class="layer-capsule t-bronze">
+                  <span class="name">Capsule</span>
+                  <span class="role">Compressed must-remember. Most tasks stop here.</span>
+                  <span class="share">+2%</span>
+                </li>
+                <li class="layer-deep t-blue">
+                  <span class="name">Hub · Context · Decisions · Rules</span>
+                  <span class="role">Navigation, authority and detail, opened only when the task needs it.</span>
+                  <span class="share">the other 74%</span>
+                </li>
+              </ol>
             </div>
-          </div>
-
-          <ul class="checks">
-            <li>Every note carries complete, well-formed frontmatter</li>
-            <li>Every link resolves — and resolves to exactly one note</li>
-            <li>Every hub links to the notes it owns</li>
-            <li>Every note links back to its hub</li>
-            <li>Every project is reachable from the routing layer</li>
-            <li>No duplicate or case-colliding note names</li>
-            <li>Raw exports are actually ignored by Git</li>
-            <li>Agents are following the current protocol, not a superseded one</li>
-            <li>Superseded decisions link both ways, and nothing replaces itself in a loop</li>
-            <li>No decision past its expiry date is still presented as current</li>
-          </ul>
+            <p class="gauge-source">
+              Measured on a freshly generated six-project vault with <code>vulcanus stats</code>.
+              <a href="#budget">The measurement</a>
+            </p>
+          </figure>
         </div>
-      </section>
 
-      <section id="agents">
-        <h2>Make your agents actually use it</h2>
-        <p class="section-lede">
-          A vault nobody reads is a folder. Vulcanus writes the enforcement layer too — so
-          recalling your memory becomes a standing rule instead of something you remember to
-          mention.
-        </p>
+        <div class="body">
+          <div class="sections">
+            <section id="how" class="t-straw" aria-labelledby="how-title">
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="how-title">Structure is the feature</h2>
+                  <p class="section-lede">
+                    A folder of notes is not memory — an agent still has to read all of it. Vulcanus
+                    writes a layered graph: routing at the top, a compressed capsule per project,
+                    authoritative detail underneath. Agents read down only as far as the task actually
+                    requires.
+                  </p>
+                </div>
 
-        <div class="split">
-          <div>
-            <div class="card gap-below">
-              <h3>Inside the vault — already done</h3>
-              <p>
-                <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and
-                <code>.cursor/rules</code> ship with the vault. Open the folder in Codex, Claude
-                Code, or Cursor and the protocol is already in effect.
+                <figure class="scene scene-vault reveal" aria-labelledby="vault-caption">
+                  <div class="sc-files" aria-label="Vault root">
+                    <span>YourVault/</span><span>AGENTS.md</span><span>vulcanus.json</span><span>00_System/</span><span>02_Projects/</span><span>_imports/</span>
+                  </div>
+                  <div class="sc-rail" aria-hidden="true"><span class="sc-dot"></span></div>
+                  <div class="sc-card v-map">
+                    <div class="sc-title">Recall Map <span class="sc-note">triggers → the right note</span></div>
+                    <div class="sc-route"><b>Atlas</b><i></i>Atlas Capsule</div>
+                    <div class="sc-route"><b>Northwind</b><i></i>Northwind Capsule</div>
+                    <div class="sc-route"><b>Kiln</b><i></i>Kiln Capsule</div>
+                  </div>
+                  <div class="sc-card v-capsule is-hot">
+                    <div class="sc-title">Atlas Capsule <span class="sc-chip">read this first</span></div>
+                    <span class="sc-bar w80"></span><span class="sc-bar w60"></span><span class="sc-bar w70"></span>
+                  </div>
+                  <div class="v-deep">
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Context</div><span class="sc-bar w70"></span><span class="sc-bar w50"></span></div>
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Decisions</div><span class="sc-bar w60"></span><span class="sc-bar w80"></span></div>
+                    <div class="sc-card is-cold"><div class="sc-title">Atlas Rules</div><span class="sc-bar w80"></span><span class="sc-bar w40"></span></div>
+                  </div>
+                  <figcaption id="vault-caption" class="sc-caption">
+                    An agent routes through the Recall Map and stops at the Capsule; Context, Decisions
+                    and Rules open only when the task needs them.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <ul class="rows grid-rows block">
+                <li class="reveal">
+                  <h3>Capsules keep it cheap</h3>
+                  <p>
+                    Each project opens with a compressed must-remember note. Most questions never need
+                    more than that, so context windows stay small and answers stay grounded.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>Uncertainty is explicit</h3>
+                  <p>
+                    Anything unconfirmed lives under <em>Needs Confirmation</em> and is never presented
+                    as fact. Corrections outrank older notes by design.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>Git is the memory history</h3>
+                  <p>
+                    Every change is a commit, and a decision that changes is marked rather than erased:
+                    the new one names what it replaced. You can see when it changed, what it replaced,
+                    and why — the part chat history can never give you.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3>The vault speaks your language</h3>
+                  <p>
+                    English, Turkish, German, Spanish — and not just the setup questions. The capsules,
+                    hubs, rules and section headings are written in the language the vault records, so
+                    the memory you read every day is in the language you think in. The agent protocol
+                    stays English on purpose: it carries the version stamp <code>doctor</code> checks.
+                  </p>
+                </li>
+              </ul>
+            </section>
+
+            <section id="import" class="t-gold" aria-labelledby="import-title">
+              <div class="stage flip">
+                <div class="section-head reveal">
+                  <h2 id="import-title">Start from what you already said</h2>
+                  <p class="section-lede">
+                    You have thousands of conversations describing your projects. The first question
+                    Vulcanus asks is whether to read them.
+                  </p>
+                  <p class="section-lede">
+                    Run it again later and it proposes only what is new: conversations already read are
+                    remembered, so a second import is not a second pile of the same candidates.
+                  </p>
+                </div>
+
+                <figure class="scene scene-import reveal" aria-labelledby="import-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" d="M36 12.3 C 46 12.3, 45 26, 55 26" />
+                    <path class="wire" d="M36 28.2 C 46 28.2, 45 26, 55 26" />
+                    <path class="wire" d="M36 44.0 C 46 44.0, 45 26, 55 26" />
+                    <path class="wire" d="M36 59.9 C 46 59.9, 45 26, 55 26" />
+                    <path class="wire" d="M36 75.7 C 46 75.7, 45 26, 55 26" />
+                  
+                    <path class="spark" d="M36 12.3 C 46 12.3, 45 26, 55 26" />
+                    <path class="spark" d="M36 28.2 C 46 28.2, 45 26, 55 26" />
+                    <path class="spark" d="M36 44.0 C 46 44.0, 45 26, 55 26" />
+                    <path class="spark" d="M36 59.9 C 46 59.9, 45 26, 55 26" />
+                    <path class="spark" d="M36 75.7 C 46 75.7, 45 26, 55 26" />
+                  </svg>
+                  <ul class="sc-sources">
+                    <li><b>ChatGPT</b>data export</li>
+                    <li><b>Claude Code</b>local sessions</li>
+                    <li><b>Codex</b>268 rollout sessions</li>
+                    <li><b>Cursor</b>workspace history</li>
+                    <li><b>Gemini CLI</b>saved chats</li>
+                  </ul>
+                  <div class="sc-card i-candidates">
+                    <div class="sc-title">Project candidates <span class="sc-note">conversations</span></div>
+                    <div class="sc-check on t1"><span class="box"></span><b>Atlas</b><em>104 · high</em></div>
+                    <div class="sc-check on t2"><span class="box"></span><b>Northwind</b><em>58 · high</em></div>
+                    <div class="sc-check t3"><span class="box"></span><b>Kiln</b><em>6 · medium</em></div>
+                    <div class="sc-foot">257 conversations read, 23 candidates</div>
+                  </div>
+                  <div class="sc-chip-ok i-result">Flora · 103 notes and 567 links validated</div>
+                  <figcaption id="import-caption" class="sc-caption">
+                    The example run: history is read locally, only the names you tick become notes.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div class="split block">
+                <div class="table-scroll reveal" tabindex="0">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Source</th>
+                        <th scope="col">What it reads</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>ChatGPT</td>
+                        <td>Data export, including exports split across many conversation files</td>
+                      </tr>
+                      <tr>
+                        <td>Claude</td>
+                        <td>Data export, using Claude Projects as the grouping signal</td>
+                      </tr>
+                      <tr>
+                        <td>Claude Code</td>
+                        <td>Local sessions — no export needed, working directories name the projects</td>
+                      </tr>
+                      <tr>
+                        <td>Codex</td>
+                        <td>Local rollout sessions, grouped the same way</td>
+                      </tr>
+                      <tr>
+                        <td>Gemini CLI</td>
+                        <td>Local sessions, plus chats you saved under a name with <code>/chat save</code></td>
+                      </tr>
+                      <tr>
+                        <td>Cursor</td>
+                        <td>Per-workspace chat history, with the workspace folder naming the project</td>
+                      </tr>
+                      <tr>
+                        <td>Markdown folder</td>
+                        <td>
+                          Notes you already keep — never scanned on its own, only when you name the
+                          directory
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="note reveal">
+                  <strong>Nothing reaches the vault without your say.</strong> Conversations are read
+                  locally and discarded. Only the project names you confirm and the decisions you
+                  accept become notes — in the wording you accepted, never as transcripts. The import
+                  log records how many conversations were scanned, never their content.
+                </div>
+              </div>
+
+              <h3 class="sub-heading reveal">And the decisions you already made</h3>
+              <p class="section-lede reveal">
+                Your history holds more than project names: the choices you settled and the rules you
+                kept repeating. Say yes to one more question and Vulcanus finds them — in English,
+                Turkish, German, or Spanish — and asks you about each one.
               </p>
-            </div>
-            <div class="card">
-              <h3>Everywhere else — one paste</h3>
-              <p>
-                Most work happens in other repositories and in ordinary chat. Run
-                <code>vulcanus agents</code> and paste the block into your tool's global
-                instructions. From then on, every session recalls before working and consolidates
-                after.
-              </p>
-            </div>
 
-            <div class="table-scroll gap-above">
-              <table>
+              <div class="columns block">
+                <div class="reveal">
+                  <h3>Your words, not the assistant's</h3>
+                  <p>
+                    Only your own messages are read, matched against phrases like “we decided” and
+                    “from now on”, and ranked by how often you repeated them and how recently.
+                  </p>
+                </div>
+                <div class="reveal">
+                  <h3>Nothing lands unreviewed</h3>
+                  <p>
+                    Accept it, edit it, keep it as a rule, skip it, or stop. Up to fifteen per
+                    project, never accepted unattended, and what the vault already records is not
+                    asked again.
+                  </p>
+                </div>
+                <div class="reveal">
+                  <h3>Revisions, not contradictions</h3>
+                  <p>
+                    A statement that revises a recorded decision is offered as its replacement, so the
+                    old one is marked as superseded instead of sitting beside it, contradicting it.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="commands" class="t-bronze" aria-labelledby="commands-title">
+              <div class="stage">
+                <div class="section-head reveal">
+                <h2 id="commands-title">Thirteen commands</h2>
+                <p class="section-lede">
+                  The vault is plain Markdown you can edit by hand in Obsidian or any editor. These
+                  keep it consistent as it grows.
+                </p>
+              </div>
+
+                <figure class="scene scene-flow scene-cmds reveal" aria-labelledby="cmds-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" d="M30 48 L 38 48" />
+                    <path class="wire" d="M62 48 L 70 48" />
+                  
+                    <path class="spark" d="M30 48 L 38 48" />
+                    <path class="spark" d="M62 48 L 70 48" />
+                  </svg>
+                  <div class="sc-col">
+                    <div class="sc-col-title">Build it</div>
+                    <ul><li class="q1"><code>init</code></li><li class="q2"><code>import</code></li><li class="q3"><code>add project</code></li><li class="q4"><code>project</code></li></ul>
+                  </div>
+                  <div class="sc-col is-hot">
+                    <div class="sc-col-title">Keep it honest</div>
+                    <ul><li class="q5"><code>doctor</code></li><li class="q6"><code>status</code></li><li class="q7"><code>stats</code></li><li class="q8"><code>hooks</code></li><li class="q9"><code>update</code></li></ul>
+                  </div>
+                  <div class="sc-col">
+                    <div class="sc-col-title">Put it to work</div>
+                    <ul><li class="q10"><code>serve</code></li><li class="q11"><code>agents</code></li><li class="q12"><code>skills</code></li><li class="q13"><code>sync</code></li></ul>
+                  </div>
+                  <figcaption id="cmds-caption" class="sc-caption">The thirteen commands by the job they do.</figcaption>
+                </figure>
+              </div>
+
+              <ul class="rows tight block">
+                <li><h3><code>init</code></h3><p>Answer the questions, get a validated vault. This is the default command.</p></li>
+                <li><h3><code>doctor</code></h3><p>Validate structure, links, and coverage against the manifest.</p></li>
+                <li><h3><code>add project</code></h3><p>Add a project and wire it into the graph — routes, hubs, and links included.</p></li>
+                <li><h3><code>import</code></h3><p>Propose more projects — and the decisions you already made — from an AI export.</p></li>
+                <li><h3><code>agents</code></h3><p>Print the block that makes your AI tools recall the vault from everywhere.</p></li>
+                <li><h3><code>skills</code></h3><p>Generate agent skills that run these commands, and install them where agents look.</p></li>
+                <li><h3><code>update</code></h3><p>Bring an existing vault up to a newer CLI, without touching your writing.</p></li>
+                <li><h3><code>sync</code></h3><p>Validate, then commit and push. It refuses to commit a broken vault.</p></li>
+                <li><h3><code>status</code></h3><p>One screen: projects, notes, doctor result, git state, and stale capsules.</p></li>
+                <li><h3><code>stats</code></h3><p>What a cold-start agent must read, and how much task-scoped recall saves.</p></li>
+                <li><h3><code>serve</code></h3><p>Expose the vault to MCP clients as typed tools instead of raw file reads.</p></li>
+                <li><h3><code>project</code></h3><p>Remove, rename, or archive a project — every link and route follows.</p></li>
+                <li><h3><code>hooks</code></h3><p>A pre-commit hook that keeps a broken memory graph out of your history.</p></li>
+              </ul>
+            </section>
+
+            <section id="mcp" class="t-plum" aria-labelledby="mcp-title">
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="mcp-title">Memory as tools, not file reads</h2>
+                  <p class="section-lede">
+                    <code>vulcanus serve</code> exposes the vault over MCP, so an agent asks for what it
+                    needs instead of guessing which file to open.
+                  </p>
+                  <figure class="plate one-line block">
+                    <figcaption class="plate-label"><span>Claude Code</span><span>add the server</span></figcaption>
+                    <pre tabindex="0"><code>claude mcp add vulcanus -- vulcanus serve</code></pre>
+                  </figure>
+                </div>
+
+                <figure class="scene scene-mcp reveal" aria-labelledby="mcp-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire flow" d="M24 26 C 24 40, 40 36, 40 50" />
+                  
+                    <path class="spark" d="M24 26 C 24 40, 40 36, 40 50" />
+                  </svg>
+                  <div class="sc-card m-session">
+                    <div class="sc-title">Agent session</div>
+                    <div class="sc-msg">Fix the checkout flow in Atlas.</div>
+                    <div class="sc-call"><span>tool</span><code>recall</code><em>project: "Atlas"</em></div>
+                  </div>
+                  <div class="sc-card m-answer is-hot">
+                    <div class="sc-title">Atlas Capsule <span class="sc-chip">returned</span></div>
+                    <span class="sc-bar w80"></span><span class="sc-bar w60"></span>
+                    <div class="sc-next">Read next <b>Hub</b><i></i><b>Decisions</b></div>
+                    <div class="sc-warn">One decision is superseded: read its replacement</div>
+                  </div>
+                  <figcaption id="mcp-caption" class="sc-caption">
+                    Illustration: one <code>recall</code> returns the Capsule, the read order, and what is
+                    no longer current.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <ul class="rows grid-rows block">
+                <li class="reveal">
+                  <h3><code>recall</code></h3>
+                  <p>
+                    One project's Capsule plus the order to read deeper. The call an agent makes
+                    before touching anything — and it says so when the Capsule has fallen behind, when
+                    the project is one you marked private, and which decisions are no longer current.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3><code>search</code></h3>
+                  <p>
+                    Layer-aware: Capsule and Recall Map hits rank above everything else, and memory
+                    that is no longer current ranks last.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3><code>append_decision</code> · <code>append_rule</code></h3>
+                  <p>
+                    Confirmed outcomes go back into the right note, in the vault's own format. Pass
+                    <code>supersedes</code> and the decision it replaces is marked in the same call.
+                  </p>
+                </li>
+                <li class="reveal">
+                  <h3><code>update_capsule</code></h3>
+                  <p>Refresh one section of a summary — never a blind whole-file rewrite.</p>
+                </li>
+              </ul>
+            </section>
+
+            <section id="budget" class="t-violet" aria-labelledby="budget-title">
+              <div class="stage flip">
+                <div class="section-head reveal">
+                <h2 id="budget-title">The saving, measured</h2>
+                <p class="section-lede">
+                  The claim is that a layered vault is cheaper to read than a pile of notes.
+                  <code>vulcanus stats</code> reports what your own vault costs, so the claim is
+                  something you can check rather than something you have to believe.
+                </p>
+              </div>
+
+                <figure class="scene scene-flow scene-waffle reveal" aria-labelledby="waffle-caption">
+                  <div class="waffle" aria-hidden="true"><i class="c-cold k0"></i><i class="c-cold k0"></i><i class="c-cold k0"></i><i class="c-cold k0"></i><i class="c-cold k0"></i><i class="c-cold k1"></i><i class="c-cold k1"></i><i class="c-cold k1"></i><i class="c-cold k1"></i><i class="c-cold k1"></i><i class="c-cold k2"></i><i class="c-cold k2"></i><i class="c-cold k2"></i><i class="c-cold k2"></i><i class="c-cold k2"></i><i class="c-cold k3"></i><i class="c-cold k3"></i><i class="c-cold k3"></i><i class="c-cold k3"></i><i class="c-cold k3"></i><i class="c-cold k4"></i><i class="c-cold k4"></i><i class="c-cold k4"></i><i class="c-cold k4"></i><i class="c-cap k4"></i><i class="c-cap k5"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i><i class="c-rest"></i></div>
+                  <ul class="waffle-key">
+                    <li class="k-cold"><b>24%</b>Cold start · 3,167 tokens</li>
+                    <li class="k-cap"><b>+2%</b>One project capsule · 203 tokens</li>
+                    <li class="k-rest"><b>74%</b>The rest of the vault · 9,832 tokens</li>
+                  </ul>
+                  <figcaption id="waffle-caption" class="sc-caption">
+                    Each square is one percent of a freshly generated six-project vault; a task reads the
+                    lit squares.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <table class="budget-table block reveal">
+                <caption>What an agent reads, in tokens and as a share of the vault</caption>
                 <thead>
                   <tr>
-                    <th>Tool</th>
-                    <th>Where it goes</th>
+                    <th scope="col">What an agent reads</th>
+                    <th scope="col">Tokens</th>
+                    <th scope="col">Share of the vault</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>Claude Code</td><td><code>~/.claude/CLAUDE.md</code></td></tr>
-                  <tr><td>Codex</td><td><code>~/.codex/AGENTS.md</code></td></tr>
-                  <tr><td>Cursor</td><td>Settings → Rules → User Rules</td></tr>
-                  <tr><td>ChatGPT</td><td>Settings → Personalization → Custom instructions</td></tr>
-                  <tr><td>Gemini CLI</td><td><code>~/.gemini/GEMINI.md</code></td></tr>
+                  <tr class="t-straw">
+                    <td>Cold start — protocol, routing, operator profile</td>
+                    <td>3,167</td>
+                    <td><span class="bar"><span class="fill w24"></span></span>24%</td>
+                  </tr>
+                  <tr class="t-bronze">
+                    <td>Cold start + one project capsule</td>
+                    <td>3,370</td>
+                    <td><span class="bar"><span class="fill w26"></span></span>26%</td>
+                  </tr>
+                  <tr class="t-blue">
+                    <td>The whole vault</td>
+                    <td>13,202</td>
+                    <td><span class="bar"><span class="fill w100"></span></span>100%</td>
+                  </tr>
                 </tbody>
               </table>
-            </div>
-          </div>
 
-          <div class="terminal flush-top">
-            <div class="terminal-bar">
-              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-              <span class="terminal-title">vulcanus agents</span>
-            </div>
-            <pre><span class="q">## Flora is my second brain —</span>
+              <div class="note block">
+                A six-project vault, freshly generated. A capsule costs about a fifth of its cluster,
+                and the entry layer is paid once per session — so each further task costs roughly 200
+                tokens to route instead of a full re-read. Counts are estimated at ~4 characters per
+                token: the ratio is the measurement, not the absolute number, and
+                <a href="https://github.com/sunsatosolutions/Vulcanus/blob/main/docs/token-budget.md">the write-up</a>
+                is explicit about what it does not prove.
+              </div>
+            </section>
+
+            <section id="checks" class="t-blue" aria-labelledby="checks-title">
+              <div class="stage flip">
+                <div class="section-head reveal">
+                  <h2 id="checks-title">It checks its own work</h2>
+                  <p class="section-lede">
+                    Memory rots quietly: a renamed note, a link that stopped resolving, a project
+                    nothing routes to. Every check is derived from your manifest, so it stays correct as
+                    the vault grows.
+                  </p>
+                  <div class="note block">
+                    <strong>Your writing is never overwritten.</strong> Notes, hubs, and the index hold
+                    what you wrote, so an upgrade links a new project in rather than regenerating the
+                    file around it. The agent protocol is merged: sections you added stay, sections the
+                    protocol gained arrive.
+                  </div>
+                </div>
+
+                <figure class="scene scene-doctor reveal" aria-labelledby="doctor-caption">
+                  <div class="sc-card d-run">
+                    <div class="sc-title"><code>vulcanus doctor</code></div>
+                    <svg class="d-graph" viewBox="0 0 300 120" aria-hidden="true">
+                      <g class="d-edges">
+                        <path pathLength="1" d="M150 60 L70 30" /><path pathLength="1" d="M150 60 L230 30" />
+                        <path pathLength="1" d="M150 60 L80 95" /><path pathLength="1" d="M150 60 L225 95" />
+                        <path pathLength="1" d="M70 30 L28 18" /><path pathLength="1" d="M70 30 L30 52" />
+                        <path pathLength="1" d="M230 30 L272 16" /><path pathLength="1" d="M230 30 L274 50" />
+                        <path pathLength="1" d="M80 95 L36 106" /><path pathLength="1" d="M225 95 L268 106" />
+                      </g>
+                      <g class="d-notes">
+                        <circle cx="28" cy="18" r="3.5" /><circle cx="30" cy="52" r="3.5" />
+                        <circle cx="272" cy="16" r="3.5" /><circle cx="274" cy="50" r="3.5" />
+                        <circle cx="36" cy="106" r="3.5" /><circle cx="268" cy="106" r="3.5" />
+                      </g>
+                      <g class="d-hubs">
+                        <circle cx="70" cy="30" r="6" /><circle cx="230" cy="30" r="6" />
+                        <circle cx="80" cy="95" r="6" /><circle cx="225" cy="95" r="6" />
+                      </g>
+                      <g class="d-sparks">
+                        <path pathLength="1" d="M150 60 L70 30" /><path pathLength="1" d="M150 60 L230 30" />
+                        <path pathLength="1" d="M150 60 L80 95" /><path pathLength="1" d="M150 60 L225 95" />
+                        <path pathLength="1" d="M70 30 L28 18" /><path pathLength="1" d="M70 30 L30 52" />
+                        <path pathLength="1" d="M230 30 L272 16" /><path pathLength="1" d="M230 30 L274 50" />
+                        <path pathLength="1" d="M80 95 L36 106" /><path pathLength="1" d="M225 95 L268 106" />
+                      </g>
+                      <circle class="ring" cx="150" cy="60" r="9" />
+                      <circle class="d-index" cx="150" cy="60" r="9" />
+                    </svg>
+                    <div class="d-line">frontmatter <b class="o1">ok</b></div>
+                    <div class="d-line">links resolve to exactly one note <b class="o2">ok</b></div>
+                    <div class="d-line">every project reachable <b class="o3">ok</b></div>
+                    <div class="d-line">supersedes links both ways <b class="o4">ok</b></div>
+                    <div class="d-total">103 notes and 567 links validated</div>
+                  </div>
+                  <figcaption id="doctor-caption" class="sc-caption">
+                    The example vault from the import run, checked against its manifest.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <ul class="checks block">
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note carries complete, well-formed frontmatter</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every link resolves — and resolves to exactly one note</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every hub links to the notes it owns</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every note links back to its hub</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Every project is reachable from the routing layer</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No duplicate or case-colliding note names</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Raw exports are actually ignored by Git</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Agents are following the current protocol, not a superseded one</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Superseded decisions link both ways, and nothing replaces itself in a loop</li>
+                <li class="reveal"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>No decision past its expiry date is still presented as current</li>
+              </ul>
+            </section>
+
+            <section id="agents" class="t-pale" aria-labelledby="agents-title">
+              <div class="stage">
+                <div class="section-head reveal">
+                  <h2 id="agents-title">Make your agents actually use it</h2>
+                  <p class="section-lede">
+                    A vault nobody reads is a folder. Vulcanus writes the enforcement layer too — so
+                    recalling your memory becomes a standing rule instead of something you remember to
+                    mention.
+                  </p>
+                </div>
+
+                <figure class="scene scene-agents reveal" aria-labelledby="agents-caption">
+                  <svg class="sc-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="wire" d="M55 15 C 80 15, 77 66, 78 78" />
+                    <path class="wire" d="M61 36 C 81 36, 80 68, 81 78" />
+                    <path class="wire" d="M67 57 C 82 57, 84 70, 84 78" />
+                  
+                    <path class="spark" d="M55 15 C 80 15, 77 66, 78 78" />
+                    <path class="spark" d="M61 36 C 81 36, 80 68, 81 78" />
+                    <path class="spark" d="M67 57 C 82 57, 84 70, 84 78" />
+                  </svg>
+                  <div class="sc-card a-win w1">
+                    <div class="sc-title">Claude Code <span class="sc-path">~/.claude/CLAUDE.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w70"></span>
+                  </div>
+                  <div class="sc-card a-win w2">
+                    <div class="sc-title">Codex <span class="sc-path">~/.codex/AGENTS.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w60"></span>
+                  </div>
+                  <div class="sc-card a-win w3">
+                    <div class="sc-title">Gemini CLI <span class="sc-path">~/.gemini/GEMINI.md</span></div>
+                    <div class="sc-quote">## Flora is my second brain —</div>
+                    <span class="sc-bar w80"></span>
+                  </div>
+                  <div class="sc-card a-vault is-hot">
+                    <div class="sc-title">~/Flora</div>
+                    <div class="sc-note">recall before work, consolidate after</div>
+                  </div>
+                  <figcaption id="agents-caption" class="sc-caption">
+                    One pasted block per tool; every session then recalls from the same vault.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div class="split block">
+                <div>
+                  <ul class="rows stacked reveal">
+                    <li>
+                      <h3>Inside the vault — already done</h3>
+                      <p>
+                        <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and
+                        <code>.cursor/rules</code> ship with the vault. Open the folder in Codex,
+                        Claude Code, or Cursor and the protocol is already in effect.
+                      </p>
+                    </li>
+                    <li>
+                      <h3>Everywhere else — one paste</h3>
+                      <p>
+                        Most work happens in other repositories and in ordinary chat. Run
+                        <code>vulcanus agents</code> and paste the block into your tool's global
+                        instructions. From then on, every session recalls before working and
+                        consolidates after.
+                      </p>
+                    </li>
+                  </ul>
+
+                  <div class="table-scroll block reveal" tabindex="0">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th scope="col">Tool</th>
+                          <th scope="col">Where it goes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>Claude Code</td><td><code>~/.claude/CLAUDE.md</code></td></tr>
+                        <tr><td>Codex</td><td><code>~/.codex/AGENTS.md</code></td></tr>
+                        <tr><td>Cursor</td><td>Settings → Rules → User Rules</td></tr>
+                        <tr><td>ChatGPT</td><td>Settings → Personalization → Custom instructions</td></tr>
+                        <tr><td>Gemini CLI</td><td><code>~/.gemini/GEMINI.md</code></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <figure class="plate reveal">
+                  <figcaption class="plate-label"><span>vulcanus agents</span><span>paste into global instructions</span></figcaption>
+                  <pre tabindex="0"><span class="q">## Flora is my second brain —</span>
 <span class="q">## use it in every session</span>
 
 I maintain <span class="q">Flora</span>, an AI-readable memory
@@ -1369,195 +3171,265 @@ requirement, not an optional extra.
 
 - Do not add new projects without my
   explicit confirmation.</pre>
+                </figure>
+              </div>
+            </section>
+
+            <section id="obsidian" class="t-grey" aria-labelledby="obsidian-title">
+              <div class="split">
+                <div>
+                  <div class="section-head reveal">
+                    <h2 id="obsidian-title">See your memory as a graph</h2>
+                    <p class="section-lede">
+                      The vault is a valid Obsidian vault the moment it exists — no plugin, no import
+                      step. Open the folder and every note, link, and cluster is there, with
+                      shortest-path wikilinks and rename-safe links already configured.
+                    </p>
+                    <p class="section-lede">
+                      Obsidian's graph view is the fastest health check you have: projects show up as
+                      clusters, hubs sit at their center, and a note nothing links to stands out
+                      immediately. Edit anything there and it stays plain Markdown — the CLI and your
+                      agents see the change straight away.
+                    </p>
+                  </div>
+                  <div class="block">
+                    <div class="note">
+                      <strong>Both directions stay in sync.</strong> Write in Obsidian, let an agent
+                      write through the protocol, or edit by hand — it is one Git repository either
+                      way, and <code>vulcanus doctor</code> keeps all three honest.
+                    </div>
+                    <div class="note">
+                      <strong>Already have a vault?</strong> <code>vulcanus init</code> detects an
+                      existing Obsidian vault and offers to add the memory structure to it, instead of
+                      scaffolding a separate one beside it. Your own notes are never overwritten.
+                    </div>
+                  </div>
+                </div>
+
+                <figure class="scene scene-flow scene-graph graph reveal">
+                  <svg viewBox="0 0 320 260" role="img" aria-label="Graph view showing project clusters around a central index">
+                    <g class="edge">
+                      <line pathLength="1" x1="160" y1="128" x2="72" y2="62" />
+                      <line pathLength="1" x1="160" y1="128" x2="252" y2="70" />
+                      <line pathLength="1" x1="160" y1="128" x2="96" y2="206" />
+                      <line pathLength="1" x1="160" y1="128" x2="236" y2="198" />
+                      <line pathLength="1" x1="72" y1="62" x2="34" y2="30" />
+                      <line pathLength="1" x1="72" y1="62" x2="104" y2="24" />
+                      <line pathLength="1" x1="72" y1="62" x2="28" y2="98" />
+                      <line pathLength="1" x1="72" y1="62" x2="118" y2="94" />
+                      <line pathLength="1" x1="252" y1="70" x2="290" y2="36" />
+                      <line pathLength="1" x1="252" y1="70" x2="222" y2="26" />
+                      <line pathLength="1" x1="252" y1="70" x2="296" y2="108" />
+                      <line pathLength="1" x1="96" y1="206" x2="46" y2="234" />
+                      <line pathLength="1" x1="96" y1="206" x2="118" y2="246" />
+                      <line pathLength="1" x1="96" y1="206" x2="40" y2="176" />
+                      <line pathLength="1" x1="236" y1="198" x2="284" y2="228" />
+                      <line pathLength="1" x1="236" y1="198" x2="206" y2="242" />
+                    </g>
+                    <g class="n-note">
+                      <circle cx="34" cy="30" r="3.5" />
+                      <circle cx="104" cy="24" r="3.5" />
+                      <circle cx="28" cy="98" r="3.5" />
+                      <circle cx="118" cy="94" r="3.5" />
+                      <circle cx="290" cy="36" r="3.5" />
+                      <circle cx="222" cy="26" r="3.5" />
+                      <circle cx="296" cy="108" r="3.5" />
+                      <circle cx="46" cy="234" r="3.5" />
+                      <circle cx="118" cy="246" r="3.5" />
+                      <circle cx="40" cy="176" r="3.5" />
+                      <circle cx="284" cy="228" r="3.5" />
+                      <circle cx="206" cy="242" r="3.5" />
+                    </g>
+                    <g class="n-hub">
+                      <circle cx="72" cy="62" r="6.5" />
+                      <circle cx="252" cy="70" r="6.5" />
+                      <circle cx="96" cy="206" r="6.5" />
+                      <circle cx="236" cy="198" r="6.5" />
+                    </g>
+                    <g class="g-sparks">
+                      <line pathLength="1" x1="160" y1="128" x2="72" y2="62" />
+                      <line pathLength="1" x1="160" y1="128" x2="252" y2="70" />
+                      <line pathLength="1" x1="160" y1="128" x2="96" y2="206" />
+                      <line pathLength="1" x1="160" y1="128" x2="236" y2="198" />
+                      <line pathLength="1" x1="72" y1="62" x2="34" y2="30" />
+                      <line pathLength="1" x1="72" y1="62" x2="104" y2="24" />
+                      <line pathLength="1" x1="72" y1="62" x2="28" y2="98" />
+                      <line pathLength="1" x1="72" y1="62" x2="118" y2="94" />
+                      <line pathLength="1" x1="252" y1="70" x2="290" y2="36" />
+                      <line pathLength="1" x1="252" y1="70" x2="222" y2="26" />
+                      <line pathLength="1" x1="252" y1="70" x2="296" y2="108" />
+                      <line pathLength="1" x1="96" y1="206" x2="46" y2="234" />
+                      <line pathLength="1" x1="96" y1="206" x2="118" y2="246" />
+                      <line pathLength="1" x1="96" y1="206" x2="40" y2="176" />
+                      <line pathLength="1" x1="236" y1="198" x2="284" y2="228" />
+                      <line pathLength="1" x1="236" y1="198" x2="206" y2="242" />
+                    </g>
+                    <circle class="ring" cx="160" cy="128" r="10" />
+                    <circle class="n-index" cx="160" cy="128" r="10" />
+                    <g class="g-labels">
+                      <text x="160" y="152" text-anchor="middle">Flora Index</text>
+                      <text x="72" y="80" text-anchor="middle">Atlas</text>
+                      <text x="252" y="88" text-anchor="middle">Northwind</text>
+                      <text x="96" y="224" text-anchor="middle">Kiln</text>
+                      <text x="236" y="216" text-anchor="middle">Harbor</text>
+                    </g>
+                  </svg>
+                  <figcaption>
+                    <span><i class="k-index"></i>Index</span>
+                    <span><i class="k-hub"></i>Project hubs</span>
+                    <span><i class="k-note"></i>Notes</span>
+                  </figcaption>
+                </figure>
+              </div>
+            </section>
+
+            <section id="faq" class="t-grey" aria-labelledby="faq-title">
+              <div class="stage">
+                <div class="section-head reveal">
+                <h2 id="faq-title">Questions</h2>
+                <p class="section-lede">What people ask before they point an agent at it.</p>
+              </div>
+
+                <figure class="scene scene-flow scene-local reveal" aria-labelledby="local-caption">
+                  <div class="l-machine">
+                    <div class="sc-col-title">Your machine</div>
+                    <div class="sc-card l-vault is-hot"><div class="sc-title">Vault</div><div class="sc-note">Markdown in Git</div></div>
+                    <div class="sc-card l-cli"><div class="sc-title"><code>vulcanus</code></div><div class="sc-note">CLI and MCP server</div></div>
+                    <div class="sc-card l-history"><div class="sc-title">AI history</div><div class="sc-note">read locally, discarded</div></div>
+                    <div class="sc-card l-agents"><div class="sc-title">Your agents</div><div class="sc-note">recall over MCP</div></div>
+                  </div>
+                  <div class="sc-card l-npm">
+                    <div class="sc-title">npm registry</div>
+                    <div class="sc-note">optional once-a-day version check</div>
+                    <code class="l-off">VULCANUS_NO_UPDATE_CHECK=1</code>
+                  </div>
+                  <figcaption id="local-caption" class="sc-caption">
+                    No account and no server. The only automatic call is the optional version check.
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div class="faq block">
+                <details>
+                  <summary>What is Vulcanus?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>An open-source command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that you and your coding agents both read. It serves that vault over MCP, so an agent can <code>recall</code> a project instead of starting every session cold.</p>
+                </details>
+                <details>
+                  <summary>How is it different from a CLAUDE.md or AGENTS.md file?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>A single instructions file is read in full on every task, grows without limit, and nothing checks that it is still true. A Vulcanus vault is layered: an agent reads the Recall Map, then the one project Capsule its task needs, and goes deeper only for authority or detail. <code>vulcanus doctor</code> then validates that every link resolves and every project is reachable, so outdated memory shows up as an error.</p>
+                </details>
+                <details>
+                  <summary>How is it different from other MCP memory servers?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>Many memory servers keep facts in a database or index past conversations for retrieval. Vulcanus keeps memory as plain Markdown notes you can read, edit, and review in Git or Obsidian, organized into a fixed structure per project — Capsule, Hub, Context, Decisions, Rules — that is validated against a manifest. What your agent remembers is exactly what is written in the vault.</p>
+                </details>
+                <details>
+                  <summary>Which AI tools does it work with?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>Any MCP client, including Claude Code and Cursor, through <code>vulcanus serve</code>. The vault also ships skills for Claude Code, Codex, Cursor, and Gemini CLI, and <code>vulcanus agents</code> prints a block to paste into any tool's global instructions.</p>
+                </details>
+                <details>
+                  <summary>Does my data leave my machine?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>No. There is no account and no server. The only automatic network call is an optional once-a-day check for a newer release, which <code>VULCANUS_NO_UPDATE_CHECK=1</code> turns off. Importing AI history reads conversations locally: only the project names you confirm and the decisions you accept are written to the vault, never transcripts. Two opt-in flags, <code>--ai-group</code> and <code>--ai-extract</code>, hand a short digest to an AI CLI you already have installed, and show you what will be sent before anything is.</p>
+                </details>
+                <details>
+                  <summary>Can I use it with my existing Obsidian vault?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>Yes. Run <code>vulcanus init</code> inside it and Vulcanus adds the memory structure to that vault instead of creating a separate one. Your own notes are never overwritten, and the graph view shows each project as its own cluster.</p>
+                </details>
+                <details>
+                  <summary>Can agents write to the memory, and is that safe?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>Agents record outcomes through scoped MCP tools: <code>append_decision</code> and <code>append_rule</code> add one entry to the right note, and <code>update_capsule</code> replaces one named section rather than rewriting the file. When a decision replaces an older one, the tool links the two instead of overwriting the old one. Every change is a plain Markdown edit you can review and revert in Git, and <code>vulcanus hooks install</code> refuses commits that break the vault's structure.</p>
+                </details>
+                <details>
+                  <summary>What happens when a decision changes?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>The old decision stays as history and is marked, not deleted: the new one records <code>supersedes::</code> with a link to the heading it replaces, and the old one gains <code>superseded-by::</code>. <code>vulcanus doctor</code> checks that both sides agree, <code>recall</code> tells an agent which decisions are no longer current, and a decision can carry <code>valid-until::</code> so it expires instead of quietly going stale.</p>
+                </details>
+                <details>
+                  <summary>What does it cost, and what does it need?<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></summary>
+                  <p>Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Install it with <code>npm install -g @sunsato/vulcanus</code> and run <code>vulcanus</code>; it is installed globally because the MCP server, skills, and commit hook all call the <code>vulcanus</code> command.</p>
+                </details>
+              </div>
+            </section>
           </div>
-        </div>
-      </section>
 
-      <section id="obsidian">
-        <div class="split">
-          <div>
-            <h2>See your memory as a graph</h2>
-            <p class="section-lede">
-              The vault is a valid Obsidian vault the moment it exists — no plugin, no import step.
-              Open the folder and every note, link, and cluster is there, with shortest-path
-              wikilinks and rename-safe links already configured.
-            </p>
-            <p class="section-lede">
-              Obsidian's graph view is the fastest health check you have: projects show up as
-              clusters, hubs sit at their center, and a note nothing links to stands out
-              immediately. Edit anything there and it stays plain Markdown — the CLI and your
-              agents see the change straight away.
-            </p>
-            <div class="note">
-              <strong>Both directions stay in sync.</strong> Write in Obsidian, let an agent write
-              through the protocol, or edit by hand — it is one Git repository either way, and
-              <code>vulcanus doctor</code> keeps all three honest.
-            </div>
-            <div class="note">
-              <strong>Already have a vault?</strong> <code>vulcanus init</code> detects an existing
-              Obsidian vault and offers to add the memory structure to it, instead of scaffolding a
-              separate one beside it. Your own notes are never overwritten.
-            </div>
+          <nav class="rail" aria-label="Sections">
+            <div class="rail-title">On this page</div>
+            <ol>
+              <li class="t-straw"><a href="#how">Structure</a></li>
+              <li class="t-gold"><a href="#import">Import</a></li>
+              <li class="t-bronze"><a href="#commands">Commands</a></li>
+              <li class="t-plum"><a href="#mcp">MCP</a></li>
+              <li class="t-violet"><a href="#budget">Token budget</a></li>
+              <li class="t-blue"><a href="#checks">Checks</a></li>
+              <li class="t-pale"><a href="#agents">Agents</a></li>
+              <li class="t-grey"><a href="#obsidian">Obsidian</a></li>
+              <li class="t-grey"><a href="#faq">Questions</a></li>
+            </ol>
+            <span class="marker" aria-hidden="true">
+              <svg viewBox="0 0 8 16"><path d="M0 2.5 7 8l-7 5.5Z" /></svg>
+            </span>
+          </nav>
+        </div>
+
+        <section class="close" aria-labelledby="close-title">
+          <h2 id="close-title">Your agents are only as good as their memory</h2>
+          <p class="section-lede">Build it once. Keep it honest.</p>
+          <div class="install">
+            <span class="prompt" aria-hidden="true">$</span>
+            <code id="install-cmd-2">npm install -g @sunsato/vulcanus</code>
+            <button class="copy" type="button" data-target="install-cmd-2">
+              <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>
+              <span class="label">Copy</span>
+            </button>
           </div>
-
-          <div class="graph-card">
-            <svg viewBox="0 0 320 260" role="img" aria-label="Graph view showing project clusters around a central index">
-              <defs>
-                <radialGradient id="node-hot">
-                  <stop offset="0" stop-color="#ff8a5c" />
-                  <stop offset="1" stop-color="#ff6b35" />
-                </radialGradient>
-              </defs>
-
-              <g stroke="#2b2b38" stroke-width="1">
-                <line x1="160" y1="128" x2="72" y2="62" />
-                <line x1="160" y1="128" x2="252" y2="70" />
-                <line x1="160" y1="128" x2="96" y2="206" />
-                <line x1="160" y1="128" x2="236" y2="198" />
-
-                <line x1="72" y1="62" x2="34" y2="30" />
-                <line x1="72" y1="62" x2="104" y2="24" />
-                <line x1="72" y1="62" x2="28" y2="98" />
-                <line x1="72" y1="62" x2="118" y2="94" />
-
-                <line x1="252" y1="70" x2="290" y2="36" />
-                <line x1="252" y1="70" x2="222" y2="26" />
-                <line x1="252" y1="70" x2="296" y2="108" />
-
-                <line x1="96" y1="206" x2="46" y2="234" />
-                <line x1="96" y1="206" x2="118" y2="246" />
-                <line x1="96" y1="206" x2="40" y2="176" />
-
-                <line x1="236" y1="198" x2="284" y2="228" />
-                <line x1="236" y1="198" x2="206" y2="242" />
-              </g>
-
-              <g fill="#4a4a5c">
-                <circle cx="34" cy="30" r="4" />
-                <circle cx="104" cy="24" r="4" />
-                <circle cx="28" cy="98" r="4" />
-                <circle cx="118" cy="94" r="4" />
-                <circle cx="290" cy="36" r="4" />
-                <circle cx="222" cy="26" r="4" />
-                <circle cx="296" cy="108" r="4" />
-                <circle cx="46" cy="234" r="4" />
-                <circle cx="118" cy="246" r="4" />
-                <circle cx="40" cy="176" r="4" />
-                <circle cx="284" cy="228" r="4" />
-                <circle cx="206" cy="242" r="4" />
-              </g>
-
-              <g fill="#f7931e">
-                <circle cx="72" cy="62" r="7" />
-                <circle cx="252" cy="70" r="7" />
-                <circle cx="96" cy="206" r="7" />
-                <circle cx="236" cy="198" r="7" />
-              </g>
-
-              <circle cx="160" cy="128" r="11" fill="url(#node-hot)" />
-            </svg>
-            <div class="graph-legend">
-              <span><i class="k-index"></i> Index</span>
-              <span><i class="k-hub"></i> Project hubs</span>
-              <span><i class="k-note"></i> Notes</span>
-            </div>
+          <div class="close-links">
+            <span>
+              Open source, MIT licensed —
+              <a href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener">read the source on GitHub</a>.
+            </span>
+            <a class="sponsor" href="https://github.com/sponsors/sunsatosolutions" rel="noopener">
+              <svg class="icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 14.25.345 6.575a4.05 4.05 0 0 1 0-5.73 4.05 4.05 0 0 1 5.729 0L8 2.77l1.926-1.925a4.05 4.05 0 0 1 5.729 5.73L8 14.25Z" />
+              </svg>
+              Sponsor its development
+            </a>
           </div>
-        </div>
-      </section>
-
-      <section id="faq">
-        <h2>Questions</h2>
-        <p class="section-lede">What people ask before they point an agent at it.</p>
-
-        <div class="faq">
-          <details>
-            <summary>What is Vulcanus?</summary>
-            <p>An open-source command-line tool that builds and validates an AI-readable second brain: a Git-versioned vault of linked Markdown that you and your coding agents both read. It serves that vault over MCP, so an agent can <code>recall</code> a project instead of starting every session cold.</p>
-          </details>
-          <details>
-            <summary>How is it different from a CLAUDE.md or AGENTS.md file?</summary>
-            <p>A single instructions file is read in full on every task, grows without limit, and nothing checks that it is still true. A Vulcanus vault is layered: an agent reads the Recall Map, then the one project Capsule its task needs, and goes deeper only for authority or detail. <code>vulcanus doctor</code> then validates that every link resolves and every project is reachable, so outdated memory shows up as an error.</p>
-          </details>
-          <details>
-            <summary>How is it different from other MCP memory servers?</summary>
-            <p>Many memory servers keep facts in a database or index past conversations for retrieval. Vulcanus keeps memory as plain Markdown notes you can read, edit, and review in Git or Obsidian, organized into a fixed structure per project — Capsule, Hub, Context, Decisions, Rules — that is validated against a manifest. What your agent remembers is exactly what is written in the vault.</p>
-          </details>
-          <details>
-            <summary>Which AI tools does it work with?</summary>
-            <p>Any MCP client, including Claude Code and Cursor, through <code>vulcanus serve</code>. The vault also ships skills for Claude Code, Codex, Cursor, and Gemini CLI, and <code>vulcanus agents</code> prints a block to paste into any tool's global instructions.</p>
-          </details>
-          <details>
-            <summary>Does my data leave my machine?</summary>
-            <p>No. There is no account and no server. The only automatic network call is an optional once-a-day check for a newer release, which <code>VULCANUS_NO_UPDATE_CHECK=1</code> turns off. Importing AI history reads conversations locally: only the project names you confirm and the decisions you accept are written to the vault, never transcripts. Two opt-in flags, <code>--ai-group</code> and <code>--ai-extract</code>, hand a short digest to an AI CLI you already have installed, and show you what will be sent before anything is.</p>
-          </details>
-          <details>
-            <summary>Can I use it with my existing Obsidian vault?</summary>
-            <p>Yes. Run <code>vulcanus init</code> inside it and Vulcanus adds the memory structure to that vault instead of creating a separate one. Your own notes are never overwritten, and the graph view shows each project as its own cluster.</p>
-          </details>
-          <details>
-            <summary>Can agents write to the memory, and is that safe?</summary>
-            <p>Agents record outcomes through scoped MCP tools: <code>append_decision</code> and <code>append_rule</code> add one entry to the right note, and <code>update_capsule</code> replaces one named section rather than rewriting the file. When a decision replaces an older one, the tool links the two instead of overwriting the old one. Every change is a plain Markdown edit you can review and revert in Git, and <code>vulcanus hooks install</code> refuses commits that break the vault's structure.</p>
-          </details>
-          <details>
-            <summary>What happens when a decision changes?</summary>
-            <p>The old decision stays as history and is marked, not deleted: the new one records <code>supersedes::</code> with a link to the heading it replaces, and the old one gains <code>superseded-by::</code>. <code>vulcanus doctor</code> checks that both sides agree, <code>recall</code> tells an agent which decisions are no longer current, and a decision can carry <code>valid-until::</code> so it expires instead of quietly going stale.</p>
-          </details>
-          <details>
-            <summary>What does it cost, and what does it need?</summary>
-            <p>Vulcanus is free and MIT-licensed. It needs Node 22.12 or newer and runs on macOS, Linux, and Windows. Install it with <code>npm install -g @sunsato/vulcanus</code> and run <code>vulcanus</code>; it is installed globally because the MCP server, skills, and commit hook all call the <code>vulcanus</code> command.</p>
-          </details>
-        </div>
-      </section>
-
-      <section class="closing">
-        <h2>Your agents are only as good as their memory</h2>
-        <p class="section-lede">Build it once. Keep it honest.</p>
-        <div class="install">
-          <span class="prompt">$</span>
-          <code id="install-cmd-2">npm install -g @sunsato/vulcanus</code>
-          <button class="copy" type="button" data-target="install-cmd-2">Copy</button>
-        </div>
-        <p class="sub-install">
-          Open source, MIT licensed —
-          <a class="inline-link" href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener"
-            >read the source on GitHub</a
-          >.
-        </p>
-        <a
-          class="sponsor-btn"
-          href="https://github.com/sponsors/sunsatosolutions"
-          rel="noopener"
-          aria-label="Sponsor its development on GitHub"
-        >
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path
-              d="M8 14.25.345 6.575a4.05 4.05 0 0 1 0-5.73 4.05 4.05 0 0 1 5.729 0L8 2.77l1.926-1.925a4.05 4.05 0 0 1 5.729 5.73L8 14.25Z"
-            />
-          </svg>
-          Sponsor its development
-        </a>
-      </section>
-
+        </section>
       </main>
 
       <footer>
-        <div class="footer-row">
-          <div>© <span id="year">2026</span> Sunsato · MIT licensed</div>
-          <div>
-            <a href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener">GitHub</a> ·
-            <a href="https://www.npmjs.com/package/@sunsato/vulcanus" rel="noopener">npm</a> ·
-            <a href="https://github.com/sunsatosolutions/Vulcanus/issues" rel="noopener">Issues</a>
-            · <a href="https://github.com/sponsors/sunsatosolutions" rel="noopener">Sponsor</a> ·
-            <a href="https://sunsato.com">Sunsato</a>
-          </div>
-        </div>
+        <div>© <span id="year">2026</span> Sunsato · MIT licensed</div>
+        <nav aria-label="Elsewhere">
+          <a href="https://github.com/sunsatosolutions/Vulcanus" rel="noopener">GitHub</a>
+          <a href="https://www.npmjs.com/package/@sunsato/vulcanus" rel="noopener">npm</a>
+          <a href="https://github.com/sunsatosolutions/Vulcanus/issues" rel="noopener">Issues</a>
+          <a href="https://github.com/sponsors/sunsatosolutions" rel="noopener">Sponsor</a>
+          <a href="https://sunsato.com">Sunsato</a>
+        </nav>
       </footer>
     </div>
 
     <script>
+      // Entrances play once, in full, when a part first comes into view.
+      const parts = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window) {
+        const seen = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add("in");
+              seen.unobserve(entry.target);
+            }
+          },
+          { threshold: 0.2, rootMargin: "0px 0px -8% 0px" },
+        );
+        parts.forEach((part) => seen.observe(part));
+      } else {
+        parts.forEach((part) => part.classList.add("in"));
+      }
+
       document.getElementById("year").textContent = String(new Date().getFullYear());
 
       for (const button of document.querySelectorAll(".copy")) {
+        const label = button.querySelector(".label");
         button.addEventListener("click", async () => {
           const source = document.getElementById(button.dataset.target);
           if (!source) return;
@@ -1566,14 +3438,53 @@ requirement, not an optional extra.
           } catch {
             return; // Clipboard blocked (insecure context or denied permission).
           }
-          const original = button.textContent;
-          button.textContent = "Copied";
+          label.textContent = "Copied";
           button.dataset.copied = "true";
           setTimeout(() => {
-            button.textContent = original;
+            label.textContent = "Copy";
             delete button.dataset.copied;
           }, 1600);
         });
+      }
+
+      // The temper rail: the band for the section being read lights up and the
+      // marker slides to it. Without this script the rail is a plain list of links.
+      const rail = document.querySelector(".rail");
+      const marker = rail && rail.querySelector(".marker");
+      const links = rail ? [...rail.querySelectorAll("a")] : [];
+      const sections = links.map((link) => document.querySelector(link.getAttribute("href")));
+      if (rail && "IntersectionObserver" in window) {
+        const visible = new Map();
+        const show = () => {
+          let active = -1;
+          let best = 0;
+          sections.forEach((section, index) => {
+            const share = visible.get(section) || 0;
+            if (share > best) {
+              best = share;
+              active = index;
+            }
+          });
+          if (active < 0) return;
+          links.forEach((link, index) => {
+            if (index === active) link.setAttribute("aria-current", "true");
+            else link.removeAttribute("aria-current");
+          });
+          // The marker sits in the rail, the item in its list: add the list's offset.
+          const item = links[active].parentElement;
+          marker.style.setProperty("--marker-y", item.offsetTop + item.parentElement.offsetTop + "px");
+          rail.dataset.live = "";
+        };
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              visible.set(entry.target, entry.isIntersecting ? entry.intersectionRect.height : 0);
+            }
+            show();
+          },
+          { threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] },
+        );
+        sections.forEach((section) => section && observer.observe(section));
       }
     </script>
   </body>
