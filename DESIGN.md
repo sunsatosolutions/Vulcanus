@@ -140,7 +140,7 @@ The page is a smith's temper chart. Steel drawn from the fire passes through a f
 
 Density is that of a well-set technical document: generous section spacing, measured line lengths (37 to 46rem for prose), structure carried by 1px hairlines rather than boxes. Framed surfaces ("plates") exist only for real code and real CLI output; everything else is ruled rows, notes and tables. Type is a single variable family, Archivo, whose width axis carries rank: headings are set expanded and heavy, text at normal width. JetBrains Mono appears only where the content is literally code or output.
 
-The system rejects the dark-plus-neon developer page: no glowing terminal, no glow halos on elements, no badge pills, no gradient keywords, no cards used as layout. The one exception is the forge heat: a single soft ember radial behind the top of the page (`body::before`, ember at 14% opacity), kept from the earlier design at the owner's request (2026-10-09). It marks the hot top the page cools from; nothing else glows.
+The system rejects the dark-plus-neon developer page: no glowing terminal, no glow halos on elements, no badge pills, no gradient keywords, no cards used as layout. The one exception is the forge heat: a single soft ember radial held at the top of the viewport (`body::before`, fixed, #ff6b35 at 14% opacity), kept exactly as the earlier design had it at the owner's request (2026-10-09). Nothing else glows.
 
 **Key Characteristics:**
 - Fixed blackened-steel ground with three type tones (bone, iron, dim).

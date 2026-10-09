@@ -261,13 +261,13 @@
         caret-color: var(--ember);
       }
 
-      /* Forge heat behind the hero: the hot top of the page the rest cools from. */
+      /* Forge heat: a soft ember glow held at the top of the viewport. */
       body::before {
         content: "";
-        position: absolute;
+        position: fixed;
         inset: -30vh 0 auto 0;
-        height: 110vh;
-        background: radial-gradient(ellipse 60% 50% at 50% 40%, rgb(232 87 42 / 0.14), transparent 70%);
+        height: 90vh;
+        background: radial-gradient(ellipse 60% 50% at 50% 40%, rgb(255 107 53 / 0.14), transparent 70%);
         pointer-events: none;
         z-index: 0;
       }
@@ -2140,8 +2140,9 @@ requirement, not an optional extra.
             if (index === active) link.setAttribute("aria-current", "true");
             else link.removeAttribute("aria-current");
           });
+          // The marker sits in the rail, the item in its list: add the list's offset.
           const item = links[active].parentElement;
-          marker.style.setProperty("--marker-y", item.offsetTop + "px");
+          marker.style.setProperty("--marker-y", item.offsetTop + item.parentElement.offsetTop + "px");
           rail.dataset.live = "";
         };
         const observer = new IntersectionObserver(
