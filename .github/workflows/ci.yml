@@ -1,17 +1,22 @@
 name: CI
 
 # Runs on every pull request push and every main push, and before every npm
-# publish (release.yml calls it). It deploys nothing: the site reaches
-# production only through promote.yml (main → staging → webtest → rc →
-# approval → production), and deploy.yml looks for a green run of this
-# workflow on main for the commit it promotes.
+# publish (release.yml calls it, with the full test matrix; see the test job).
+# It deploys nothing: the site reaches production only through promote.yml
+# (main → staging → webtest → rc → approval → production), and deploy.yml
+# looks for a green run of this workflow on main for the commit it promotes.
 
 on:
   push:
     branches: [main]
   pull_request:
-  # The release workflow runs this whole matrix before it publishes anything.
+  # The release workflow runs this before it publishes anything.
   workflow_call:
+    inputs:
+      full-matrix:
+        description: Test on every OS with every supported Node.
+        type: boolean
+        default: true
 
 # A new push to the same pull request cancels the old run; main runs are never
 # cut short.
@@ -24,7 +29,7 @@ permissions:
 
 jobs:
   check:
-    name: lint & format
+    name: lint, format & build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,6 +42,8 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run site:check
+      - run: npm run build
+      - run: npm pack --dry-run
 
   audit:
     name: audit & secret scan
@@ -63,13 +70,33 @@ jobs:
           extra_args: --only-verified
 
   test:
-    name: test (node ${{ matrix.node }}, ${{ matrix.os }})
+    name: test (node ${{ matrix.node }}, ${{ matrix.os }}${{ matrix.coverage && ', coverage' || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # Linux runs every supported Node on every run. Pull requests and main
+      # pushes run macOS and Windows on the .nvmrc Node only (5 jobs); a release
+      # calls this workflow with full-matrix and proves every OS on every Node
+      # before it publishes (9 jobs). `inputs` is empty on a push or pull
+      # request; `github.event_name` cannot tell them apart, because a called
+      # workflow sees its caller's event.
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(inputs.full-matrix && '["ubuntu-latest", "macos-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
         node: [22, 24, 26]
+        # An entry that matches a leg above only adds its keys to it; one that
+        # matches none becomes a leg of its own. So the macOS and Windows
+        # entries add those legs when the os list is Linux only, and change
+        # nothing in the full matrix.
+        include:
+          - os: macos-latest
+            node: 24
+          - os: windows-latest
+            node: 24
+          # The coverage run is the same suite with thresholds on top, so it
+          # replaces this leg's plain run rather than repeating it.
+          - os: ubuntu-latest
+            node: 24
+            coverage: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -77,32 +104,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm test
-
-  coverage:
-    name: coverage thresholds
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run coverage:check
-
-  build:
-    name: build & pack
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm pack --dry-run
+      - run: npm run ${{ matrix.coverage && 'coverage:check' || 'test' }}
 
   site:
     name: site package & smoke
