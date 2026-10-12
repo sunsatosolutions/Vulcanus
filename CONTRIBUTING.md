@@ -25,8 +25,10 @@ Point it at a throwaway directory — never at your own vault.
 
 ## The checks
 
-Run these before opening a pull request. CI runs the same four, plus the test
-matrix on Linux, macOS, and Windows across Node 22, 24, and 26.
+Run these before opening a pull request. CI runs the same four, plus the tests
+on Node 22, 24, and 26 on Linux and on Node 24 on macOS and Windows. A release
+runs the full matrix — Linux, macOS, and Windows, each on Node 22, 24, and 26 —
+before it publishes.
 
 ```bash
 npm run typecheck
