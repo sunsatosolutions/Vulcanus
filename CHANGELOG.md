@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.3 — 2026-10-14
+
 ### Fixed
 
 - An MCP call could write to the wrong project. When a query named no project
