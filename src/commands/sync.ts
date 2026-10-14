@@ -1,7 +1,7 @@
 import * as p from "../ui.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { runDoctor } from "../doctor/index.js";
+import { runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { reportDoctor } from "./doctor.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
@@ -40,10 +40,14 @@ export interface SyncSummary {
   reason: "committed" | "clean" | "not-a-repository" | "dry-run" | "doctor-failed";
 }
 
-/** The commit/push half, with no printing, so `--watch` can reuse it. */
-export async function runSync(vaultRoot: string, options: SyncOptions = {}): Promise<SyncSummary> {
+/** The validate/commit/push work, with no printing. Pass a report already computed to skip a second doctor run. */
+export async function runSync(
+  vaultRoot: string,
+  options: SyncOptions = {},
+  report?: DoctorReport,
+): Promise<SyncSummary> {
   const manifest = await readManifest(vaultRoot);
-  const report = await runDoctor(vaultRoot, manifest);
+  report ??= await runDoctor(vaultRoot, manifest);
 
   const base: SyncSummary = {
     vault: manifest.vault.name,
@@ -135,7 +139,8 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
   const manifest = await readManifest(vaultRoot);
   if (!options.json) p.intro(`sync — ${manifest.vault.name}`);
 
-  const summary = await runSync(vaultRoot, options);
+  const report = await runDoctor(vaultRoot, manifest);
+  const summary = await runSync(vaultRoot, options, report);
 
   if (options.json) {
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
@@ -143,7 +148,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
   }
 
   if (!summary.doctor.ok) {
-    reportDoctor(await runDoctor(vaultRoot, manifest));
+    reportDoctor(report);
   } else {
     p.log.success(`doctor passed — ${summary.doctor.filesChecked} notes`);
   }

@@ -106,3 +106,18 @@ export function headingVariants(name: string, locale: Locale): string[] {
   }
   return variants;
 }
+
+/**
+ * The first of `variants` this note already uses, so an insert lands in the
+ * existing section rather than opening a second one in another language.
+ * Falls back to the first variant when the note has none of them.
+ */
+export function existingHeading(content: string, variants: string[]): string {
+  const lines = new Set(content.split(/\r?\n/).map((line) => line.trim()));
+  return variants.find((variant) => lines.has(variant)) ?? variants[0];
+}
+
+/** `existingHeading` for one catalog heading, the vault's own language first. */
+export function headingIn(content: string, name: string, locale: Locale): string {
+  return existingHeading(content, headingVariants(name, locale));
+}

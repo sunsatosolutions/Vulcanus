@@ -2,6 +2,52 @@
 
 ## Unreleased
 
+## 0.6.3 — 2026-10-14
+
+### Fixed
+
+- An MCP call could write to the wrong project. When a query named no project
+  outright, `recall`, `append_decision`, and the other tools fell back to "the
+  query contains a project name" as plain text, so "fix the orbital decay"
+  routed to a project called *Orb*. Mentions now count only as whole words.
+- `update_capsule` in a Turkish, German, or Spanish vault never found the
+  section it was asked to replace, because it looked for the English heading.
+  It appended a second, English section instead and left the real one stale. It
+  now replaces the section under whichever spelling the capsule uses.
+- `vulcanus init --target` pointed at an existing vault overwrote its
+  `vulcanus.json`, dropping every project it tracked. It now refuses, as it
+  already did when continuing inside an Obsidian vault.
+- `vulcanus project rename` rewrote names that merely contained the old one:
+  renaming *Acme* changed the frontmatter and Recall Map heading of *Acme Labs*.
+  It now rewrites whole link targets and whole heading and frontmatter lines
+  only, and also updates `parent:` in the frontmatter of sub-projects. A trigger
+  that was the old name keeps the new name's casing.
+- The pre-commit hook refused every commit when the vault is a folder inside a
+  larger repository, because Git runs hooks from the repository root. The hook
+  now changes into the vault first. Run `vulcanus hooks install --force` once to
+  get the new hook.
+- `vulcanus add project` in a Turkish, German, or Spanish vault opened English
+  sections (`## Sub-Projects`, `## Main Hubs`) in hubs and the Index instead of
+  linking under the vault's own headings.
+- `append_decision` and `append_rule` accepted an empty or multi-line title,
+  writing a section no later call could address. They now refuse it and write
+  nothing.
+- `import`, `add project`, and `skills` asked their questions in English in
+  German and Spanish vaults.
+- Shell completion was a hand-kept list that had fallen behind: it lacked the
+  `import` memory flags and every subcommand flag such as `project archive
+  --restore`. It is now generated from the commands the CLI actually parses.
+- A `vulcanus.json` with a list field that is not a list was reported as a
+  Vulcanus bug. It now says which field is wrong.
+
+### Changed
+
+- `recall` checks only the recalled project's capsule for staleness, not every
+  capsule in the vault: about 1 s down to under 50 ms on a 30-project vault in
+  Git.
+- The npm package no longer ships source maps that pointed at TypeScript
+  sources it does not include; the tarball is about a quarter smaller.
+
 ## 0.6.2 — 2026-10-06
 
 ### Fixed

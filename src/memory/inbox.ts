@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import * as p from "../ui.js";
-import { detectAiClis } from "../ai/clis.js";
+import { detectAiClis, pickCli } from "../ai/clis.js";
 import { applyExtracted, buildExtractDigest, runExtraction } from "../ai/extract.js";
 import type { Messages } from "../i18n.js";
 import type { ImportSourceId, NormalizedConversation } from "../importers/types.js";
@@ -107,11 +107,7 @@ async function tidyWithAi(
   choice: string | boolean,
   t: Messages,
 ): Promise<MemoryCandidate[]> {
-  const detected = detectAiClis();
-  const cli =
-    typeof choice === "string"
-      ? detected.find((entry) => entry.id === choice || entry.command === choice)
-      : detected[0];
+  const cli = pickCli(detectAiClis(), choice);
   if (!cli) {
     p.log.warn(t.aiGroupNoCli);
     return candidates;

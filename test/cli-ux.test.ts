@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
 import { completionCommand, completionScript, SHELLS } from "../src/commands/completion.js";
+import { buildProgram } from "../src/program.js";
 import { installHooksCommand, uninstallHooksCommand } from "../src/commands/hooks.js";
 import { collectStats, estimateTokens, statsCommand } from "../src/commands/stats.js";
 import { badChoiceProblem, formatProblem, noVaultProblem, EXIT } from "../src/errors.js";
@@ -162,21 +163,36 @@ describe("stats", () => {
 describe("shell completion", () => {
   for (const shell of SHELLS) {
     it(`${shell}: lists every command`, () => {
-      const script = completionScript(shell);
+      const script = completionScript(shell, buildProgram());
       for (const command of ["init", "status", "stats", "doctor", "serve", "sync", "hooks"]) {
         assert.ok(script.includes(command), `${shell} completion must mention ${command}`);
       }
     });
   }
 
+  it("offers every flag the CLI parses, so the two cannot drift", () => {
+    const program = buildProgram();
+    const script = completionScript("bash", program);
+    const flags = program.commands.flatMap((command) => [
+      ...command.options,
+      ...command.commands.flatMap((sub) => sub.options),
+    ]);
+    assert.ok(flags.length > 20);
+    for (const option of flags) assert.ok(script.includes(` ${option.long}`), String(option.long));
+  });
+
   it("rejects an unknown shell with the supported list", async () => {
-    const { result, output } = await captureStderr(async () => completionCommand("tcsh"));
+    const { result, output } = await captureStderr(async () =>
+      completionCommand("tcsh", buildProgram()),
+    );
     assert.equal(result, EXIT.usage);
     assert.match(output, /bash, zsh, fish, pwsh/);
   });
 
   it("prints the script for a known shell", async () => {
-    const { result, output } = await captureStdout(async () => completionCommand("bash"));
+    const { result, output } = await captureStdout(async () =>
+      completionCommand("bash", buildProgram()),
+    );
     assert.equal(result, 0);
     assert.match(output, /complete -F _vulcanus vulcanus/);
   });
@@ -193,6 +209,35 @@ describe("git hooks", () => {
     const hook = await readFile(resolve(root, ".git/hooks/pre-commit"), "utf8");
     assert.match(hook, /vulcanus doctor/);
     assert.match(hook, /installed by vulcanus/);
+  });
+
+  it("validates the vault even when it is a folder inside a larger repository", async () => {
+    const repo = await tempDir();
+    tempDirs.push(repo);
+    await gitInit(repo);
+    const vault = resolve(repo, "brain");
+    await mkdir(vault);
+    const input = manifest();
+    await writeFiles(vault, generateFiles(input).files);
+    await writeManifest(vault, input);
+
+    assert.equal(await installHooksCommand({ cwd: vault }), 0);
+    const hookPath = resolve(repo, ".git/hooks/pre-commit");
+    assert.match(await readFile(hookPath, "utf8"), /^cd '.*brain' \|\| exit 1$/m);
+
+    // Git starts hooks at the repository root; the stub records where doctor ran.
+    if (process.platform === "win32") return;
+    const bin = resolve(repo, "bin");
+    await mkdir(bin);
+    await writeFile(resolve(bin, "vulcanus"), '#!/bin/sh\npwd > "$WHERE"\n', "utf8");
+    await chmod(resolve(bin, "vulcanus"), 0o755);
+    const where = resolve(repo, "where.txt");
+    await run("sh", [hookPath], {
+      cwd: repo,
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, WHERE: where },
+    });
+    const ran = (await readFile(where, "utf8")).trim();
+    assert.equal(await realpath(ran), await realpath(vault));
   });
 
   it("refuses to overwrite a hook it did not write", async () => {

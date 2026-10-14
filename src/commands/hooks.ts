@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { noVaultProblem, reportProblem } from "../errors.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
+import { toPosix } from "../util/paths.js";
 import * as p from "../ui.js";
 
 const run = promisify(execFile);
@@ -12,7 +13,14 @@ const run = promisify(execFile);
 /** Marker line: how `hooks uninstall` knows the hook is ours to remove. */
 const SIGNATURE = "# installed by vulcanus hooks install";
 
-const HOOK = `#!/bin/sh
+/**
+ * The hook for one vault. Git runs hooks from the repository root, which is not
+ * the vault when the vault is a folder inside a larger repository, so the hook
+ * moves there first.
+ */
+function hookScript(vaultRoot: string): string {
+  const quoted = `'${toPosix(vaultRoot).replace(/'/g, "'\\''")}'`;
+  return `#!/bin/sh
 ${SIGNATURE}
 #
 # Refuse a commit that would put a broken memory graph into history: a dangling
@@ -20,6 +28,8 @@ ${SIGNATURE}
 # agent silently recalls nothing.
 #
 # Bypass once with:  git commit --no-verify
+
+cd ${quoted} || exit 1
 
 if ! command -v vulcanus >/dev/null 2>&1; then
   echo "vulcanus not on PATH; skipping vault validation." >&2
@@ -32,6 +42,7 @@ echo "vulcanus doctor found errors; commit refused." >&2
 vulcanus doctor >&2
 exit 1
 `;
+}
 
 export interface HooksOptions {
   cwd?: string;
@@ -82,7 +93,7 @@ export async function installHooksCommand(options: HooksOptions = {}): Promise<n
     }
   }
 
-  await writeFile(target, HOOK, "utf8");
+  await writeFile(target, hookScript(vaultRoot), "utf8");
   // Windows ignores the mode bit; POSIX will not run the hook without it.
   await chmod(target, 0o755).catch(() => undefined);
 

@@ -11,6 +11,7 @@ import { readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { findStaleCapsules } from "../commands/status.js";
 import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.js";
+import { headingVariants, noteText } from "../generate/text.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import {
@@ -52,14 +53,23 @@ export function matchProject(plan: VaultPlan, query: string): ProjectPlan | unde
   );
   if (byTrigger) return byTrigger;
 
-  // Last resort: the query mentions the project or one of its triggers.
+  // Last resort: the query mentions the project or one of its triggers as whole
+  // words, so "orbital" never routes to a project called "Orb".
+  const words = ` ${wordsOf(needle)} `;
+  const mentions = (term: string) => {
+    const folded = wordsOf(term);
+    return folded !== "" && words.includes(` ${folded} `);
+  };
   return plan.allProjects.find(
-    (entry) =>
-      needle.includes(entry.project.name.toLowerCase()) ||
-      entry.project.triggers.some(
-        (trigger) => trigger.trim() && needle.includes(trigger.toLowerCase()),
-      ),
+    (entry) => mentions(entry.project.name) || entry.project.triggers.some(mentions),
   );
+}
+
+function wordsOf(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 }
 
 export interface RecallResult {
@@ -136,9 +146,11 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
   const capsulePath = resolve(handle.vaultRoot, project.capsule.path);
   const content = existsSync(capsulePath) ? await readFile(capsulePath, "utf8") : "";
 
-  const stale = (await findStaleCapsules(handle.vaultRoot, handle.plan)).find(
-    (entry) => entry.project === project.project.name,
-  );
+  // Only this project's capsule: checking every cluster costs git calls per project.
+  const [stale] = await findStaleCapsules(handle.vaultRoot, {
+    ...handle.plan,
+    allProjects: [project],
+  });
   const lifecycle = await deadMemory(handle, project);
 
   return {
@@ -250,12 +262,21 @@ export interface AppendDecisionResult {
   superseded?: string;
 }
 
-/** A supersession that cannot be recorded; nothing was written. */
+/** A memory write that cannot be recorded as asked; nothing was written. */
 export class LifecycleTargetError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "LifecycleTargetError";
   }
+}
+
+/** A section heading must be one non-empty line, or the note gains a section nobody can address. */
+function headingText(raw: string, what: string): string {
+  const heading = raw.trim();
+  if (!heading || /[\r\n]/.test(heading)) {
+    throw new LifecycleTargetError(`${what} must be one non-empty line; nothing was written.`);
+  }
+  return heading;
 }
 
 export interface MemoryWriteOptions {
@@ -347,7 +368,7 @@ export async function appendDecision(
   const path = resolve(handle.vaultRoot, project.decisions.path);
   if (!existsSync(path)) return null;
 
-  const heading = title.trim();
+  const heading = headingText(title, "The decision title");
   const body = [
     "### Decision",
     "",
@@ -412,10 +433,18 @@ export async function updateCapsule(
   if (!existsSync(path)) return null;
 
   const current = await readFile(path, "utf8");
-  const updated = replaceSection(current, section, body);
+  // The capsule is written in the vault's language; older or re-languaged
+  // vaults may still carry another spelling, so every one is tried.
+  const language = handle.manifest.vault.language;
+  let updated: string | null = null;
+  for (const variant of headingVariants(section, language)) {
+    updated = replaceSection(current, variant.slice(3), body);
+    if (updated !== null) break;
+  }
   if (updated === null) {
     // A capsule from an older generator may not carry every section yet.
-    const appended = `${current.trimEnd()}\n\n## ${section}\n\n${body.trim()}\n`;
+    const heading = noteText(language).heading(section);
+    const appended = `${current.trimEnd()}\n\n${heading}\n\n${body.trim()}\n`;
     await writeFile(path, appended, "utf8");
     return {
       project: project.project.name,
@@ -454,7 +483,8 @@ export async function appendRule(
   const path = resolve(handle.vaultRoot, project.rules.path);
   if (!existsSync(path)) return null;
 
-  const heading = /rule$/i.test(name.trim()) ? name.trim() : `${name.trim()} Rule`;
+  const base = headingText(name, "The rule name");
+  const heading = /rule$/i.test(base) ? base : `${base} Rule`;
   const written = await appendSection(path, project.rules.name, heading, [rule.trim()], options);
   return { project: project.project.name, path: project.rules.path, rule: heading, ...written };
 }

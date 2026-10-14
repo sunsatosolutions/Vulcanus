@@ -179,6 +179,33 @@ describe("init without a TTY", () => {
     assert.equal(result, 0);
   });
 
+  it("refuses to write over a vault that already has a manifest", async () => {
+    const target = await tempDir();
+    tempDirs.push(target);
+    const existing = manifest({ projects: [project("meridian", "Meridian")] });
+    const { files } = generateFiles(existing);
+    await writeFiles(target, files);
+    await writeManifest(target, existing);
+
+    const { result: code } = await captureStdout(() =>
+      initCommand({
+        locale: "en",
+        yes: true,
+        target,
+        name: "Other",
+        operator: "Ada",
+        projects: "",
+        defaults: true,
+        git: false,
+      }),
+    );
+    assert.equal(code, 1);
+    assert.deepEqual(
+      (await readManifest(target)).projects.map((entry) => entry.name),
+      ["Meridian"],
+    );
+  });
+
   it("requires a name when --defaults cannot invent one", async () => {
     const { driver } = scriptedPrompts([]);
     const restore = setPromptDriver(driver);

@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import { relative, sep } from "node:path";
 
 /**
@@ -14,4 +15,9 @@ export function toPosix(path: string): string {
 /** `relative()` with the result normalized to vault path form. */
 export function vaultRelative(root: string, absolute: string): string {
   return toPosix(relative(root, absolute));
+}
+
+/** `~` and `~/…` in a path the operator typed, as a shell would expand them. */
+export function expandHome(value: string): string {
+  return value.replace(/^~(?=$|[\\/])/, homedir());
 }

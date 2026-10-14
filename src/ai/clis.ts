@@ -1,5 +1,10 @@
+import { execFile } from "node:child_process";
 import { accessSync, constants, readFileSync, statSync } from "node:fs";
 import { delimiter, resolve, win32 } from "node:path";
+import { promisify } from "node:util";
+
+const run = promisify(execFile);
+export type Exec = typeof run;
 
 export interface AiCli {
   id: string;
@@ -158,4 +163,60 @@ export function detectAiClis(
     }
   }
   return found;
+}
+
+/**
+ * The CLI the operator asked for, by id, command, or label; the first detected
+ * one when they only said "yes".
+ */
+export function pickCli(clis: DetectedCli[], choice: string | boolean): DetectedCli | undefined {
+  if (typeof choice !== "string") return clis[0];
+  const needle = choice.trim().toLowerCase();
+  return clis.find(
+    (cli) =>
+      cli.id === needle ||
+      cli.command === needle ||
+      cli.commands.includes(needle) ||
+      cli.label.toLowerCase() === needle,
+  );
+}
+
+/** Run a CLI headless, once, and return what it printed. */
+export async function runHeadless(
+  cli: DetectedCli,
+  prompt: string,
+  timeout: number,
+  exec: Exec = run,
+): Promise<string> {
+  const launch = launchCommand(cli.path, cli.printArgs(prompt));
+  const { stdout } = await exec(launch.command, launch.args, {
+    timeout,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return stdout;
+}
+
+/**
+ * The list under `key` in the JSON object a model replied with.
+ *
+ * Models wrap JSON in prose or a fenced block often enough that demanding a
+ * bare object would fail on answers that are otherwise correct. Null when no
+ * object with that list can be read, so the caller falls back instead of
+ * guessing.
+ */
+export function jsonListIn(output: string, key: string): unknown[] | null {
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(output);
+  for (const source of [fenced?.[1], output]) {
+    if (!source) continue;
+    const start = source.indexOf("{");
+    const end = source.lastIndexOf("}");
+    if (start === -1 || end <= start) continue;
+    try {
+      const list = (JSON.parse(source.slice(start, end + 1)) as Record<string, unknown>)?.[key];
+      if (Array.isArray(list)) return list as unknown[];
+    } catch {
+      // Not JSON after all; try the next candidate.
+    }
+  }
+  return null;
 }

@@ -1,5 +1,6 @@
 import * as p from "../ui.js";
 import { resolve } from "node:path";
+import { expandHome } from "../util/paths.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import {
   ADAPTERS,
@@ -14,17 +15,13 @@ import { readSeen, rememberIds, seenIds, skipSeen, writeSeen } from "../importer
 import { messages, type Locale, type Messages } from "../i18n.js";
 import { askConfirm, askMultiselect, askSelect, askText, setPromptLocale } from "../prompts.js";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
-import { detectAiClis } from "../ai/clis.js";
+import { detectAiClis, pickCli } from "../ai/clis.js";
 import { buildDigest, mergeClusters, runClustering } from "../ai/cluster.js";
 import { applyProjects, askDetailMode, collectProjectDetails, type DetailMode } from "./add.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
 import { runDoctor } from "../doctor/index.js";
 import { openVault } from "../mcp/tools.js";
 import { findMemoryCandidates, runMemoryInbox } from "../memory/inbox.js";
-
-function expandHome(value: string): string {
-  return value.replace(/^~(?=$|\/)/, process.env.HOME ?? "~");
-}
 
 export interface ImportOptions {
   cwd?: string;
@@ -78,11 +75,7 @@ async function groupWithAi(
   choice: string | boolean,
   t: Messages,
 ): Promise<AnalysisResult> {
-  const detected = detectAiClis();
-  const cli =
-    typeof choice === "string"
-      ? detected.find((entry) => entry.id === choice || entry.command === choice)
-      : detected[0];
+  const cli = pickCli(detectAiClis(), choice);
   if (!cli) {
     p.log.warn(t.aiGroupNoCli);
     return analysis;
@@ -118,7 +111,7 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   }
 
   const manifest = await readManifest(vaultRoot);
-  const locale: Locale = manifest.vault.language === "tr" ? "tr" : "en";
+  const locale: Locale = manifest.vault.language;
   setPromptLocale(locale);
   const t = messages(locale);
 

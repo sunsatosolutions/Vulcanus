@@ -51,7 +51,7 @@
             "image": "https://vulcanus.sunsato.com/og.png",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Linux, Windows",
-            "softwareVersion": "0.6.2",
+            "softwareVersion": "0.6.3",
             "releaseNotes": "https://github.com/sunsatosolutions/Vulcanus/blob/main/CHANGELOG.md",
             "license": "https://opensource.org/licenses/MIT",
             "downloadUrl": "https://www.npmjs.com/package/@sunsato/vulcanus",
@@ -2140,6 +2140,7 @@
         .scene-cmds .q11 { animation-delay: 5s; }
         .scene-cmds .q12 { animation-delay: 5.5s; }
         .scene-cmds .q13 { animation-delay: 6s; }
+        .scene-cmds .q14 { animation-delay: 6.5s; }
         .waffle [class*=" k"] {
           animation: wave 3.2s ease-in-out infinite;
         }
@@ -2700,7 +2701,7 @@
                   <ul class="sc-sources">
                     <li><b>ChatGPT</b>data export</li>
                     <li><b>Claude Code</b>local sessions</li>
-                    <li><b>Codex</b>268 rollout sessions</li>
+                    <li><b>Codex</b>rollout sessions</li>
                     <li><b>Cursor</b>workspace history</li>
                     <li><b>Gemini CLI</b>saved chats</li>
                   </ul>
@@ -2806,7 +2807,7 @@
             <section id="commands" class="t-bronze" aria-labelledby="commands-title">
               <div class="stage">
                 <div class="section-head reveal">
-                <h2 id="commands-title">Thirteen commands</h2>
+                <h2 id="commands-title">Fourteen commands</h2>
                 <p class="section-lede">
                   The vault is plain Markdown you can edit by hand in Obsidian or any editor. These
                   keep it consistent as it grows.
@@ -2831,9 +2832,9 @@
                   </div>
                   <div class="sc-col">
                     <div class="sc-col-title">Put it to work</div>
-                    <ul><li class="q10"><code>serve</code></li><li class="q11"><code>agents</code></li><li class="q12"><code>skills</code></li><li class="q13"><code>sync</code></li></ul>
+                    <ul><li class="q10"><code>serve</code></li><li class="q11"><code>agents</code></li><li class="q12"><code>skills</code></li><li class="q13"><code>sync</code></li><li class="q14"><code>completion</code></li></ul>
                   </div>
-                  <figcaption id="cmds-caption" class="sc-caption">The thirteen commands by the job they do.</figcaption>
+                  <figcaption id="cmds-caption" class="sc-caption">The fourteen commands by the job they do.</figcaption>
                 </figure>
               </div>
 
@@ -2851,6 +2852,7 @@
                 <li><h3><code>serve</code></h3><p>Expose the vault to MCP clients as typed tools instead of raw file reads.</p></li>
                 <li><h3><code>project</code></h3><p>Remove, rename, or archive a project — every link and route follows.</p></li>
                 <li><h3><code>hooks</code></h3><p>A pre-commit hook that keeps a broken memory graph out of your history.</p></li>
+                <li><h3><code>completion</code></h3><p>Print a shell completion script for bash, zsh, fish, or pwsh.</p></li>
               </ul>
             </section>
 
@@ -2918,6 +2920,13 @@
                 <li class="reveal">
                   <h3><code>update_capsule</code></h3>
                   <p>Refresh one section of a summary — never a blind whole-file rewrite.</p>
+                </li>
+                <li class="reveal">
+                  <h3><code>list_projects</code> · <code>vault_status</code> · <code>doctor</code></h3>
+                  <p>
+                    The routing table, a one-shot health summary, and the full structural
+                    validation, as tool calls.
+                  </p>
                 </li>
               </ul>
             </section>

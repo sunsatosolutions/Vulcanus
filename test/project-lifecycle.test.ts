@@ -147,6 +147,42 @@ describe("rename project", () => {
     assert.equal(await quiet(() => doctorCommand({ cwd: root, json: true })), 0);
   });
 
+  it("leaves projects whose names only contain the old name alone", async () => {
+    const input = manifest({
+      projects: [
+        project("acme", "Acme"),
+        project("acme-labs", "Acme Labs", { parent: "acme" }),
+        project("big-acme", "Big Acme"),
+      ],
+    });
+    const root = await scaffold(input);
+    const bigHubBefore = await readFile(
+      resolve(root, "02_Projects/Big Acme/Big Acme Hub.md"),
+      "utf8",
+    );
+
+    const code = await quiet(() => renameProjectCommand("Acme", "Forge", { cwd: root }));
+    assert.equal(code, 0);
+
+    const labs = await readFile(
+      resolve(root, "02_Projects/Forge/Acme Labs/Acme Labs Context.md"),
+      "utf8",
+    );
+    assert.match(labs, /^project: Acme Labs$/m);
+    assert.match(labs, /^parent: Forge$/m);
+    assert.match(labs, /\[\[Acme Labs Hub\]\]/);
+
+    const recallMap = await readFile(resolve(root, "00_System/ATLAS Recall Map.md"), "utf8");
+    assert.match(recallMap, /^### Forge$/m);
+    assert.match(recallMap, /^### Acme Labs$/m);
+    assert.match(recallMap, /^### Big Acme$/m);
+
+    assert.equal(
+      await readFile(resolve(root, "02_Projects/Big Acme/Big Acme Hub.md"), "utf8"),
+      bigHubBefore,
+    );
+  });
+
   it("refuses a collision or an unusable name", async () => {
     const input = manifest({
       projects: [project("meridian", "Meridian"), project("kiln", "Kiln")],

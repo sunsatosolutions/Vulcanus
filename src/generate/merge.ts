@@ -36,10 +36,8 @@ export function splitSections(text: string): MarkdownSection[] {
   let buffer: string[] = [];
 
   const flush = () => {
-    if (heading === null && buffer.join("").trim() === "" && sections.length === 0) {
-      // A file that starts with a heading has no preamble worth keeping.
-      if (buffer.length === 0) return;
-    }
+    // A file that starts with a heading has no preamble worth keeping.
+    if (heading === null && buffer.length === 0) return;
     sections.push({ heading, body: buffer.join("\n") });
   };
 

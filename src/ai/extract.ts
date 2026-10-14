@@ -1,9 +1,5 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { launchCommand, type DetectedCli } from "./clis.js";
+import { jsonListIn, runHeadless, type DetectedCli, type Exec } from "./clis.js";
 import type { MemoryCandidate } from "../memory/extract.js";
-
-const run = promisify(execFile);
 
 /**
  * Ask an installed AI CLI to tidy the memory candidates the heuristic found.
@@ -58,41 +54,25 @@ export function buildExtractPrompt(digest: ExtractDigestEntry[]): string {
   ].join("\n");
 }
 
-/** Pull the JSON object out of a model's reply; null when there is none. */
+/** The candidates in a model's reply; null when it holds no `candidates` list. */
 export function parseExtracted(output: string): ExtractedEntry[] | null {
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(output);
-  const sources = [fenced?.[1], output].filter((value): value is string => Boolean(value));
+  const list = jsonListIn(output, "candidates");
+  if (!list) return null;
 
-  for (const source of sources) {
-    const start = source.indexOf("{");
-    const end = source.lastIndexOf("}");
-    if (start === -1 || end <= start) continue;
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(source.slice(start, end + 1));
-    } catch {
-      continue;
-    }
-    const list = (parsed as { candidates?: unknown })?.candidates;
-    if (!Array.isArray(list)) continue;
-
-    const entries: ExtractedEntry[] = [];
-    for (const item of list) {
-      const from = (item as { from?: unknown })?.from;
-      const kind = (item as { kind?: unknown })?.kind;
-      const text = (item as { text?: unknown })?.text;
-      if (!Array.isArray(from) || typeof text !== "string" || !text.trim()) continue;
-      if (kind !== "decision" && kind !== "rule") continue;
-      entries.push({
-        from: from.filter((id): id is string => typeof id === "string"),
-        kind,
-        text: text.trim(),
-      });
-    }
-    return entries;
+  const entries: ExtractedEntry[] = [];
+  for (const item of list) {
+    const from = (item as { from?: unknown })?.from;
+    const kind = (item as { kind?: unknown })?.kind;
+    const text = (item as { text?: unknown })?.text;
+    if (!Array.isArray(from) || typeof text !== "string" || !text.trim()) continue;
+    if (kind !== "decision" && kind !== "rule") continue;
+    entries.push({
+      from: from.filter((id): id is string => typeof id === "string"),
+      kind,
+      text: text.trim(),
+    });
   }
-  return null;
+  return entries;
 }
 
 /**
@@ -140,15 +120,11 @@ export interface ExtractRun {
 export async function runExtraction(
   cli: DetectedCli,
   digest: ExtractDigestEntry[],
-  exec: typeof run = run,
+  exec?: Exec,
 ): Promise<ExtractRun> {
   if (digest.length === 0) return { entries: [] };
   try {
-    const launch = launchCommand(cli.path, cli.printArgs(buildExtractPrompt(digest)));
-    const { stdout } = await exec(launch.command, launch.args, {
-      timeout: EXTRACT_TIMEOUT_MS,
-      maxBuffer: 8 * 1024 * 1024,
-    });
+    const stdout = await runHeadless(cli, buildExtractPrompt(digest), EXTRACT_TIMEOUT_MS, exec);
     const entries = parseExtracted(stdout);
     return entries ? { entries } : { entries: null, error: "no JSON in the reply" };
   } catch (error) {

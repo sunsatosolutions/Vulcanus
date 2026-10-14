@@ -282,6 +282,37 @@ describe("adding a project to an existing vault", () => {
   });
 });
 
+describe("adding a project to a vault in another language", () => {
+  it("links it under the headings the vault already writes", async () => {
+    const { applyProjects } = await import("../src/commands/add.js");
+    const { writeManifest } = await import("../src/manifest/io.js");
+
+    const input = manifest({
+      vault: { ...manifest().vault, language: "tr" },
+      projects: [project("northwind", "Northwind")],
+    });
+    const { root, plan } = await scaffold(input);
+    await writeManifest(root, input);
+
+    const result = await applyProjects(root, input, {
+      projects: [project("harbor", "Harbor", { parent: "northwind" }), project("kiln", "Kiln")],
+      groups: [],
+    });
+    assert.equal(result.ok, true);
+
+    const hub = await readFile(resolve(root, "02_Projects/Northwind/Northwind Hub.md"), "utf8");
+    assert.match(hub, /## Alt Projeler\n\n- \[\[Harbor Hub\]\]/);
+    assert.doesNotMatch(hub, /## Sub-Projects/);
+
+    const index = await readFile(resolve(root, plan.index.path), "utf8");
+    assert.doesNotMatch(index, /## Main Hubs|## Current Vault Tree/);
+    assert.match(index, /\[\[Kiln Hub\]\]/);
+
+    const recall = await readFile(resolve(root, plan.recallMap.path), "utf8");
+    assert.ok(recall.indexOf("### Kiln") < recall.indexOf("## Derin Recall Koşulları"));
+  });
+});
+
 describe("update", () => {
   it("creates newly planned notes and stamps the CLI version", async () => {
     const { updateCommand } = await import("../src/commands/update.js");

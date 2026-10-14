@@ -21,14 +21,8 @@ import {
  */
 
 const MAX_FILES = 5000;
-const SKIP_DIRS = new Set([
-  ".git",
-  ".obsidian",
-  "node_modules",
-  ".trash",
-  "_archive",
-  ".vault-state",
-]);
+/** Hidden folders (`.git`, `.obsidian`, …) are skipped too. */
+const SKIP_DIRS = new Set(["node_modules", "_archive"]);
 
 interface FoundNote {
   path: string;
@@ -40,28 +34,27 @@ async function markdownFiles(
   root: string,
   depth = 0,
   group: string | null = null,
+  out: FoundNote[] = [],
 ): Promise<FoundNote[]> {
-  if (depth > 4) return [];
+  if (depth > 4) return out;
   const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
-  const out: FoundNote[] = [];
 
   for (const entry of entries) {
-    if (entry.name.startsWith(".") && entry.isDirectory() && !SKIP_DIRS.has(entry.name)) continue;
+    // The cap is for the whole scan, so a wide tree cannot mine a whole disk.
+    if (out.length >= MAX_FILES) break;
     const full = resolve(root, entry.name);
 
     if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue;
+      if (entry.name.startsWith(".") || SKIP_DIRS.has(entry.name)) continue;
       // The first directory level is the grouping: deeper nesting keeps the
       // name of the folder the operator would call the project.
-      const nextGroup = group ?? prettifyDirName(entry.name);
-      out.push(...(await markdownFiles(full, depth + 1, nextGroup)));
+      await markdownFiles(full, depth + 1, group ?? prettifyDirName(entry.name), out);
       continue;
     }
 
     if (entry.isFile() && /\.(md|markdown|txt)$/i.test(entry.name)) {
       out.push({ path: full, group });
     }
-    if (out.length >= MAX_FILES) break;
   }
 
   return out;
