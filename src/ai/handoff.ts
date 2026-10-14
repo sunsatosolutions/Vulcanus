@@ -2,13 +2,14 @@ import * as p from "../ui.js";
 import { spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+import { expandHome } from "../util/paths.js";
 import { reportDoctor } from "../commands/doctor.js";
 import { runDoctor, type DoctorReport } from "../doctor/index.js";
 import { messages, type Locale } from "../i18n.js";
 import { buildPlan } from "../manifest/derive.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { askConfirm, askSelect, askText } from "../prompts.js";
-import { detectAiClis, launchCommand, type DetectedCli } from "./clis.js";
+import { detectAiClis, launchCommand, pickCli, type DetectedCli } from "./clis.js";
 import { buildHandoffPrompt, editableNotes } from "./prompt.js";
 import { detectSourceDirectories, proposeSourceDirectories } from "./workdirs.js";
 
@@ -23,24 +24,12 @@ export interface HandoffPlan {
   assignments: HandoffAssignment[];
 }
 
-function expandHome(value: string): string {
-  return value.replace(/^~(?=$|\/)/, process.env.HOME ?? "~");
-}
-
 function isDirectory(path: string): boolean {
   try {
     return statSync(path).isDirectory();
   } catch {
     return false;
   }
-}
-
-function matchCli(clis: DetectedCli[], wanted: string): DetectedCli | undefined {
-  const needle = wanted.trim().toLowerCase();
-  return clis.find(
-    (cli) =>
-      cli.id === needle || cli.commands.includes(needle) || cli.label.toLowerCase() === needle,
-  );
 }
 
 /** Ask for a directory until it exists, so a typo never reaches the spawn step. */
@@ -77,7 +66,7 @@ export async function planHandoff(
     return null;
   }
 
-  let cli = preferred ? matchCli(clis, preferred) : undefined;
+  let cli = preferred ? pickCli(clis, preferred) : undefined;
   if (preferred && !cli) p.log.warn(t.aiCliUnknown(preferred));
 
   if (!cli) {

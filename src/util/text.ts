@@ -44,11 +44,6 @@ export function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
-export function titleFromPath(filePath: string): string {
-  const base = filePath.split("/").pop() ?? filePath;
-  return base.replace(/\.md$/i, "");
-}
-
 /** Markdown bullet list, or a placeholder line when there is nothing to list. */
 export function bulletList(items: string[], emptyLine = "_None recorded yet._"): string {
   const cleaned = items.map((item) => item.trim()).filter(Boolean);
@@ -63,11 +58,4 @@ export function joinSections(sections: Array<string | null | undefined>): string
     .filter((section) => section.length > 0)
     .join("\n\n")
     .concat("\n");
-}
-
-export function sentence(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  if (/[.!?]$/.test(trimmed)) return trimmed;
-  return `${trimmed}.`;
 }

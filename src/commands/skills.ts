@@ -34,7 +34,7 @@ export async function skillsCommand(options: SkillsOptions = {}): Promise<number
 
   const manifest = await readManifest(vaultRoot);
   const plan = buildPlan(manifest);
-  const locale: Locale = manifest.vault.language === "tr" ? "tr" : "en";
+  const locale: Locale = manifest.vault.language;
   const t = messages(locale);
 
   // Personal skills load from anywhere, so they must name the vault's real path.

@@ -3,9 +3,8 @@
  * Run the test suite with the file list expanded here rather than by the shell.
  *
  * `node --test test/*.test.ts` works in bash but not in PowerShell, which does
- * not expand globs — that is what turned the Windows CI legs red. Node's own
- * glob support in `--test` only landed in 22, and the matrix still covers 18
- * and 20, so the expansion happens in JavaScript.
+ * not expand globs — that is what turned the Windows CI legs red. Expanding the
+ * list here keeps one command that behaves the same in every shell.
  *
  *   node scripts/run-tests.mjs                          # plain run
  *   node scripts/run-tests.mjs --experimental-test-coverage

@@ -1,3 +1,4 @@
+import type { Command } from "commander";
 import { reportProblem } from "../errors.js";
 
 export type Shell = "bash" | "zsh" | "fish" | "pwsh";
@@ -5,9 +6,9 @@ export type Shell = "bash" | "zsh" | "fish" | "pwsh";
 export const SHELLS: Shell[] = ["bash", "zsh", "fish", "pwsh"];
 
 /**
- * The completion tables are generated from one description of the CLI rather
- * than hand-written per shell, so a new command cannot be added to three shells
- * and forgotten in the fourth.
+ * The completion tables are read from the command tree the CLI actually parses
+ * with, so a new command or flag reaches every shell without a second list to
+ * keep in step.
  */
 interface CommandSpec {
   name: string;
@@ -16,88 +17,45 @@ interface CommandSpec {
   subcommands?: CommandSpec[];
 }
 
-const GLOBAL_FLAGS = ["--help", "--version", "--verbose", "--quiet"];
+interface Tables {
+  commands: CommandSpec[];
+  topLevel: string[];
+  globalFlags: string[];
+}
 
-const COMMANDS: CommandSpec[] = [
-  {
-    name: "init",
-    description: "Create a new vault",
-    flags: [
-      "--lang",
-      "--yes",
-      "--ai",
-      "--name",
-      "--full-name",
-      "--tagline",
-      "--naming",
-      "--profile",
-      "--operator",
-      "--role",
-      "--aliases",
-      "--projects",
-      "--no-import",
-      "--git",
-      "--no-git",
-      "--defaults",
-      "--dry-run",
-    ],
-  },
-  { name: "status", description: "One-screen vault health", flags: ["--json"] },
-  { name: "stats", description: "Token budget report", flags: ["--json"] },
-  { name: "doctor", description: "Validate the vault", flags: ["--repair", "--json"] },
-  {
-    name: "add",
-    description: "Add memory nodes",
-    flags: [],
-    subcommands: [{ name: "project", description: "Add projects", flags: ["--ai"] }],
-  },
-  {
-    name: "project",
-    description: "Manage existing projects",
-    flags: [],
-    subcommands: [
-      { name: "remove", description: "Remove a project", flags: [] },
-      { name: "rename", description: "Rename a project", flags: [] },
-      { name: "archive", description: "Archive a project", flags: ["--restore"] },
-    ],
-  },
-  {
-    name: "import",
-    description: "Propose projects from an AI export",
-    flags: ["--source", "--path", "--ai", "--json", "--all"],
-  },
-  { name: "agents", description: "Print the agent enforcement block", flags: ["--raw"] },
-  {
-    name: "skills",
-    description: "Agent skills for this vault",
-    flags: ["--raw", "--install", "--force"],
-  },
-  { name: "serve", description: "Serve the vault over MCP", flags: ["--cwd"] },
-  {
-    name: "hooks",
-    description: "Git hooks that validate before a commit",
-    flags: [],
-    subcommands: [
-      { name: "install", description: "Install the pre-commit hook", flags: ["--force"] },
-      { name: "uninstall", description: "Remove the pre-commit hook", flags: [] },
-    ],
-  },
-  {
-    name: "update",
-    description: "Bring a vault up to date",
-    flags: ["--dry-run", "--force", "--profile", "--json"],
-  },
-  {
-    name: "sync",
-    description: "Validate, commit, and push",
-    flags: ["--dry-run", "--json", "--watch"],
-  },
-  { name: "completion", description: "Print a shell completion script", flags: [] },
-];
+function flagsOf(command: Command): string[] {
+  return command.options.map((option) => option.long).filter((flag): flag is string => !!flag);
+}
 
-const TOP_LEVEL = COMMANDS.map((command) => command.name);
+/** A command's flags, with its subcommands' flags folded in: the shells complete one level of flags. */
+function specOf(command: Command): CommandSpec {
+  return {
+    name: command.name(),
+    description: command.description(),
+    flags: [...new Set([flagsOf(command), ...command.commands.map(flagsOf)].flat())],
+    ...(command.commands.length ? { subcommands: command.commands.map(specOf) } : {}),
+  };
+}
 
-function bashScript(): string {
+function tablesOf(program: Command): Tables {
+  const commands = program.commands.map(specOf);
+  return {
+    commands,
+    topLevel: commands.map((command) => command.name),
+    globalFlags: ["--help", ...flagsOf(program)],
+  };
+}
+
+/** A fish double-quoted string: only these characters are special inside one. */
+function fishQuote(text: string): string {
+  return `"${text.replace(/[\\"$]/g, "\\$&")}"`;
+}
+
+function bashScript({
+  commands: COMMANDS,
+  topLevel: TOP_LEVEL,
+  globalFlags: GLOBAL_FLAGS,
+}: Tables): string {
   const subcases = COMMANDS.filter((command) => command.subcommands?.length)
     .map(
       (command) =>
@@ -132,7 +90,7 @@ complete -F _vulcanus vulcanus
 `;
 }
 
-function zshScript(): string {
+function zshScript({ commands: COMMANDS, globalFlags: GLOBAL_FLAGS }: Tables): string {
   const describe = COMMANDS.map(
     (command) => `    '${command.name}:${command.description.replace(/'/g, "")}'`,
   ).join("\n");
@@ -178,12 +136,12 @@ compdef _vulcanus vulcanus
 `;
 }
 
-function fishScript(): string {
+function fishScript({ commands: COMMANDS, globalFlags: GLOBAL_FLAGS }: Tables): string {
   const lines: string[] = ["# vulcanus fish completion"];
   lines.push("complete -c vulcanus -f");
   for (const command of COMMANDS) {
     lines.push(
-      `complete -c vulcanus -n "__fish_use_subcommand" -a "${command.name}" -d "${command.description}"`,
+      `complete -c vulcanus -n "__fish_use_subcommand" -a "${command.name}" -d ${fishQuote(command.description)}`,
     );
     for (const flag of command.flags) {
       lines.push(
@@ -192,7 +150,7 @@ function fishScript(): string {
     }
     for (const sub of command.subcommands ?? []) {
       lines.push(
-        `complete -c vulcanus -n "__fish_seen_subcommand_from ${command.name}" -a "${sub.name}" -d "${sub.description}"`,
+        `complete -c vulcanus -n "__fish_seen_subcommand_from ${command.name}" -a "${sub.name}" -d ${fishQuote(sub.description)}`,
       );
     }
   }
@@ -202,7 +160,11 @@ function fishScript(): string {
   return `${lines.join("\n")}\n`;
 }
 
-function pwshScript(): string {
+function pwshScript({
+  commands: COMMANDS,
+  topLevel: TOP_LEVEL,
+  globalFlags: GLOBAL_FLAGS,
+}: Tables): string {
   const table = COMMANDS.map(
     (command) =>
       `    '${command.name}' = @(${[
@@ -238,15 +200,15 @@ ${table}
 `;
 }
 
-const GENERATORS: Record<Shell, () => string> = {
+const GENERATORS: Record<Shell, (tables: Tables) => string> = {
   bash: bashScript,
   zsh: zshScript,
   fish: fishScript,
   pwsh: pwshScript,
 };
 
-export function completionScript(shell: Shell): string {
-  return GENERATORS[shell]();
+export function completionScript(shell: Shell, program: Command): string {
+  return GENERATORS[shell](tablesOf(program));
 }
 
 const INSTALL_HINT: Record<Shell, string> = {
@@ -256,7 +218,7 @@ const INSTALL_HINT: Record<Shell, string> = {
   pwsh: "vulcanus completion pwsh >> $PROFILE",
 };
 
-export function completionCommand(shell: string | undefined): number {
+export function completionCommand(shell: string | undefined, program: Command): number {
   if (!shell || !SHELLS.includes(shell as Shell)) {
     return reportProblem({
       what: shell ? `No completion script for "${shell}".` : "Which shell?",
@@ -265,6 +227,6 @@ export function completionCommand(shell: string | undefined): number {
     });
   }
 
-  process.stdout.write(completionScript(shell as Shell));
+  process.stdout.write(completionScript(shell as Shell, program));
   return 0;
 }

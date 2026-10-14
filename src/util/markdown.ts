@@ -153,7 +153,3 @@ export function wikiTargetsUnderHeadings(text: string, headings: string[]): stri
 
   return targets;
 }
-
-export function link(name: string): string {
-  return `[[${name}]]`;
-}

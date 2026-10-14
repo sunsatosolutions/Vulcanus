@@ -1,10 +1,6 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { launchCommand, type DetectedCli } from "./clis.js";
+import { jsonListIn, runHeadless, type DetectedCli, type Exec } from "./clis.js";
 import type { AnalysisResult, ProjectCandidate } from "../importers/analyze.js";
 import type { NormalizedConversation } from "../importers/types.js";
-
-const run = promisify(execFile);
 
 /**
  * Ask an installed AI CLI to group conversations into projects.
@@ -89,49 +85,24 @@ export function buildClusterPrompt(digest: DigestEntry[]): string {
   ].join("\n");
 }
 
-/**
- * Pull the JSON object out of a model's reply.
- *
- * Models wrap JSON in prose or a fenced block often enough that demanding a
- * bare object would fail on answers that are otherwise correct. Anything that
- * is not a well-formed object of the expected shape returns null, and the
- * caller falls back to the heuristic rather than guessing.
- */
+/** The clusters in a model's reply; null when it holds no `projects` list. */
 export function parseClusters(output: string): AiCluster[] | null {
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(output);
-  const candidates = [fenced?.[1], output].filter((value): value is string => Boolean(value));
+  const projects = jsonListIn(output, "projects");
+  if (!projects) return null;
 
-  for (const candidate of candidates) {
-    const start = candidate.indexOf("{");
-    const end = candidate.lastIndexOf("}");
-    if (start === -1 || end <= start) continue;
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(candidate.slice(start, end + 1));
-    } catch {
-      continue;
-    }
-
-    const projects = (parsed as { projects?: unknown })?.projects;
-    if (!Array.isArray(projects)) continue;
-
-    const clusters: AiCluster[] = [];
-    for (const entry of projects) {
-      const name = (entry as { name?: unknown })?.name;
-      const ids = (entry as { conversationIds?: unknown })?.conversationIds;
-      if (typeof name !== "string" || !name.trim()) continue;
-      clusters.push({
-        name: name.trim(),
-        conversationIds: Array.isArray(ids)
-          ? ids.filter((id): id is string => typeof id === "string")
-          : [],
-      });
-    }
-    return clusters;
+  const clusters: AiCluster[] = [];
+  for (const entry of projects) {
+    const name = (entry as { name?: unknown })?.name;
+    const ids = (entry as { conversationIds?: unknown })?.conversationIds;
+    if (typeof name !== "string" || !name.trim()) continue;
+    clusters.push({
+      name: name.trim(),
+      conversationIds: Array.isArray(ids)
+        ? ids.filter((id): id is string => typeof id === "string")
+        : [],
+    });
   }
-
-  return null;
+  return clusters;
 }
 
 export interface ClusterRun {
@@ -143,16 +114,12 @@ export interface ClusterRun {
 export async function runClustering(
   cli: DetectedCli,
   digest: DigestEntry[],
-  exec: typeof run = run,
+  exec?: Exec,
 ): Promise<ClusterRun> {
   if (digest.length === 0) return { clusters: [] };
 
   try {
-    const launch = launchCommand(cli.path, cli.printArgs(buildClusterPrompt(digest)));
-    const { stdout } = await exec(launch.command, launch.args, {
-      timeout: CLUSTER_TIMEOUT_MS,
-      maxBuffer: 8 * 1024 * 1024,
-    });
+    const stdout = await runHeadless(cli, buildClusterPrompt(digest), CLUSTER_TIMEOUT_MS, exec);
     const clusters = parseClusters(stdout);
     return clusters ? { clusters } : { clusters: null, error: "no JSON in the reply" };
   } catch (error) {

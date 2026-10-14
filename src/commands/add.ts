@@ -16,6 +16,7 @@ import {
 import { generateFiles, writeFiles } from "../generate/index.js";
 import { ensureBulletUnderHeading, insertSectionBefore } from "../generate/patch.js";
 import { recallRouteSection } from "../generate/system.js";
+import { headingIn } from "../generate/text.js";
 import { runDoctor } from "../doctor/index.js";
 import { messages, type Locale } from "../i18n.js";
 import { askMultiselect, askSelect, askText, setPromptLocale, splitList } from "../prompts.js";
@@ -52,6 +53,7 @@ export async function applyProjects(
   await writeManifest(vaultRoot, merged);
 
   const { plan, files } = generateFiles(merged);
+  const locale = merged.vault.language;
   const results = await writeFiles(vaultRoot, files, { repair: true });
   const created = results
     .filter((entry) => entry.action === "created" || entry.action === "updated")
@@ -70,7 +72,11 @@ export async function applyProjects(
       if (!newIds.has(projectPlan.project.id)) continue;
       if (content.includes(`### ${projectPlan.project.name}\n`)) continue;
       const section = recallRouteSection(plan, projectPlan);
-      const result = insertSectionBefore(content, "## Deep Recall Conditions", section);
+      const result = insertSectionBefore(
+        content,
+        headingIn(content, "Deep Recall Conditions", locale),
+        section,
+      );
       content = result.content;
       changed = changed || result.changed;
     }
@@ -97,7 +103,7 @@ export async function applyProjects(
     const current = await readFile(parentPath, "utf8");
     const result = ensureBulletUnderHeading(
       current,
-      "## Sub-Projects",
+      headingIn(current, "Sub-Projects", locale),
       `- [[${projectPlan.hub.name}]]`,
     );
     if (result.changed) {
@@ -118,7 +124,11 @@ export async function applyProjects(
     let content = await readFile(hubPath, "utf8");
     let changed = false;
     for (const member of members) {
-      const result = ensureBulletUnderHeading(content, "## Projects", `- [[${member.hub.name}]]`);
+      const result = ensureBulletUnderHeading(
+        content,
+        headingIn(content, "Projects", locale),
+        `- [[${member.hub.name}]]`,
+      );
       content = result.content;
       changed = changed || result.changed;
     }
@@ -141,7 +151,7 @@ export async function applyProjects(
       if (!projectPlan.project.parent && !projectPlan.project.group) {
         const result = ensureBulletUnderHeading(
           content,
-          "## Main Hubs",
+          headingIn(content, "Main Hubs", locale),
           `- [[${projectPlan.hub.name}]]`,
         );
         content = result.content;
@@ -155,7 +165,7 @@ export async function applyProjects(
         const summary = projectPlan.project.summary || "_Summary not recorded yet._";
         const result = insertSectionBefore(
           content,
-          "## Current Vault Tree",
+          headingIn(content, "Current Vault Tree", locale),
           `${heading}\n\n${summary}\n`,
         );
         content = result.content;
@@ -356,7 +366,7 @@ export async function addProjectCommand(options: AddOptions = {}): Promise<numbe
   }
 
   const manifest = await readManifest(vaultRoot);
-  const locale: Locale = manifest.vault.language === "tr" ? "tr" : "en";
+  const locale: Locale = manifest.vault.language;
   const t = messages(locale);
 
   p.intro(`add project — ${manifest.vault.name}`);

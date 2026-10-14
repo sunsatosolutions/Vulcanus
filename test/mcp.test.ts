@@ -11,6 +11,7 @@ import {
   openVault,
   recall,
   search,
+  updateCapsule,
 } from "../src/mcp/tools.js";
 import { writeManifest } from "../src/manifest/io.js";
 import { cleanup, manifest, project, tempDir } from "./helpers.js";
@@ -47,6 +48,50 @@ describe("mcp vault tools", () => {
     assert.equal(matchProject(handle.plan, "navigasyon")?.project.id, "meridian");
     assert.equal(matchProject(handle.plan, "fix the meridian sync bug")?.project.id, "meridian");
     assert.equal(matchProject(handle.plan, "unrelated"), undefined);
+  });
+
+  it("matches a mention only as whole words, never inside another word", async () => {
+    const root = await scaffold(
+      manifest({ projects: [project("orb", "Orb"), project("harbor", "Harbor")] }),
+    );
+    const handle = await openVault(root);
+
+    // "orbital" contains "orb", "harbormaster" contains "harbor": neither is a mention.
+    assert.equal(matchProject(handle.plan, "fix the orbital decay"), undefined);
+    assert.equal(matchProject(handle.plan, "notes for the harbormaster")?.project.id, undefined);
+    assert.equal(matchProject(handle.plan, "decisions for harbor, please")?.project.id, "harbor");
+    assert.equal(matchProject(handle.plan, "the Orb renderer")?.project.id, "orb");
+  });
+
+  it("update_capsule replaces the section in the vault's own language", async () => {
+    const root = await scaffold(
+      manifest({
+        vault: { ...manifest().vault, language: "tr" },
+        projects: [project("meridian", "Meridian")],
+      }),
+    );
+    const handle = await openVault(root);
+
+    const result = await updateCapsule(handle, "meridian", "Must Remember", "- fresh fact");
+    assert.equal(result?.replaced, true);
+    const capsule = await readFile(resolve(root, result.path), "utf8");
+    assert.match(capsule, /## Hatırlanması Gerekenler\n\n- fresh fact\n/);
+    assert.doesNotMatch(capsule, /## Must Remember/);
+  });
+
+  it("refuses an empty or multi-line heading and writes nothing", async () => {
+    const root = await scaffold(INPUT);
+    const handle = await openVault(root);
+    const path = resolve(root, "02_Projects/Meridian/Meridian Decisions.md");
+    const before = await readFile(path, "utf8");
+
+    for (const title of ["   ", "Ok\n\n## Injected"]) {
+      await assert.rejects(
+        () => appendDecision(handle, "meridian", title, "x"),
+        /one non-empty line/,
+      );
+    }
+    assert.equal(await readFile(path, "utf8"), before);
   });
 
   it("recall returns the capsule content and the protocol read order", async () => {

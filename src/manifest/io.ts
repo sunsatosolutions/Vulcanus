@@ -66,6 +66,11 @@ export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest 
   }
   if (!input.vault?.name) throw new ManifestError("manifest is missing vault.name");
   if (!input.admin?.name) throw new ManifestError("manifest is missing admin.name");
+  for (const key of ["projects", "groups", "imports", "systemNotes"] as const) {
+    if (input[key] !== undefined && !Array.isArray(input[key])) {
+      throw new ManifestError(`manifest field "${key}" must be a list`);
+    }
+  }
 
   return {
     ...input,

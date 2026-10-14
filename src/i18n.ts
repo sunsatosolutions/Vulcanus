@@ -311,7 +311,8 @@ export const MESSAGES: Record<Locale, Messages> = {
 };
 
 export function messages(locale: Locale): Messages {
-  return MESSAGES[locale];
+  // A hand-edited manifest can carry a language this CLI does not ship.
+  return MESSAGES[locale] ?? MESSAGES.en;
 }
 
 /** Every key the interface declares, for the completeness test. */

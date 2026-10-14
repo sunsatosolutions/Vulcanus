@@ -4,6 +4,7 @@ import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { basename, relative, resolve } from "node:path";
+import { expandHome } from "../util/paths.js";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { LOCALE_LABELS, LOCALES, messages, type Locale } from "../i18n.js";
 import {
@@ -48,10 +49,6 @@ function defaultLocale(): Locale {
   // and `es_MX` are the same catalog as `de_DE` and `es_ES`.
   const match = LOCALES.find((locale) => env.startsWith(locale) || env.includes(`${locale}_`));
   return match ?? "en";
-}
-
-function expandHome(value: string): string {
-  return value.replace(/^~(?=$|\/)/, process.env.HOME ?? "~");
 }
 
 async function isEmptyDir(path: string): Promise<boolean> {
@@ -425,6 +422,13 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
             initialValue: defaultTarget,
           });
     vaultRoot = resolve(process.cwd(), expandHome(targetInput.trim() || defaultTarget));
+    // Same guard as the Obsidian path: writing a new manifest here would drop
+    // every project the existing one tracks.
+    if (existsSync(resolve(vaultRoot, MANIFEST_FILENAME))) {
+      p.log.warn(t.alreadyVulcanus(vaultRoot));
+      p.outro(t.alreadyVulcanusHint);
+      return 1;
+    }
     if (!(await isEmptyDir(vaultRoot))) p.log.warn(t.overwriteWarning(vaultRoot));
   }
 

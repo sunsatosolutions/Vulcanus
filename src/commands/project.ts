@@ -238,9 +238,7 @@ export async function renameProjectCommand(
             name: trimmed,
             // A trigger that was just the old name should follow the rename.
             triggers: project.triggers.map((trigger) =>
-              trigger.toLowerCase() === plan.project.name.toLowerCase()
-                ? trimmed.toLowerCase()
-                : trigger,
+              trigger.toLowerCase() === plan.project.name.toLowerCase() ? trimmed : trigger,
             ),
           }
         : project,
@@ -279,10 +277,22 @@ export async function renameProjectCommand(
 
   // 3. Rewrite references vault-wide: wikilinks, headings, and the recall
   //    section heading all carry the note names or the project name itself.
-  const pairs: Array<[string, string]> = [
-    ...renames.map((entry): [string, string] => [entry.from, entry.to]),
-    [`### ${plan.project.name}`, `### ${trimmed}`],
-    [`project: ${plan.project.name}`, `project: ${trimmed}`],
+  //    Whole link targets and whole lines only: renaming "Acme" must not touch
+  //    "Acme Labs" or "Big Acme", whose names merely contain the same words.
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const link = (from: string, to: string): [RegExp, string] => [
+    new RegExp(`(?<=\\[\\[)${escape(from)}(?=[\\]|#^])`, "g"),
+    to,
+  ];
+  const line = (prefix: string, from: string, to: string): [RegExp, string] => [
+    new RegExp(`^${prefix}${escape(from)}(?=[ \\t]*\\r?$)`, "gm"),
+    `${prefix}${to}`,
+  ];
+  const pairs: Array<[RegExp, string]> = [
+    ...renames.flatMap((entry) => [link(entry.from, entry.to), line("# ", entry.from, entry.to)]),
+    line("### ", plan.project.name, trimmed),
+    line("project: ", plan.project.name, trimmed),
+    line("parent: ", plan.project.name, trimmed),
   ];
 
   const dirs = [next.structure.systemDir, next.structure.projectsDir];
@@ -297,7 +307,7 @@ export async function renameProjectCommand(
       } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
         const before = await readFile(child, "utf8");
         let after = before;
-        for (const [from, to] of pairs) after = after.split(from).join(to);
+        for (const [from, to] of pairs) after = after.replace(from, () => to);
         if (after !== before) {
           await writeFile(child, after, "utf8");
           touched.push(`${dir}/${entry.name}`);

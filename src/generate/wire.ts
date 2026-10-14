@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { hubExpectations, hubNavigationSections, type VaultPlan } from "../manifest/derive.js";
 import { wikiTargets } from "../util/markdown.js";
 import { ensureBulletUnderHeading } from "./patch.js";
+import { existingHeading } from "./text.js";
 
 /**
  * Add the links a hub is missing, without rewriting the hub.
@@ -30,7 +31,7 @@ export async function wireHubs(vaultRoot: string, plan: VaultPlan): Promise<stri
     const missing = [...expected].filter((name) => !present.has(name));
     if (missing.length === 0) continue;
 
-    const heading = sections.get(path)?.[0] ?? "## Sub-Projects";
+    const heading = existingHeading(content, sections.get(path) ?? ["## Sub-Projects"]);
     let changed = false;
     for (const name of missing) {
       const result = ensureBulletUnderHeading(content, heading, `- [[${name}]]`);
