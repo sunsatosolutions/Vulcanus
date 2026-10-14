@@ -44,8 +44,9 @@ Install it globally: `vulcanus serve`, the generated skills, and the commit hook
 - `vulcanus import`: propose projects, and the decisions and rules you already stated, from ChatGPT, Claude.ai, Claude Code, Codex, Gemini CLI, or Cursor history, or a Markdown folder; read locally, only your own messages, and nothing reaches the vault until you accept it
 - `vulcanus doctor`, `status`, `stats`: validate the vault (including superseded and expired decisions), summarize its health, measure its token budget
 - `vulcanus add project`, `project remove|rename|archive`: manage projects and their links
-- `vulcanus agents`, `skills`, `hooks install`: make agents use the vault and block commits of a broken graph
+- `vulcanus agents`, `skills`, `hooks install|uninstall`: make agents use the vault and block commits of a broken graph
 - `vulcanus update`, `sync`: upgrade the vault to a newer CLI; validate, commit, and push
+- `vulcanus completion bash|zsh|fish|pwsh`: print a shell completion script
 
 ## Optional
 
