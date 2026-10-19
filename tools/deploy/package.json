@@ -4,6 +4,6 @@
   "description": "Wrangler, pinned, for the site's deploy, preview, and rollback jobs. Kept out of the CLI's own dependencies so the test matrix never installs it.",
   "type": "module",
   "dependencies": {
-    "wrangler": "4.148.0"
+    "wrangler": "4.151.0"
   }
 }
