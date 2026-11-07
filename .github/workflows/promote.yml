@@ -48,7 +48,7 @@ permissions:
 jobs:
   promote:
     name: Fast-forward the branch
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 5
     permissions:
       contents: write

@@ -30,7 +30,7 @@ permissions:
 jobs:
   check:
     name: lint, format & build
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -47,7 +47,7 @@ jobs:
 
   audit:
     name: audit & secret scan
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,7 +71,7 @@ jobs:
 
   test:
     name: test (node ${{ matrix.node }}, ${{ matrix.os }}${{ matrix.coverage && ', coverage' || '' }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && format('codebuild-sunsato-ci-{0}-{1}', github.run_id, github.run_attempt) || matrix.os }}
     strategy:
       fail-fast: false
       # Linux runs every supported Node on every run. Pull requests and main
@@ -108,7 +108,7 @@ jobs:
 
   site:
     name: site package & smoke
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       contents: read
     env:
