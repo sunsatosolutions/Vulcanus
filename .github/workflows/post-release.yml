@@ -27,7 +27,7 @@ permissions:
 jobs:
   wait:
     name: wait for the version on npm
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       # npm accepts a publish minutes before the registry serves it. The MCP
       # Registry and the smoke tests both read from the registry, so they wait.
@@ -49,7 +49,7 @@ jobs:
   registry:
     name: publish to the MCP Registry
     needs: wait
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       # server.json is stamped by scripts/release.mjs, so it is read from the
       # release tag, not from whatever main holds now.
@@ -79,7 +79,7 @@ jobs:
   smoke:
     name: smoke test the published package (${{ matrix.os }})
     needs: wait
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && format('codebuild-sunsato-ci-{0}-{1}', github.run_id, github.run_attempt) || matrix.os }}
     strategy:
       fail-fast: false
       matrix:

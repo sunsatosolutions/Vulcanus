@@ -13,7 +13,7 @@ permissions:
 jobs:
   conventional:
     name: conventional title
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 2
     steps:
       - name: Check the title
