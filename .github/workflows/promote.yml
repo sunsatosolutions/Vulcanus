@@ -1,6 +1,6 @@
 # Site promote (Deploy Flow Standard v1.2)
 #
-# The DFS core is shared: sunsatosolutions/dfs/.github/workflows/promote.yml.
+# The DFS core is a copy of sunsatosolutions/dfs (v1.2) in dfs-promote.yml: Vulcanus is public and cannot call the private dfs repository.
 # This file only says when it runs and which deploy follows.
 #
 #   automatic          a green CI on main moves staging to that commit ->
@@ -56,7 +56,7 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     permissions:
       contents: write
-    uses: sunsatosolutions/dfs/.github/workflows/promote.yml@v1.2
+    uses: ./.github/workflows/dfs-promote.yml
     with:
       action: ${{ inputs.action || 'main → staging' }}
       sha: ${{ github.event.workflow_run.head_sha }}
