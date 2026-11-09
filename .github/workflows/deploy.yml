@@ -399,7 +399,10 @@ jobs:
       - name: If the live smoke failed, roll back
         if: failure() && steps.deploy.outcome == 'success'
         run: |
-          gh workflow run rollback.yml --ref main -f reason="automatic: live smoke failed for $RC_TAG (${SHA::7})"
+          # The failed release never got a prod- tag, so the newest prod- tag is the
+          # release that was live before it; Rollback without a tag would go one further.
+          live_tag=$(git tag -l 'prod-*' | sort -V | tail -1)
+          gh workflow run rollback.yml --ref main -f tag="$live_tag" -f reason="automatic: live smoke failed for $RC_TAG (${SHA::7})"
           echo "::error::The live smoke failed; Rollback started automatically. The fix comes through the chain (fix branch → PR → main → webtest → rc)."
 
   release:
