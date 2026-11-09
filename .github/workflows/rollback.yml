@@ -1,4 +1,4 @@
-# Site rollback (Deploy Flow Standard v1.1)
+# Site rollback (Deploy Flow Standard v1.2)
 #
 # Returns production to an earlier prod- release's package: the package on the
 # Release is redeployed as it is (no build), /version.json must report that

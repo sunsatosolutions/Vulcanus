@@ -180,16 +180,19 @@ which what goes live is the exact package that was tested:
    canonicals, sitemap, internal and `llms.txt` links — then packages the site
    (`npm run site:build`) and smoke-tests both copies on a local Worker. Pull
    requests also get a preview link on the webtest Worker.
-2. **Actions › Promote › main → staging** builds the package once (a staging
+2. **Promote › main → staging** runs by itself after a green CI on a `main`
+   push (or by hand from Actions). It builds the package once (a staging
    copy closed to search engines and a production copy, from the same commit),
    deploys the staging copy to `webtest-vulcanus.sunsato.com`, and runs the
    quality gate: smoke test, Playwright at 375/768/1440 px, axe, Lighthouse. If
-   it passes, an `rc-YYYY-MM-DD.N` pre-release carries the package. Staging is
-   frozen while that rc awaits approval.
-3. **Actions › Promote › rc → production**, after approval on webtest, deploys
-   the rc's production copy unchanged, smoke-tests the live site, publishes a
-   `prod-YYYY-MM-DD.N` release, and notifies IndexNow of the changed URLs only.
-4. **Actions › Rollback** redeploys an earlier `prod-` package. A weekly run of
+   it passes, an `rc-YYYY-MM-DD.N` pre-release carries the package. A newer
+   `main` supersedes an rc that still awaits approval.
+3. **Actions › Promote › rc → production**, after approval on webtest and
+   started only by an approver, deploys the rc's production copy unchanged,
+   smoke-tests the live site, publishes a `prod-YYYY-MM-DD.N` release, and
+   notifies IndexNow of the changed URLs only.
+4. **Rollback** redeploys an earlier `prod-` package; it starts by itself when
+   the live smoke test fails, or by hand from Actions. A weekly run of
    `.github/workflows/site.yml` checks the live site against the live release.
 
 After editing any inline `<script>` or `<style>`, run `npm run site:csp` to
