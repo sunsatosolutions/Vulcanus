@@ -85,7 +85,7 @@ env:
 jobs:
   guard:
     name: Guard
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -175,7 +175,7 @@ jobs:
     name: Build (one package for webtest and production)
     needs: guard
     if: needs.guard.outputs.target == 'staging'
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 5
     env:
       SHA: ${{ needs.guard.outputs.sha }}
@@ -210,7 +210,7 @@ jobs:
   staging:
     name: Webtest deploy and smoke
     needs: [guard, build]
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 15
     env:
       SHA: ${{ needs.guard.outputs.sha }}
@@ -248,7 +248,7 @@ jobs:
   gate:
     name: Quality gate (site profile)
     needs: [guard, staging]
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -285,7 +285,7 @@ jobs:
   rc:
     name: Release candidate (rc)
     needs: [guard, gate]
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 5
     permissions:
       contents: write
@@ -333,7 +333,7 @@ jobs:
     name: Live deploy and smoke
     needs: guard
     if: needs.guard.outputs.target == 'production'
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 15
     outputs:
       changed: ${{ steps.changed.outputs.paths }}
@@ -387,7 +387,7 @@ jobs:
   release:
     name: Release and IndexNow
     needs: [guard, production]
-    runs-on: ubuntu-latest
+    runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 5
     permissions:
       contents: write
