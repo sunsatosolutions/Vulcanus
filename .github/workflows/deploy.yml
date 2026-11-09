@@ -1,4 +1,4 @@
-# Site deploy (Deploy Flow Standard v1.1, Cloudflare Workers static assets,
+# Site deploy (Deploy Flow Standard v1.2, Cloudflare Workers static assets,
 # site profile)
 #
 # The target comes from the branch: staging -> webtest-vulcanus.sunsato.com,
@@ -29,8 +29,8 @@
 #   release  prod-YYYY-MM-DD.N tag + GitHub Release (notes, approver, package),
 #            never marked "latest": that stays the npm release -> IndexNow for
 #            the changed URLs only
-#   If the live smoke fails: Actions > Rollback first, then the fix through
-#   the chain.
+#   If the live smoke fails, Rollback starts by itself (DFS v1.2) and returns
+#   production to the previous release; the fix comes through the chain.
 #
 # Needs (Settings > Secrets and variables > Actions):
 #   secret   CLOUDFLARE_API_TOKEN_STAGING     webtest deploy, PR previews
@@ -148,7 +148,13 @@ jobs:
           HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION != '' }}
           RC_TAG: ${{ inputs.rc_tag }}
           APPROVER: ${{ inputs.approver }}
+          DFS_APPROVERS: ${{ vars.DFS_APPROVERS || 'yasinakinn' }}
         run: |
+          # DFS v1.2: only an approver takes a release live, by Promote or a direct push.
+          case ",${DFS_APPROVERS// /}," in
+            *",$GITHUB_TRIGGERING_ACTOR,"*) ;;
+            *) echo "::error::$GITHUB_TRIGGERING_ACTOR may not take a release live (approvers: $DFS_APPROVERS)."; exit 1 ;;
+          esac
           # On a direct push the rc is the newest rc tag pointing at the commit.
           if [ -z "$RC_TAG" ]; then
             RC_TAG=$(git tag -l 'rc-*' --points-at "$SHA" | sort -V | tail -1)
@@ -259,6 +265,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: tools/webtest/package-lock.json
+      # DFS v1.2: browsers cached per Playwright version instead of downloaded every run.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tools/webtest/package-lock.json') }}
       - name: Tools
         working-directory: tools/webtest
         run: |
@@ -335,6 +346,9 @@ jobs:
     if: needs.guard.outputs.target == 'production'
     runs-on: codebuild-sunsato-ci-${{ github.run_id }}-${{ github.run_attempt }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
     outputs:
       changed: ${{ steps.changed.outputs.paths }}
     env:
@@ -380,9 +394,13 @@ jobs:
       - name: Smoke test (live)
         run: node scripts/site-live-check.mjs --origin "$LIVE" --expect production --sha "$SHA" --wait 180
 
-      - name: If the live smoke failed
+      # DFS v1.2: no waiting for a person; Rollback redeploys the previous
+      # prod- package (it queues behind this run: concurrency deploy-production).
+      - name: If the live smoke failed, roll back
         if: failure() && steps.deploy.outcome == 'success'
-        run: echo "::error::The live site has a problem. First Actions > Rollback > Run workflow, then the fix through the chain (fix branch → PR → main → webtest → rc)."
+        run: |
+          gh workflow run rollback.yml --ref main -f reason="automatic: live smoke failed for $RC_TAG (${SHA::7})"
+          echo "::error::The live smoke failed; Rollback started automatically. The fix comes through the chain (fix branch → PR → main → webtest → rc)."
 
   release:
     name: Release and IndexNow
