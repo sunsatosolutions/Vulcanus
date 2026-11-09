@@ -1,0 +1,170 @@
+# Copy of sunsatosolutions/dfs/.github/workflows/promote.yml at v1.2.
+# Vulcanus is public and GitHub does not let a public repository call a
+# reusable workflow from a private one, so this repository carries the core.
+# shortcut: a copy drifts from dfs; update it when dfs gets a new tag.
+#
+# DFS v1.2 promote core (reusable). Moves staging or production forward to a
+# release, fast-forward only, and leaves the deploy to the caller's own
+# deploy.yml. Each project's promote.yml calls it:
+#
+#   jobs:
+#     promote:
+#       uses: sunsatosolutions/dfs/.github/workflows/promote.yml@v1.2
+#       permissions: { contents: write }
+#       with: { action: ..., sha: ..., auto: ..., rc_tag: ..., approver: ..., supersede: ... }
+#
+#   main → staging   moves staging to `sha` (default: the tip of main). An open
+#                    rc freezes staging; `supersede` (or `auto`) retires it.
+#   rc → production  moves production to the rc's commit. Only a person listed
+#                    in `approvers` may start it (DFS v1.2: production needs
+#                    Yasin, not anyone with write access).
+#
+# auto: the run came from a green CI on main (workflow_run). It only ever does
+# main → staging, and it supersedes an open rc itself: webtest always shows the
+# newest main and the approver approves the newest rc.
+name: Promote (DFS core)
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        type: string
+        required: true
+      sha:
+        description: main → staging target commit; empty = tip of origin/main
+        type: string
+        default: ""
+      auto:
+        type: boolean
+        default: false
+      rc_tag:
+        type: string
+        default: ""
+      approver:
+        type: string
+        default: ""
+      supersede:
+        type: string
+        default: ""
+      approvers:
+        description: GitHub logins allowed to start rc → production, comma separated
+        type: string
+        default: yasinakinn
+      runner:
+        description: CodeBuild project that hosts the runner
+        type: string
+        default: sunsato-ci
+    outputs:
+      branch:
+        value: ${{ jobs.promote.outputs.branch }}
+      sha:
+        value: ${{ jobs.promote.outputs.sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Fast-forward the branch
+    runs-on: codebuild-${{ inputs.runner }}-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      branch: ${{ steps.push.outputs.branch }}
+      sha: ${{ steps.push.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: ${{ inputs.action }}
+      TARGET_SHA: ${{ inputs.sha }}
+      AUTO: ${{ inputs.auto }}
+      RC_TAG: ${{ inputs.rc_tag }}
+      APPROVER: ${{ inputs.approver }}
+      SUPERSEDE: ${{ inputs.supersede }}
+      APPROVERS: ${{ inputs.approvers }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward
+        id: push
+        run: |
+          git fetch --tags --force origin
+
+          # Open rc = an rc-* pre-release without the superseded marker whose
+          # commit is not yet live (live = the newest prod-* tag, not the
+          # production branch, which moves before the deploy runs).
+          open_rcs() {
+            local live_tag live="" tag body sha
+            live_tag=$(git tag -l 'prod-*' | sort -V | tail -1)
+            [ -n "$live_tag" ] && live=$(git rev-parse "$live_tag^{commit}")
+            gh release list --limit 100 --json tagName,isPrerelease \
+              --jq '.[] | select(.isPrerelease and (.tagName | startswith("rc-"))) | .tagName' |
+            while read -r tag; do
+              body=$(gh release view "$tag" --json body --jq .body)
+              [[ "$body" == *"<!-- dfs:superseded -->"* ]] && continue
+              sha=$(git rev-parse "$tag^{commit}")
+              if [ -n "$live" ] && git merge-base --is-ancestor "$sha" "$live"; then continue; fi
+              echo "$tag"
+            done
+          }
+
+          if [ "$ACTION" = "main → staging" ]; then
+            branch=staging
+            sha=${TARGET_SHA:-$(git rev-parse origin/main)}
+            git merge-base --is-ancestor "$sha" origin/main || { echo "::error::$sha is not on origin/main."; exit 1; }
+            # A newer main may have reached staging first (its CI finished earlier).
+            if [ "$AUTO" = true ] && current=$(git rev-parse -q --verify origin/staging) &&
+               [ "$current" != "$sha" ] && git merge-base --is-ancestor "$sha" "$current"; then
+              echo "::notice::staging (${current::7}) is already past ${sha::7}; nothing to do."
+              exit 0
+            fi
+            open=$(open_rcs)
+            if [ -n "$open" ]; then
+              if [ "$AUTO" = true ]; then
+                SUPERSEDE="replaced by main ${sha::7} (automatic webtest)"
+              elif [ -z "$SUPERSEDE" ]; then
+                echo "::error::Staging is frozen: an rc awaits approval ($open). If it was rejected or withdrawn, run again with the reason in supersede."
+                exit 1
+              fi
+              for tag in $open; do
+                body=$(gh release view "$tag" --json body --jq .body)
+                printf '<!-- dfs:superseded -->\n> **Superseded** %s by %s: %s\n\n%s\n' \
+                  "$(TZ=Europe/Istanbul date '+%F %H:%M')" "$GITHUB_TRIGGERING_ACTOR" "$SUPERSEDE" "$body" > body.md
+                gh release edit "$tag" --title "$tag (superseded)" --notes-file body.md
+                echo "$tag superseded: $SUPERSEDE" >> "$GITHUB_STEP_SUMMARY"
+              done
+            fi
+          elif [ "$ACTION" = "rc → production" ]; then
+            branch=production
+            [ "$AUTO" != true ] || { echo "::error::Production never moves automatically."; exit 1; }
+            case ",${APPROVERS// /}," in
+              *",$GITHUB_TRIGGERING_ACTOR,"*) ;;
+              *) echo "::error::$GITHUB_TRIGGERING_ACTOR may not start rc → production (approvers: $APPROVERS)."; exit 1 ;;
+            esac
+            [[ "$RC_TAG" =~ ^rc-[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]+$ ]] || { echo "::error::rc_tag must look like rc-YYYY-MM-DD.N."; exit 1; }
+            [ -n "$APPROVER" ] || { echo "::error::approver is empty."; exit 1; }
+            git rev-parse -q --verify "refs/tags/$RC_TAG" >/dev/null || { echo "::error::No tag $RC_TAG."; exit 1; }
+            open_rcs | grep -qx "$RC_TAG" || { echo "::error::$RC_TAG is not an open rc (superseded, or already live)."; exit 1; }
+            sha=$(git rev-parse "$RC_TAG^{commit}")
+            git merge-base --is-ancestor "$sha" origin/staging || { echo "::error::$RC_TAG is not on origin/staging."; exit 1; }
+          else
+            echo "::error::Unknown direction: $ACTION"; exit 1
+          fi
+
+          # Fast-forward only: when the branch exists, the new commit must descend from it.
+          if current=$(git rev-parse -q --verify "origin/$branch"); then
+            if [ "$current" = "$sha" ]; then
+              echo "::notice::$branch is already $sha; the deploy runs again."
+            else
+              git merge-base --is-ancestor "$current" "$sha" || { echo "::error::$branch ($current) is not an ancestor of $sha; cannot fast-forward."; exit 1; }
+              git push origin "$sha:refs/heads/$branch"
+            fi
+          else
+            echo "::notice::Creating the $branch branch."
+            git push origin "$sha:refs/heads/$branch"
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "$ACTION: $branch → \`${sha::7}\`$([ "$AUTO" = true ] && echo ' (automatic)')" >> "$GITHUB_STEP_SUMMARY"
