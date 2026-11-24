@@ -159,7 +159,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a decision",
       description:
-        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. When it replaces an earlier decision, pass that decision's heading as `supersedes`: the new section records `supersedes::`, and the old one gains `superseded-by::` and `superseded-on::` under its heading but is otherwise left as history — never delete or rewrite the old decision yourself. Writes to disk: it adds to the end of the note, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing, or when `supersedes` names no live section (then nothing is written).",
+        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. Pass `paths` (repo-relative files the decision rests on) and `commit` so `doctor` flags CODE-DRIFT and `recall` marks the decision when that code changes. When it replaces an earlier decision, pass that decision's heading as `supersedes`: the new section records `supersedes::`, and the old one gains `superseded-by::` and `superseded-on::` under its heading but is otherwise left as history — never delete or rewrite the old decision yourself. Writes to disk: it adds to the end of the note, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing, or when `supersedes` names no live section (then nothing is written).",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         title: z.string().describe("Short heading for the decision"),
@@ -169,15 +169,23 @@ export function buildVaultServer(start: string): McpServer {
           .string()
           .optional()
           .describe("Heading of the existing decision this one replaces, if any"),
+        paths: z
+          .array(z.string())
+          .optional()
+          .describe("Repo-relative files the decision rests on; written as `paths::`"),
+        commit: z
+          .string()
+          .optional()
+          .describe("Commit the decision was made at; with `paths`, `doctor` flags CODE-DRIFT"),
       },
       annotations: appends,
     },
-    async ({ project, title, decision, details, supersedes }) => {
+    async ({ project, title, decision, details, supersedes, paths, commit }) => {
       const vaultRoot = vault();
       if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
       const result = await lifecycleSafe(() =>
-        appendDecision(handle, project, title, decision, details, { supersedes }),
+        appendDecision(handle, project, title, decision, details, { supersedes, paths, commit }),
       );
       if (!result)
         return failure(`No project matches "${project}", or its Decisions note is missing.`);

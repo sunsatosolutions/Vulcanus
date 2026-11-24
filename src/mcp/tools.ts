@@ -15,6 +15,7 @@ import { headingVariants, noteText } from "../generate/text.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { changedSections } from "../memory/codedrift.js";
+import { COMMIT_ID } from "../util/git.js";
 import {
   findSection,
   headingKey,
@@ -311,6 +312,10 @@ export interface MemoryWriteOptions {
   fields?: string[];
   /** Date recorded as `superseded-on::`; defaults to today. */
   on?: string;
+  /** Repo-relative files the decision rests on, written as `paths::` (CODE-DRIFT reads them). */
+  paths?: string[];
+  /** Commit the decision was made at, written as `commit::`; CODE-DRIFT needs it with `paths`. */
+  commit?: string;
 }
 
 /**
@@ -395,13 +400,33 @@ export async function appendDecision(
   if (!existsSync(path)) return null;
 
   const heading = headingText(title, "The decision title");
+  const { paths, commit, ...rest } = options;
+  const codeFields: string[] = [];
+  if (paths?.length) {
+    const bad = paths.find((entry) => !entry.trim() || /[,\r\n]/.test(entry));
+    if (bad !== undefined) {
+      throw new LifecycleTargetError(
+        `A path may not be empty or contain a comma or newline: ${JSON.stringify(bad)}. Nothing was written.`,
+      );
+    }
+    codeFields.push(`paths:: ${paths.map((entry) => entry.trim()).join(", ")}`);
+  }
+  if (commit !== undefined) {
+    if (!COMMIT_ID.test(commit)) {
+      throw new LifecycleTargetError(`"${commit}" is not a commit id. Nothing was written.`);
+    }
+    codeFields.push(`commit:: ${commit}`);
+  }
   const body = [
     "### Decision",
     "",
     decision.trim(),
     ...(details?.trim() ? ["", "### Details", "", details.trim()] : []),
   ];
-  const written = await appendSection(path, project.decisions.name, heading, body, options);
+  const written = await appendSection(path, project.decisions.name, heading, body, {
+    ...rest,
+    fields: [...(rest.fields ?? []), ...codeFields],
+  });
   return {
     project: project.project.name,
     path: project.decisions.path,

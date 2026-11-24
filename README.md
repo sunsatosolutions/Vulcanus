@@ -336,7 +336,7 @@ That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault
 | `recall` | returns a project's Capsule plus the read-next list — the protocol's entry point — and names any decisions or rules that are superseded or expired |
 | `search` | layer-aware text search; Capsule and Recall Map hits rank first, hits in superseded or expired sections rank last and say so |
 | `list_projects` | the routing table: names, statuses, trigger words, capsule paths |
-| `append_decision` | records a confirmed decision in the Decision/Details format; with `supersedes`, also marks the decision it replaces |
+| `append_decision` | records a confirmed decision in the Decision/Details format; with `supersedes`, also marks the decision it replaces; with `paths` (and `commit`), writes `paths::` and `commit::` so `doctor` and `recall` can flag CODE-DRIFT |
 | `append_rule` | records a standing rule in the project's Rules note; with `supersedes`, also marks the rule it replaces |
 | `update_capsule` | replaces one section of a Capsule — never a blind whole-file rewrite |
 | `vault_status` | the `vulcanus status` summary, as JSON |

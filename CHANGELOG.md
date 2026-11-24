@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 — 2026-11-24
+
 ### Added
 
 - `vulcanus harvest [--since <30d|tag>] [--code <dir>]` proposes decisions from commit
@@ -26,6 +28,9 @@
 - Projects accept an optional `root` in `vulcanus.json`: the source folder
   `drift` reads. `--root <dir>` overrides it for one run. Existing manifests
   need no migration.
+- MCP `append_decision` accepts `paths` (repo-relative files) and `commit`, written
+  as `paths::` and `commit::` in the Decisions note. A path with a comma or newline,
+  or a `commit` that is not a commit id, is refused and nothing is written.
 
 ## 0.6.3 — 2026-10-14
 
