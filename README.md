@@ -149,6 +149,10 @@ vulcanus status          # one-screen vault health: projects, notes, doctor resu
 ```
 
 ```bash
+vulcanus stale           # live decisions, rules, and capsules nobody has changed in 90+ days
+```
+
+```bash
 vulcanus stats           # token budget: what a cold-start agent reads, what recall saves
 ```
 
@@ -199,7 +203,7 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `stale` accepts `--days <n>` and `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 
@@ -359,6 +363,12 @@ superseded-on:: 2026-10-05
 A decision that holds only until a date carries `valid-until:: 2026-12-31`. The keys are English in every vault language; they are fields, not prose. The same fields work on rules.
 
 Write one side and `vulcanus doctor --repair` adds the other — it inserts the missing back-reference and touches nothing else. `append_decision` and `append_rule` write both sides in one call when given `supersedes`, and refuse, writing nothing, when the target does not exist or is already superseded. `recall` lists what is no longer current so an agent skips it, `search` ranks it last, and `vulcanus status` counts it.
+
+### When a decision gets old
+
+`vulcanus stale` lists every live decision and rule section, and every capsule, whose last change is more than 90 days old, oldest first, with the project's last commit beside it: a stale record in a project that is still moving is the one to read first. Change the threshold with `--days <n>` or a `"staleDays": 120` field in `vulcanus.json`.
+
+Dates come from git history alone (`git blame` per line, newest commit in the section). A vault without history, or a section with uncommitted edits, is listed as unknown rather than guessed from file times, which a fresh clone resets. Superseded and expired sections are skipped. A section that never goes stale carries `evergreen:: true`. The command exits 0 whether or not it finds anything; `--json` prints `days`, `stale`, and `unknown`.
 
 `vulcanus sync` refuses to commit while errors remain, and reports the push result exactly as it happened.
 

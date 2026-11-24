@@ -25,6 +25,7 @@ export const LIFECYCLE_KEYS = [
   "superseded-on",
   "valid-until",
   "source",
+  "evergreen",
 ] as const;
 
 export type LifecycleKey = (typeof LIFECYCLE_KEYS)[number];
@@ -54,11 +55,14 @@ export interface MemorySection {
   supersededOn?: string;
   validUntil?: string;
   source?: string;
+  /** `evergreen:: true` — the section never goes stale by age. */
+  evergreen?: boolean;
   /** Field values that should be ISO dates and are not, as `key:: value`. */
   badDates: string[];
 }
 
-const FIELD = /^\s*(supersedes|superseded-by|superseded-on|valid-until|source)::[ \t]*(.*)$/;
+const FIELD =
+  /^\s*(supersedes|superseded-by|superseded-on|valid-until|source|evergreen)::[ \t]*(.*)$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function isIsoDate(value: string): boolean {
@@ -169,6 +173,7 @@ export function parseSections(path: string, text: string): MemorySection[] {
     if (key === "supersedes") current.supersedes.push(...parseLinks(value));
     else if (key === "superseded-by") current.supersededBy.push(...parseLinks(value));
     else if (key === "source") current.source = value;
+    else if (key === "evergreen") current.evergreen = value.toLowerCase() === "true";
     else {
       if (!isIsoDate(value)) current.badDates.push(`${key}:: ${value}`);
       else if (key === "superseded-on") current.supersededOn = value;

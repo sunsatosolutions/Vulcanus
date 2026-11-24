@@ -81,6 +81,22 @@ async function gitStatus(vaultRoot: string): Promise<GitStatus | null> {
 }
 
 /**
+ * Epoch milliseconds of the last commit touching a file or folder; null when
+ * git is missing, the path has no history, or it is not a repository.
+ */
+export async function gitCommitTime(vaultRoot: string, path: string): Promise<number | null> {
+  try {
+    const { stdout } = await run("git", ["log", "-1", "--format=%ct", "--", path], {
+      cwd: vaultRoot,
+    });
+    const epoch = Number(stdout.trim());
+    return Number.isFinite(epoch) && stdout.trim() ? epoch * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * When a note last changed: the last git commit touching it, or the file
  * mtime in a vault that is not a repository. Null when unknowable.
  */
@@ -92,16 +108,9 @@ async function lastChanged(
   const absolute = resolve(vaultRoot, path);
   if (!existsSync(absolute)) return null;
   if (useGit) {
-    try {
-      const { stdout } = await run("git", ["log", "-1", "--format=%ct", "--", path], {
-        cwd: vaultRoot,
-      });
-      const epoch = Number(stdout.trim());
-      // An uncommitted note has no history yet; fall through to its mtime.
-      if (Number.isFinite(epoch) && stdout.trim()) return epoch * 1000;
-    } catch {
-      // git missing or not a repo after all — mtime still answers the question.
-    }
+    // An uncommitted note has no history yet; fall through to its mtime.
+    const committed = await gitCommitTime(vaultRoot, path);
+    if (committed !== null) return committed;
   }
   try {
     return (await stat(absolute)).mtimeMs;

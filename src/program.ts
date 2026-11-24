@@ -15,6 +15,7 @@ import {
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
 import { statsCommand } from "./commands/stats.js";
+import { staleCommand } from "./commands/stale.js";
 import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
@@ -146,6 +147,15 @@ export function buildProgram(): Command {
     .option("--json", "print the summary as JSON")
     .action(async (options: { json?: boolean }) => {
       process.exitCode = await statusCommand(options);
+    });
+
+  program
+    .command("stale")
+    .description("List live decisions, rules, and capsules nobody has changed in a long time")
+    .option("--days <n>", "age threshold in days (default: vulcanus.json staleDays, then 90)")
+    .option("--json", "print the report as JSON")
+    .action(async (options: { days?: string; json?: boolean }) => {
+      process.exitCode = await staleCommand(options);
     });
 
   program

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `vulcanus stale` lists live decisions, rules, and capsules unchanged for 90+ days (`--days`, `staleDays` in `vulcanus.json`, `--json`), dated from git history; `evergreen:: true` exempts a section.
+
 ## 0.6.3 — 2026-10-14
 
 ### Fixed

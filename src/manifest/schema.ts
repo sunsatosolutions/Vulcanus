@@ -127,6 +127,12 @@ export interface VaultManifest {
   groups: ProjectGroup[];
   projects: ProjectNode[];
   imports: ImportRecord[];
+  /**
+   * Days after which `vulcanus stale` lists a live decision, rule, or capsule.
+   * Optional and operator-owned: omitted means the 90-day default. An optional
+   * field needs no migration; older manifests read as they are.
+   */
+  staleDays?: number;
 }
 
 export const DEFAULT_STRUCTURE: StructureConfig = {
@@ -216,6 +222,15 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
     const key = trimmed.toLowerCase();
     if (declaredNotes.has(key)) error(`duplicate system note: ${trimmed}`);
     declaredNotes.add(key);
+  }
+
+  if (
+    manifest.staleDays !== undefined &&
+    (!Number.isInteger(manifest.staleDays) || manifest.staleDays < 0)
+  ) {
+    error(
+      `staleDays must be a whole number of days, 0 or more (got ${String(manifest.staleDays)})`,
+    );
   }
 
   const groupIds = new Set<string>();
