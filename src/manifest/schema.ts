@@ -93,6 +93,11 @@ export interface ProjectNode {
   kind?: ProjectKind;
   /** Whether an agent may reveal this project outside the vault. */
   visibility?: ProjectVisibility;
+  /**
+   * Where the project's source lives: absolute, or relative to the vault root.
+   * Optional and operator-owned; `drift` compares the notes against it.
+   */
+  root?: string;
 }
 
 export interface ImportRecord {
@@ -244,6 +249,10 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
       warn(
         `project "${project.id}" has visibility "${String(project.visibility)}", which is not one of: ${PROJECT_VISIBILITIES.join(", ")}; agents will not treat it as private`,
       );
+    }
+
+    if (project.root !== undefined && typeof project.root !== "string") {
+      error(`project "${project.id}" has a root that is not text`);
     }
 
     const nameKey = project.name.trim().toLowerCase();
