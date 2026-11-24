@@ -403,10 +403,10 @@ export async function appendDecision(
   const { paths, commit, ...rest } = options;
   const codeFields: string[] = [];
   if (paths?.length) {
-    const bad = paths.find((entry) => !entry.trim() || /[,\r\n]/.test(entry));
+    const bad = paths.find((entry) => !entry.trim() || /[,\r\n]|<!--/.test(entry));
     if (bad !== undefined) {
       throw new LifecycleTargetError(
-        `A path may not be empty or contain a comma or newline: ${JSON.stringify(bad)}. Nothing was written.`,
+        `A path may not be empty or contain a comma, newline or "<!--": ${JSON.stringify(bad)}. Nothing was written.`,
       );
     }
     codeFields.push(`paths:: ${paths.map((entry) => entry.trim()).join(", ")}`);

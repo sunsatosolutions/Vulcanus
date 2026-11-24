@@ -89,7 +89,9 @@ export async function changedFiles(codeDir: string, sha: string): Promise<string
 
 /** Names that would break a `paths::` list are left out rather than quoted. */
 export function recordablePaths(paths: string[]): string[] {
-  return paths.filter((path) => !/[,\r\n]/.test(path) && path === path.trim()).slice(0, MAX_PATHS);
+  return paths
+    .filter((path) => !/[,\r\n]|<!--/.test(path) && path === path.trim())
+    .slice(0, MAX_PATHS);
 }
 
 const TRAILER = /^[\w-]+:\s.*<[^>]+@[^>]+>\s*$/;

@@ -149,6 +149,7 @@ describe("redteam (a): fake secret in a commit message", () => {
     const repo = await codeRepo();
     await repo.commit("meridian/a.txt", "1", `Use key ${FAKE_KEY} because the bucket needs it`);
     const { root } = await vault({ root: repo.dir });
+    const strayBefore = tempFilesWith(FAKE_KEY, tempDirs);
     const vaultBefore = snapshot(root);
     const codeBefore = snapshot(repo.dir);
     const { candidates, outcome } = await harvestAll(root, repo.dir, "skip");
@@ -156,7 +157,11 @@ describe("redteam (a): fake secret in a commit message", () => {
     assert.equal(outcome.skipped, 1);
     assert.deepEqual(snapshot(root), vaultBefore, "vault changed on skip");
     assert.deepEqual(snapshot(repo.dir), codeBefore, "code repo changed on skip");
-    assert.deepEqual(tempFilesWith(FAKE_KEY, tempDirs), []);
+    // Only files this run created count; the shared temp dir may hold unrelated ones.
+    assert.deepEqual(
+      tempFilesWith(FAKE_KEY, tempDirs).filter((file) => !strayBefore.includes(file)),
+      [],
+    );
     const manifestText = await readFile(resolve(root, "vulcanus.json"), "utf8");
     assert.ok(!manifestText.includes(FAKE_KEY));
   });

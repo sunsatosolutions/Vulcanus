@@ -211,7 +211,14 @@ describe("Sediment end to end", () => {
     const before = await read(dir, MERIDIAN);
     await assert.rejects(
       appendDecision(handle, "Meridian", "Bad", "d", undefined, { paths: ["a,b"] }),
-      /comma or newline/,
+      /comma, newline or "<!--"/,
+    );
+    await assert.rejects(
+      appendDecision(handle, "Meridian", "Bad3", "d", undefined, {
+        paths: ["src/<!--.ts"],
+        commit: sha,
+      }),
+      /comma, newline or "<!--"/,
     );
     await assert.rejects(
       appendDecision(handle, "Meridian", "Bad2", "d", undefined, { commit: "not-a-sha" }),
