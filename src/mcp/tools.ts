@@ -15,6 +15,13 @@ import { headingVariants, noteText } from "../generate/text.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import {
+  DEFAULT_STALE_DAYS,
+  findStale,
+  stalenessOf,
+  type StaleReport,
+  type StaleSection,
+} from "../memory/staleness.js";
+import {
   findSection,
   headingKey,
   headingLink,
@@ -99,6 +106,14 @@ export interface RecallResult {
    * history; listing them here lets an agent skip them without reading the
    * whole note to find out.
    */
+  /**
+   * Live decisions and rules untouched for over 90 days while the project
+   * moved on. Each carries the `stale?` label: possibly out of date, not known
+   * to be wrong; ask before acting on it.
+   */
+  staleSections?: Array<
+    Pick<StaleSection, "heading" | "ageDays" | "lastChanged"> & { path: string; label: "stale?" }
+  >;
   lifecycle?: {
     superseded: Array<{ heading: string; path: string; replacedBy: string[] }>;
     expired: Array<{ heading: string; path: string; validUntil: string }>;
@@ -152,6 +167,13 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
     allProjects: [project],
   });
   const lifecycle = await deadMemory(handle, project);
+  const staleSections = (await stalenessOf(handle.vaultRoot, project)).stale.map((item) => ({
+    label: "stale?" as const,
+    heading: item.heading,
+    path: item.note,
+    lastChanged: item.lastChanged,
+    ageDays: item.ageDays,
+  }));
 
   return {
     project: project.project.name,
@@ -171,6 +193,7 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
         }
       : {}),
     ...(lifecycle ? { lifecycle } : {}),
+    ...(staleSections.length ? { staleSections } : {}),
     readNext: [
       project.hub,
       project.decisions,
@@ -489,6 +512,66 @@ export async function appendRule(
   return { project: project.project.name, path: project.rules.path, rule: heading, ...written };
 }
 
+export type ReviewMark = "keep" | "evergreen" | "archive";
+
+export interface MarkSectionResult {
+  project: string;
+  path: string;
+  heading: string;
+  mark: ReviewMark;
+}
+
+/** The day before an ISO date: an archived section is expired as of yesterday. */
+function dayBefore(iso: string): string {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Record a review verdict under one section's heading: `reviewed::` (still
+ * holds), `evergreen::` (exempt from staleness), or `archived-on::` with a past
+ * `valid-until::` (history now). The section's own text is never touched; the
+ * new line is also what makes git date the section as freshly looked at.
+ */
+export async function markSection(
+  handle: VaultHandle,
+  projectQuery: string,
+  note: "decisions" | "rules",
+  heading: string,
+  mark: ReviewMark,
+  on: string = today(),
+): Promise<MarkSectionResult | null> {
+  const project = matchProject(handle.plan, projectQuery);
+  if (!project) return null;
+  const target = project[note];
+  const path = resolve(handle.vaultRoot, target.path);
+  if (!existsSync(path)) return null;
+
+  const current = await readFile(path, "utf8");
+  const section = findSection(parseSections("", current), heading);
+  if (!section) {
+    throw new LifecycleTargetError(
+      `No section "${heading}" in ${target.name}; nothing was written.`,
+    );
+  }
+  if (sectionState(section, on) !== "live") {
+    throw new LifecycleTargetError(
+      `"${section.heading}" is already ${sectionState(section, on)}; nothing was written.`,
+    );
+  }
+  const fields =
+    mark === "keep"
+      ? [`reviewed:: ${on}`]
+      : mark === "evergreen"
+        ? ["evergreen:: true"]
+        : [`archived-on:: ${on}`, `valid-until:: ${dayBefore(on)}`];
+  const patched = insertFields(current, section.heading, fields);
+  if (patched === null) throw new LifecycleTargetError(`Could not mark "${section.heading}".`);
+  await writeFile(path, patched, "utf8");
+  return { project: project.project.name, path: target.path, heading: section.heading, mark };
+}
+
 export interface ProjectListing {
   name: string;
   id: string;
@@ -515,4 +598,19 @@ export function listProjects(handle: VaultHandle): ProjectListing[] {
     ...(entry.project.kind ? { kind: entry.project.kind } : {}),
     ...(entry.project.visibility ? { visibility: entry.project.visibility } : {}),
   }));
+}
+
+/** The `stale` tool: one project's stale sections, or every project's. Null when the project is unknown. */
+export async function staleSections(
+  handle: VaultHandle,
+  projectQuery?: string,
+  days: number = DEFAULT_STALE_DAYS,
+): Promise<StaleReport | null> {
+  let projects = handle.plan.allProjects;
+  if (projectQuery?.trim()) {
+    const found = matchProject(handle.plan, projectQuery);
+    if (!found) return null;
+    projects = [found];
+  }
+  return findStale(handle.vaultRoot, projects, days);
 }

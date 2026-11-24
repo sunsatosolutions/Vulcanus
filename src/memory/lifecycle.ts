@@ -25,6 +25,9 @@ export const LIFECYCLE_KEYS = [
   "superseded-on",
   "valid-until",
   "source",
+  "reviewed",
+  "evergreen",
+  "archived-on",
 ] as const;
 
 export type LifecycleKey = (typeof LIFECYCLE_KEYS)[number];
@@ -54,11 +57,18 @@ export interface MemorySection {
   supersededOn?: string;
   validUntil?: string;
   source?: string;
+  /** Date a review confirmed the section still holds. */
+  reviewed?: string;
+  /** Exempt from staleness: true however old the section gets. */
+  evergreen?: boolean;
+  /** Date a review archived the section; it also carries a past `valid-until::`. */
+  archivedOn?: string;
   /** Field values that should be ISO dates and are not, as `key:: value`. */
   badDates: string[];
 }
 
-const FIELD = /^\s*(supersedes|superseded-by|superseded-on|valid-until|source)::[ \t]*(.*)$/;
+const FIELD =
+  /^\s*(supersedes|superseded-by|superseded-on|valid-until|source|reviewed|evergreen|archived-on)::[ \t]*(.*)$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function isIsoDate(value: string): boolean {
@@ -224,9 +234,12 @@ export function parseSections(path: string, text: string): MemorySection[] {
     if (key === "supersedes") current.supersedes.push(...parseLinks(value));
     else if (key === "superseded-by") current.supersededBy.push(...parseLinks(value));
     else if (key === "source") current.source = value;
+    else if (key === "evergreen") current.evergreen = value.toLowerCase() === "true";
     else {
       if (!isIsoDate(value)) current.badDates.push(`${key}:: ${value}`);
       else if (key === "superseded-on") current.supersededOn = value;
+      else if (key === "reviewed") current.reviewed = value;
+      else if (key === "archived-on") current.archivedOn = value;
       else current.validUntil = value;
     }
   });
@@ -452,7 +465,8 @@ export function analyzeLifecycle(
         }
       }
 
-      if (sectionState(section, on) === "expired") {
+      // An archived section is expired on purpose; nothing is left to decide.
+      if (sectionState(section, on) === "expired" && !section.archivedOn) {
         issues.push({
           level: "warning",
           code: "EXPIRED",

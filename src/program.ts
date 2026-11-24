@@ -5,6 +5,8 @@ import { agentsCommand } from "./commands/agents.js";
 import { completionCommand, SHELLS } from "./commands/completion.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { driftCommand } from "./commands/drift.js";
+import { reviewCommand } from "./commands/review.js";
+import { staleCommand } from "./commands/stale.js";
 import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
@@ -161,10 +163,17 @@ export function buildProgram(): Command {
     .command("doctor")
     .description("Validate the vault against its manifest")
     .option("--repair", "rewrite generated files before validating")
+    .option(
+      "--freshness",
+      "also list decisions and rules older than --days (never fails the check)",
+    )
+    .option("--days <n>", "staleness threshold for --freshness, in days (default 90)")
     .option("--json", "print the report as JSON")
-    .action(async (options: { repair?: boolean; json?: boolean }) => {
-      process.exitCode = await doctorCommand(options);
-    });
+    .action(
+      async (options: { repair?: boolean; freshness?: boolean; days?: string; json?: boolean }) => {
+        process.exitCode = await doctorCommand(options);
+      },
+    );
 
   program
     .command("drift")
@@ -177,6 +186,42 @@ export function buildProgram(): Command {
     .action(async (project: string | undefined, options: { root?: string; json?: boolean }) => {
       process.exitCode = await driftCommand(project, options);
     });
+
+  program
+    .command("stale")
+    .description("List decisions and rules unchanged for too long while their project moved on")
+    .argument("[project]", "project name or id; omit to check every project")
+    .option("--days <n>", "threshold in days (default 90)")
+    .option("--json", "print the report as JSON")
+    .action(async (project: string | undefined, options: { days?: string; json?: boolean }) => {
+      process.exitCode = await staleCommand(project, options);
+    });
+
+  program
+    .command("review")
+    .description("Decide each stale decision or rule: keep, supersede, archive, or evergreen")
+    .argument("[project]", "project name or id; omit to review every project")
+    .option("--days <n>", "threshold in days (default 90)")
+    .option("--section <heading>", "review this one section (needs a project and --action)")
+    .option("--action <action>", "keep | supersede | archive | evergreen")
+    .option("--title <heading>", "heading of the replacement, for supersede")
+    .option("--decision <text>", "text of the replacement, for supersede")
+    .option("--json", "print the outcomes as JSON")
+    .action(
+      async (
+        project: string | undefined,
+        options: {
+          days?: string;
+          section?: string;
+          action?: string;
+          title?: string;
+          decision?: string;
+          json?: boolean;
+        },
+      ) => {
+        process.exitCode = await reviewCommand(project, options);
+      },
+    );
 
   const add = program.command("add").description("Add memory nodes to an existing vault");
   add

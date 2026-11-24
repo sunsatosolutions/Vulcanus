@@ -161,6 +161,11 @@ vulcanus drift [project] # notes that claim paths or npm scripts the project's c
 ```
 
 ```bash
+vulcanus stale [project] # decisions and rules unchanged for 90+ days while the project moved on
+vulcanus review [project] # settle each one: keep, supersede, archive, or evergreen
+```
+
+```bash
 vulcanus add project     # add projects and wire them into the graph
 ```
 
@@ -235,6 +240,29 @@ $ vulcanus drift Alpha
 In CI or a git hook, run `vulcanus drift <project>` from inside the vault and let the exit code gate: `0` passes, `1` blocks. Pass `--root <dir>` when the source folder is not the one in `vulcanus.json`.
 
 Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
+
+### Finding decisions that went stale
+
+`vulcanus stale [project]` lists the live decisions and rules nobody has touched for more than `--days` (default 90) while their project kept moving. Three details decide whether the answer can be trusted:
+
+- **A section's age is the age of its own lines.** It comes from `git blame` over the section, ignoring blank lines. Deleting or moving the section next to it does not refresh it, and neither does anything else in the file.
+- **"Moved on" is measured on the project's own timeline**, not today's date: the newest commit in the project's `root` source folder, or, when there is none, in the project's notes. A project that has been quiet for a year does not make every decision stale.
+- **No git history means unknown.** An untracked note, or a vault that is not a repository, lists its sections as `?` (`unknown` in JSON). The age is never estimated from file times.
+
+Superseded and expired sections are already history and are skipped, as is any section carrying `evergreen:: true`. `stale` writes nothing and exits `0`; `--json` prints the report.
+
+`vulcanus review [project]` walks the stale list and asks what to do with each:
+
+| Choice | Writes |
+| --- | --- |
+| `keep` | `reviewed:: <date>` under the heading: the section still holds, and the change is what dates it as looked at |
+| `supersede` | the replacement goes through the same path as `append_decision` (`append_rule` for a rule); the old section gets `superseded-by::` |
+| `archive` | `archived-on:: <date>` and a past `valid-until::`: kept as history, no longer live |
+| `evergreen` | `evergreen:: true`: never reported again |
+
+Every choice is its own git commit (`review(<project>): keep "<heading>"`), touching only the note it changed, and the short hash is printed. Without a repository the write stays and the output says it was not committed. To skip the questions: `vulcanus review <project> --section "<heading>" --action keep` (`supersede` also takes `--title` and `--decision`).
+
+`vulcanus doctor --freshness [--days <n>]` adds the same list to the doctor output. It is advisory and never changes the exit code.
 
 ### Scripting `init`
 
@@ -314,6 +342,7 @@ That writes them to `~/.claude/skills/` and `~/.agents/skills/`, with your vault
 | `append_decision` | records a confirmed decision in the Decision/Details format; with `supersedes`, also marks the decision it replaces |
 | `append_rule` | records a standing rule in the project's Rules note; with `supersedes`, also marks the rule it replaces |
 | `update_capsule` | replaces one section of a Capsule — never a blind whole-file rewrite |
+| `stale` | live decisions and rules unchanged for more than `days` (default 90) while their project moved on; sections with no git history come back as `unknown` |
 | `vault_status` | the `vulcanus status` summary, as JSON |
 | `doctor` | full structural validation with every finding |
 
@@ -325,7 +354,7 @@ claude mcp add vulcanus -- vulcanus serve
 
 Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. Registering it globally is fine: the server starts anywhere, and in a directory with no vault the tools say so instead of the server failing to come up. The manifest and the vault location are both resolved on every call, so a vault created — or edited — while the server runs is visible immediately.
 
-`recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current.
+`recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current. Decisions and rules that have sat unchanged for over 90 days while the project moved on come back as `staleSections`, each labelled `stale?`: possibly out of date, not known to be wrong.
 
 ## Obsidian
 
@@ -387,7 +416,7 @@ superseded-by:: [[Acme Decisions#Usage-Based Pricing]]
 superseded-on:: 2026-10-05
 ```
 
-A decision that holds only until a date carries `valid-until:: 2026-12-31`. The keys are English in every vault language; they are fields, not prose. The same fields work on rules.
+A decision that holds only until a date carries `valid-until:: 2026-12-31`. `reviewed::`, `evergreen::`, and `archived-on::` are the fields [`vulcanus review`](#finding-decisions-that-went-stale) writes. The keys are English in every vault language; they are fields, not prose. The same fields work on rules.
 
 Write one side and `vulcanus doctor --repair` adds the other — it inserts the missing back-reference and touches nothing else. `append_decision` and `append_rule` write both sides in one call when given `supersedes`, and refuse, writing nothing, when the target does not exist or is already superseded. `recall` lists what is no longer current so an agent skips it, `search` ranks it last, and `vulcanus status` counts it.
 

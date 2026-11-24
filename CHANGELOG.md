@@ -9,6 +9,18 @@
   each stale claim with its note, line, and a `supersede` suggestion. Superseded
   and expired sections are skipped. It writes nothing and exits `1` when
   anything is stale. `--json` prints the report.
+- `vulcanus stale [project]` lists decisions and rules unchanged for more than
+  `--days` (default 90) while their project moved on. A section's age is the
+  commit date of its own lines (`git blame`), so deleting or moving a
+  neighbouring section never refreshes it; the project's movement is its
+  `root` folder's newest commit, else its notes'. Without git history the age
+  is reported as unknown, never guessed.
+- `vulcanus review [project]` settles each stale section: `keep`
+  (`reviewed::`), `supersede` (through the `append_decision` and
+  `append_rule` path), `archive`, or `evergreen`. Each choice is one git commit
+  and the hash is printed.
+- MCP `stale` tool; `recall` lists `staleSections` labelled `stale?`.
+- `vulcanus doctor --freshness` adds the stale list, advisory only.
 - Projects accept an optional `root` in `vulcanus.json`: the source folder
   `drift` reads. `--root <dir>` overrides it for one run. Existing manifests
   need no migration.

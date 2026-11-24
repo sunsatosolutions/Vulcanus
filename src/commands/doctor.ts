@@ -5,6 +5,8 @@ import { buildPlan } from "../manifest/derive.js";
 import { repairLifecycle, runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
+import { findStale } from "../memory/staleness.js";
+import { badDaysProblem, parseDays } from "./stale.js";
 
 const SYMBOL: Record<string, string> = { error: "✖", warning: "▲", info: "·" };
 
@@ -29,6 +31,9 @@ export interface DoctorOptions {
   cwd?: string;
   repair?: boolean;
   json?: boolean;
+  /** Also report decisions and rules unchanged past `days`; advisory, never fails the check. */
+  freshness?: boolean;
+  days?: number | string;
 }
 
 export async function doctorCommand(options: DoctorOptions = {}): Promise<number> {
@@ -38,6 +43,9 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
   if (!vaultRoot) {
     return reportProblem(noVaultProblem(start, "vulcanus doctor"));
   }
+
+  const days = parseDays(options.days);
+  if (days === null) return reportProblem(badDaysProblem(options.days));
 
   const manifest = await readManifest(vaultRoot);
 
@@ -66,14 +74,31 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
   }
 
   const report = await runDoctor(vaultRoot, manifest);
+  const freshness = options.freshness
+    ? await findStale(vaultRoot, buildPlan(manifest).allProjects, days)
+    : undefined;
 
   if (options.json) {
-    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(freshness ? { ...report, freshness } : report, null, 2)}\n`,
+    );
     return report.ok ? 0 : 1;
   }
 
   p.intro(`doctor — ${manifest.vault.name}`);
   if (report.findings.length > 0) reportDoctor(report);
+  if (freshness) {
+    const lines = freshness.projects.flatMap((entry) => [
+      ...entry.stale.map(
+        (item) =>
+          `▲ ${item.note}:${item.line}: "${item.heading}" last changed ${item.lastChanged} (${item.ageDays} days before the project's last movement)`,
+      ),
+      ...entry.unknown.map(
+        (item) => `? ${item.note}:${item.line}: "${item.heading}" age unknown (no git history)`,
+      ),
+    ]);
+    p.log.message(`FRESHNESS (older than ${days} days; advisory)\n${lines.join("\n") || "· none"}`);
+  }
 
   const summary = [
     `${report.filesChecked} notes`,

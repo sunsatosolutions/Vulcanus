@@ -11,6 +11,7 @@ import {
   listProjects,
   openVault,
   recall,
+  staleSections,
   search,
   updateCapsule,
 } from "../mcp/tools.js";
@@ -235,6 +236,34 @@ export function buildVaultServer(start: string): McpServer {
       );
       if (!result) return failure(`No project matches "${project}", or its Rules note is missing.`);
       if ("error" in result) return failure(result.error);
+      return json(result);
+    },
+  );
+
+  server.registerTool(
+    "stale",
+    {
+      title: "Find stale decisions and rules",
+      description:
+        "List live decisions and rules whose own lines have not changed for more than `days` (default 90) while their project moved on (its source folder's newest commit, else its notes'). Age comes from git blame of the section itself, so a neighbouring section being deleted does not refresh it; sections with no git history are listed as `unknown`, never guessed. Treat a stale section as possibly out of date and confirm with the operator before acting on it; settling it is `vulcanus review` in a terminal. Read-only.",
+      inputSchema: {
+        project: z.string().optional().describe("Project name, id, or trigger word; omit for all"),
+        days: z.number().int().min(1).optional().describe("Threshold in days, default 90"),
+      },
+      annotations: readOnly,
+    },
+    async ({ project, days }) => {
+      const vaultRoot = vault();
+      if (!vaultRoot) return noVaultFailure(start);
+      const handle = await openVault(vaultRoot);
+      const result = await staleSections(handle, project, days);
+      if (!result) {
+        return failure(
+          `No project matches "${project}". Known projects: ${listProjects(handle)
+            .map((entry) => entry.name)
+            .join(", ")}`,
+        );
+      }
       return json(result);
     },
   );

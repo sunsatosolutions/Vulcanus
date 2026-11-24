@@ -56,6 +56,7 @@ describe("mcp server registration", () => {
         "list_projects",
         "recall",
         "search",
+        "stale",
         "update_capsule",
         "vault_status",
       ]);
@@ -105,7 +106,7 @@ describe("mcp server registration", () => {
     const { client, close } = await connect(empty);
     try {
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 8);
+      assert.equal(tools.length, 9);
 
       const result = await client.callTool({ name: "recall", arguments: { project: "Meridian" } });
       assert.equal(result.isError, true);
