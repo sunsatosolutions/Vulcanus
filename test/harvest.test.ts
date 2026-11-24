@@ -149,6 +149,18 @@ describe("harvest candidates", () => {
     assert.equal(candidates.length, 15);
   });
 
+  it("keeps sha and paths from the same commit when two commits share a message", async () => {
+    const repo = await codeRepo();
+    const message = "Cache on disk because memory use doubled under load";
+    await repo.commit("meridian/old.txt", "1", message);
+    const newest = await repo.commit("meridian/new.txt", "1", message);
+    const { plan } = await openVault((await vault()).root);
+    const { candidates } = await harvestCandidates(plan, repo.dir, "30d");
+    assert.equal(candidates.length, 1);
+    assert.equal(candidates[0].commit!.sha, newest);
+    assert.deepEqual(candidates[0].commit!.paths, ["meridian/new.txt"]);
+  });
+
   it("assigns by the first directory only when every file agrees", () => {
     const plan = {
       allProjects: [

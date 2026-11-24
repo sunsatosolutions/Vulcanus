@@ -154,14 +154,15 @@ export async function harvestCandidates(
   const commits = await readCommits(codeDir, since);
   const hits: SentenceHit[] = [];
   const evidence = new Map<string, string[]>();
+  const bySha = new Map<string, SentenceHit>();
 
   for (const commit of commits) {
     const statement = commitStatement(commit);
     if (!statement) continue;
     const paths = await changedFiles(codeDir, commit.sha);
     const project = projectForPaths(plan, paths) ?? "";
-    evidence.set(`${project}\0${statement.text}`, recordablePaths(paths));
-    hits.push({
+    evidence.set(commit.sha, recordablePaths(paths));
+    const hit: SentenceHit = {
       id: `${commit.sha}#1`,
       conversationId: commit.sha,
       source: "git",
@@ -171,18 +172,22 @@ export async function harvestCandidates(
       correction: statement.correction,
       text: statement.text,
       time: commit.time,
-    });
+    };
+    hits.push(hit);
+    bySha.set(commit.sha, hit);
   }
 
   const candidates = rankCandidates(hits, now).map((candidate) => {
-    const hit = hits.find(
-      (entry) => entry.project === candidate.project && entry.text === candidate.text,
-    )!;
+    // Same pick as rankCandidates' `latest`, so sha and paths come from one commit.
+    const hit = candidate.sentenceIds
+      .map((id) => bySha.get(id.split("#")[0])!)
+      .filter((entry) => entry.text === candidate.text)
+      .sort((a, b) => (b.time ?? 0) - (a.time ?? 0) || b.weight - a.weight)[0];
     return {
       ...candidate,
       commit: {
         sha: hit.conversationId,
-        paths: evidence.get(`${candidate.project}\0${candidate.text}`) ?? [],
+        paths: evidence.get(hit.conversationId) ?? [],
       },
     };
   });
