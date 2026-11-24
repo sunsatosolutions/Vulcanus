@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- `vulcanus drift [project]` compares the paths and `npm` scripts a project's Capsule,
+  Rules, and Decisions name in code with the project's source folder, and lists
+  each stale claim with its note, line, and a `supersede` suggestion. Superseded
+  and expired sections are skipped. It writes nothing and exits `1` when
+  anything is stale. `--json` prints the report.
+- Projects accept an optional `root` in `vulcanus.json`: the source folder
+  `drift` reads. `--root <dir>` overrides it for one run. Existing manifests
+  need no migration.
+
 ## 0.6.3 — 2026-10-14
 
 ### Fixed

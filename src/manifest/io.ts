@@ -98,15 +98,22 @@ export function normalizeManifest(input: Partial<VaultManifest>): VaultManifest 
       ...group,
       navigationOnly: group.navigationOnly ?? true,
     })),
-    projects: (input.projects ?? []).map((project) => ({
-      ...project,
-      parent: project.parent ?? null,
-      group: project.group ?? null,
-      status: project.status ?? "active",
-      summary: project.summary ?? "",
-      triggers: project.triggers ?? [],
-      specialized: project.specialized ?? [],
-    })),
+    projects: (input.projects ?? []).map((project) => {
+      // A blank root means "not set", not "the vault folder"; a non-text one is
+      // kept as written so validateManifest can name it.
+      const { root, ...rest } = project;
+      const kept = typeof root === "string" ? root.trim() : root;
+      return {
+        ...rest,
+        ...(kept !== undefined && kept !== "" ? { root: kept } : {}),
+        parent: project.parent ?? null,
+        group: project.group ?? null,
+        status: project.status ?? "active",
+        summary: project.summary ?? "",
+        triggers: project.triggers ?? [],
+        specialized: project.specialized ?? [],
+      };
+    }),
     imports: input.imports ?? [],
   };
 }

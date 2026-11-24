@@ -157,6 +157,10 @@ vulcanus doctor          # validate the vault against its manifest
 ```
 
 ```bash
+vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
+```
+
+```bash
 vulcanus add project     # add projects and wire them into the graph
 ```
 
@@ -199,11 +203,36 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `drift` accepts `--root <dir>` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 
 Exit codes are part of the contract: `0` the command did what it said, `1` the vault or the operation failed validation, `2` the command was used wrongly (no vault, bad flag), `130` cancelled at a prompt. Every failure prints what happened, why, and what to do next.
+
+### Checking notes against the code
+
+`vulcanus drift [project]` compares what a project's Capsule, Rules, and Decisions say with the project's source folder. It reads two kinds of claim, only when they are written as code (an inline backtick or a fenced block): a relative file or folder path, and `npm run <script>` / `npm test` / `npm start`. URLs, globs, wikilinks, absolute paths, and paths that leave the folder (`../`) are ignored, and so is any section the lifecycle has superseded or expired. A path is checked against the project root, a script against the `scripts` of the root `package.json`. It is a heuristic with no LLM: prose is never judged, and a bare `a/b` only counts as a path with an extension, a trailing slash, a leading `./`, or three segments.
+
+The source folder comes from the project's optional `root` in `vulcanus.json` (absolute, or relative to the vault), or from `--root <dir>` for one run. Without a project name, every project that has a `root` is checked.
+
+```json
+{ "id": "alpha", "name": "Alpha", "root": "../alpha-src" }
+```
+
+```text
+$ vulcanus drift Alpha
+┌  drift — ATLAS
+│
+●  Alpha  (/work/alpha-src)
+│  ✖ 02_Projects/Alpha/Alpha Capsule.md:8  `config/app.json` — path not found under the project root
+│      supersede "## Layout": write its replacement, then add under it: superseded-by:: [[Alpha Capsule#<replacement heading>]]  superseded-on:: 2026-06-01
+│  ✖ 02_Projects/Alpha/Alpha Capsule.md:11  `npm run ship` — package.json has no "ship" script
+│      supersede "## Layout": …
+│
+└  2 stale claims. Nothing was written; the supersede lines are suggestions.
+```
+
+Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
 
 ### Scripting `init`
 
