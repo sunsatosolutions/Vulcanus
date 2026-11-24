@@ -16,6 +16,7 @@ import {
   hasUncommittedDeletion,
   headLine,
   latestChange,
+  latestTouch,
   parseBlame,
   parseDiffHunks,
   type BlameLine,
@@ -66,7 +67,7 @@ async function hunksOf(vaultRoot: string, path: string): Promise<DiffHunk[]> {
 /**
  * Last change of lines from..to, deletions included. Blame only sees lines
  * that still exist, so a removed line would leave the date stale: committed
- * removals come from `git log -L`, uncommitted ones make the date unknown.
+ * removals come from the commit log,uncommitted ones make the date unknown.
  */
 async function changedAt(
   vaultRoot: string,
@@ -83,18 +84,14 @@ async function changedAt(
       "git",
       from === 1 && to >= blame.length
         ? ["log", "-1", "--format=%ct", "--", path]
-        : [
-            "log",
-            "-L",
-            `${headLine(hunks, from)},${headLine(hunks, to)}:${path}`,
-            "-s",
-            "--format=%ct",
-            "-1",
-          ],
+        : ["log", "-p", "-U0", "--no-ext-diff", "--no-color", "--format=%x01%ct", "--", path],
       { cwd: vaultRoot, maxBuffer: 256 * 1024 * 1024 },
     );
-    const logged = Number(stdout.trim());
-    return Number.isFinite(logged) && logged > blamed ? logged : blamed;
+    const logged =
+      from === 1 && to >= blame.length
+        ? Number(stdout.trim())
+        : latestTouch(stdout, headLine(hunks, from), headLine(hunks, to));
+    return logged !== null && Number.isFinite(logged) && logged > blamed ? logged : blamed;
   } catch {
     return blamed;
   }

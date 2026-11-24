@@ -124,6 +124,32 @@ export function parseDiffHunks(diff: string): DiffHunk[] {
 }
 
 /**
+ * Newest commit time that touched lines from..to (HEAD numbering) in `git log
+ * -p -U0 --format=%x01%ct` output, newest first. A deletion counts when it
+ * sits inside the range or just after its last line, which `git log -L`
+ * misses. The range is mapped back through each older commit that missed it.
+ */
+export function latestTouch(log: string, from: number, to: number): number | null {
+  let a = from;
+  let b = to;
+  for (const chunk of log.split("\x01").slice(1)) {
+    const time = Number(chunk.slice(0, chunk.indexOf("\n")));
+    const hunks = parseDiffHunks(chunk);
+    const touched = hunks.some((h) =>
+      h.newCount === 0
+        ? h.newStart >= a && h.newStart <= b
+        : h.newStart <= b && h.newStart + h.newCount - 1 >= a,
+    );
+    if (touched) return Number.isFinite(time) ? time : null;
+    let shift = 0;
+    for (const h of hunks) if (h.newStart < a) shift += h.newCount - h.oldCount;
+    a -= shift;
+    b -= shift;
+  }
+  return null;
+}
+
+/**
  * True when uncommitted work removed lines inside the working-tree range
  * `from..to`. Blame has no row for a deleted line, so it cannot see this. A
  * zero-count hunk at `newStart` sits just after that line.

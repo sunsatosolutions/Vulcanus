@@ -272,6 +272,25 @@ describe("staleness helpers", () => {
     assert.equal(rule.lastChanged, "2026-01-01", "an untouched neighbour keeps its date");
   });
 
+  it("dates a section by a deletion at its end, including the last line of the file", async () => {
+    const { root, meridian } = await scaffold();
+    const rules = resolve(root, meridian.rules.path);
+    const decisions = resolve(root, meridian.decisions.path);
+    await writeFile(rules, (await readFile(rules, "utf8")).replace("Text.\n", ""));
+    await writeFile(decisions, (await readFile(decisions, "utf8")).replace("Kept as is.\n\n", ""));
+    commit(root, "2026-11-23T12:00:00Z", "drop last lines");
+
+    const result = await report(root, 90);
+    assert.ok(
+      !result.stale.some((e) => e.heading === "Old Rule"),
+      "last file line dropped 1 day ago",
+    );
+    assert.ok(
+      !result.stale.some((e) => e.heading === "Old Live"),
+      "last section line dropped 1 day ago",
+    );
+  });
+
   it("reports a section with an uncommitted line deletion as unknown", async () => {
     const { root, meridian, kiln } = await scaffold();
     const decisions = resolve(root, meridian.decisions.path);
