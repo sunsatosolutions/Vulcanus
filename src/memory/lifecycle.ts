@@ -105,7 +105,7 @@ export function parseLinks(value: string): LinkRef[] {
 
 /** Index of the first `<!--` outside an inline code span, or -1. */
 function commentStart(text: string): number {
-  for (const match of text.matchAll(/<!--|(`+)[^`\n]+?\1/g)) {
+  for (const match of text.matchAll(/<!--|(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)/g)) {
     if (match[0] === "<!--") return match.index;
   }
   return -1;
