@@ -4,6 +4,7 @@ import { addProjectCommand } from "./commands/add.js";
 import { agentsCommand } from "./commands/agents.js";
 import { completionCommand, SHELLS } from "./commands/completion.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { driftCommand } from "./commands/drift.js";
 import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
@@ -163,6 +164,18 @@ export function buildProgram(): Command {
     .option("--json", "print the report as JSON")
     .action(async (options: { repair?: boolean; json?: boolean }) => {
       process.exitCode = await doctorCommand(options);
+    });
+
+  program
+    .command("drift")
+    .description(
+      "Find claims in Capsule, Rules, and Decisions that the project's code no longer backs",
+    )
+    .argument("[project]", "project name or id; omit to check every project that has a root")
+    .option("--root <dir>", "source folder to compare against, instead of `root` in vulcanus.json")
+    .option("--json", "print the report as JSON")
+    .action(async (project: string | undefined, options: { root?: string; json?: boolean }) => {
+      process.exitCode = await driftCommand(project, options);
     });
 
   const add = program.command("add").description("Add memory nodes to an existing vault");

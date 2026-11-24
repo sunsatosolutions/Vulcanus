@@ -103,16 +103,79 @@ export function parseLinks(value: string): LinkRef[] {
   return links;
 }
 
+/** A comment opener or an inline code span, whichever comes first: the one backtick delimiter rule. */
+const SPAN_OR_COMMENT = /<!--|(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)/g;
+
+/** Contents of the inline code spans of a line: a backtick run closed by a run of the same length. */
+export function codeSpans(line: string): string[] {
+  const spans: string[] = [];
+  for (const match of line.matchAll(SPAN_OR_COMMENT)) {
+    if (match[0] !== "<!--") spans.push(match[0].slice(match[1].length, -match[1].length));
+  }
+  return spans;
+}
+
+/** Index of the first `<!--` outside an inline code span, or -1. */
+function commentStart(text: string): number {
+  for (const match of text.matchAll(SPAN_OR_COMMENT)) {
+    if (match[0] === "<!--") return match.index;
+  }
+  return -1;
+}
+
+/**
+ * The note with every HTML comment removed and every line kept, so line numbers
+ * still match the file. Fenced blocks and inline code spans are left alone: a
+ * `<!--` inside them is text. The one place comments are understood; section and
+ * claim parsing both read this output.
+ */
+export function stripComments(text: string): string {
+  let fence: string | null = null;
+  let inComment = false;
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      let kept = line;
+      if (fence === null) {
+        kept = "";
+        let rest = line;
+        for (;;) {
+          if (inComment) {
+            const close = rest.indexOf("-->");
+            if (close === -1) {
+              rest = "";
+              break;
+            }
+            rest = rest.slice(close + 3);
+            inComment = false;
+          }
+          const open = commentStart(rest);
+          if (open === -1) break;
+          kept += rest.slice(0, open);
+          rest = rest.slice(open + 4);
+          inComment = true;
+        }
+        kept += rest;
+      }
+      const fenceMatch = /^(```|~~~)/.exec(kept.trim());
+      if (fenceMatch) {
+        if (fence === null) fence = fenceMatch[1];
+        else if (fenceMatch[1] === fence) fence = null;
+      }
+      return kept;
+    })
+    .join("\n");
+}
+
 /**
  * Every `## ` section of a note with its lifecycle fields. Fields inside code
  * fences and HTML comments are ignored, the same way wikilinks there are.
  */
 export function parseSections(path: string, text: string): MemorySection[] {
-  const lines = text.split(/\r?\n/);
+  const lines = stripComments(text).split("\n");
   const sections: MemorySection[] = [];
   let current: MemorySection | null = null;
   let fence: string | null = null;
-  let inComment = false;
 
   const close = (endLine: number) => {
     if (current) {
@@ -124,10 +187,6 @@ export function parseSections(path: string, text: string): MemorySection[] {
   lines.forEach((line, index) => {
     const trimmed = line.trim();
 
-    if (inComment) {
-      if (trimmed.includes("-->")) inComment = false;
-      return;
-    }
     const fenceMatch = /^(```|~~~)/.exec(trimmed);
     if (fenceMatch) {
       if (fence === null) fence = fenceMatch[1];
@@ -135,10 +194,6 @@ export function parseSections(path: string, text: string): MemorySection[] {
       return;
     }
     if (fence !== null) return;
-    if (trimmed.startsWith("<!--") && !trimmed.includes("-->")) {
-      inComment = true;
-      return;
-    }
 
     const heading = /^##\s+(.+?)\s*#*\s*$/.exec(line);
     if (heading && !line.startsWith("###")) {

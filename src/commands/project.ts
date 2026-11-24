@@ -24,7 +24,7 @@ interface Located {
 }
 
 /** Resolve a project by id or name, case-insensitively. */
-function findProject(manifest: VaultManifest, query: string) {
+export function findProject(manifest: VaultManifest, query: string) {
   const needle = query.trim().toLowerCase();
   return manifest.projects.find(
     (project) => project.id.toLowerCase() === needle || project.name.toLowerCase() === needle,
