@@ -566,7 +566,20 @@ export async function markSection(
       : mark === "evergreen"
         ? ["evergreen:: true"]
         : [`archived-on:: ${on}`, `valid-until:: ${dayBefore(on)}`];
-  const patched = insertFields(current, section.heading, fields);
+  let base = current;
+  if (mark === "archive" && section.validUntil) {
+    // One valid-until per section: replace the existing date instead of adding a second one.
+    const lines = current.split(/\r?\n/);
+    const at = lines.findIndex(
+      (text, i) =>
+        i + 1 > section.line && i + 1 <= section.endLine && /^\s*valid-until::/.test(text),
+    );
+    if (at !== -1) {
+      lines.splice(at, 1);
+      base = lines.join(current.includes("\r\n") ? "\r\n" : "\n");
+    }
+  }
+  const patched = insertFields(base, section.heading, fields);
   if (patched === null) throw new LifecycleTargetError(`Could not mark "${section.heading}".`);
   await writeFile(path, patched, "utf8");
   return { project: project.project.name, path: target.path, heading: section.heading, mark };

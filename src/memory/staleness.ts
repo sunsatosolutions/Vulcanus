@@ -99,7 +99,9 @@ export async function lineTimes(
     } else if (row.startsWith("committer-time ")) {
       committed.set(sha, Number(row.slice(15)));
     } else if (row.startsWith("\t")) {
-      times[line - 1] = row.trim() === "" ? null : (committed.get(sha) ?? null);
+      // An all-zero SHA is a line not yet committed: it has no history to date.
+      const uncommitted = /^0+$/.test(sha);
+      times[line - 1] = row.trim() === "" || uncommitted ? null : (committed.get(sha) ?? null);
     }
   }
   return times;

@@ -12,7 +12,7 @@ import { staleCommand } from "../src/commands/stale.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
 import { writeManifest } from "../src/manifest/io.js";
 import { buildPlan } from "../src/manifest/derive.js";
-import { openVault, recall } from "../src/mcp/tools.js";
+import { markSection, openVault, recall } from "../src/mcp/tools.js";
 import { parseSections, sectionState } from "../src/memory/lifecycle.js";
 import { findStale, lineTimes, sectionTime } from "../src/memory/staleness.js";
 import { setLogLevel } from "../src/ui.js";
@@ -278,6 +278,34 @@ describe("stale, review, recall, doctor, MCP", () => {
       alpha.stale.map((item) => item.heading),
       [],
     );
+  });
+
+  it("treats a section not yet committed as unknown, not as dated by the zero SHA", async () => {
+    const { vault } = await scaffold({ moved: "2026-06-01" });
+    await write(vault, DECISIONS, sections({ Old: "old text" }));
+    commitAll(vault, "2026-01-01", "first");
+    await write(vault, DECISIONS, sections({ Old: "old text", Fresh: "new, uncommitted" }));
+
+    const text = await readFile(resolve(vault, DECISIONS), "utf8");
+    const fresh = parseSections(DECISIONS, text).find((section) => section.heading === "Fresh")!;
+    assert.equal(sectionTime(await lineTimes(vault, DECISIONS), fresh), null);
+    const input = manifest({ projects: [project("alpha", "Alpha", { root: "../alpha-src" })] });
+    const [alpha] = (await findStale(vault, buildPlan(input).allProjects)).projects;
+    assert.ok(alpha.unknown.some((item) => item.heading === "Fresh"));
+  });
+
+  it("archive replaces an existing valid-until instead of leaving the section live", async () => {
+    const { vault } = await scaffold({ moved: "2026-06-01" });
+    await write(vault, DECISIONS, sections({ Promo: "valid-until:: 2027-12-31\n\nShip free." }));
+    commitAll(vault, "2026-01-01", "first");
+
+    const handle = await openVault(vault);
+    await markSection(handle, "Alpha", "decisions", "Promo", "archive", "2026-06-02");
+    const text = await readFile(resolve(vault, DECISIONS), "utf8");
+    assert.equal(text.match(/valid-until::/g)?.length, 1);
+    const [promo] = parseSections(DECISIONS, text);
+    assert.equal(promo.validUntil, "2026-06-01");
+    assert.equal(sectionState(promo, "2026-06-02"), "expired");
   });
 
   it("review refuses half a request and an unknown section without writing", async () => {
