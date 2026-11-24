@@ -198,7 +198,11 @@ describe("comment handling is shared by claims and sections", () => {
     { name: "multi-line", body: ["<!--", FIELD, "-->"], live: false },
     { name: "after prose", body: ["prose <!-- note", FIELD, "--> tail"], live: false },
     { name: "inside inline code", body: ["write `<!--` here", FIELD], live: true },
-    { name: "inside double-backtick span holding a backtick", body: ["write ``a`b <!-- c`` here", FIELD], live: true },
+    {
+      name: "inside double-backtick span holding a backtick",
+      body: ["write ``a`b <!-- c`` here", FIELD],
+      live: true,
+    },
     { name: "inside a fence", body: ["```", "<!--", "```", FIELD], live: true },
   ];
 
