@@ -10,7 +10,6 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { after, describe, it } from "node:test";
 import { harvestCommand } from "../src/commands/harvest.js";
@@ -117,12 +116,11 @@ function snapshot(dir: string, skipGit = false): Map<string, string> {
   return out;
 }
 
-/** Temp entries that mention `needle`, anywhere under the OS temp dir (top level only walk, bounded). */
-function tempFilesWith(needle: string, ignore: string[]): string[] {
+/** Files directly under `dir` that mention `needle`. */
+function filesWith(dir: string, needle: string): string[] {
   const hits: string[] = [];
-  for (const name of readdirSync(tmpdir())) {
-    const full = join(tmpdir(), name);
-    if (ignore.some((dir) => full === dir || dir.startsWith(`${full}/`))) continue;
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
     try {
       const info = statSync(full);
       if (info.isFile() && info.size < 1e6 && readFileSync(full, "utf8").includes(needle)) {
@@ -133,6 +131,20 @@ function tempFilesWith(needle: string, ignore: string[]): string[] {
     }
   }
   return hits;
+}
+
+/** Runs `fn` with TMPDIR pointing at a private empty dir, so only this test's temp writes show up. */
+async function withPrivateTmp<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const dir = await tempDir();
+  tempDirs.push(dir);
+  const saved = process.env.TMPDIR;
+  process.env.TMPDIR = dir;
+  try {
+    return await fn(dir);
+  } finally {
+    if (saved === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = saved;
+  }
 }
 
 async function harvestAll(root: string, repoDir: string, action: "decision" | "skip") {
@@ -151,12 +163,16 @@ describe("redteam (a): fake secret in a commit message", () => {
     const { root } = await vault({ root: repo.dir });
     const vaultBefore = snapshot(root);
     const codeBefore = snapshot(repo.dir);
-    const { candidates, outcome } = await harvestAll(root, repo.dir, "skip");
+    const privateTmp = await withPrivateTmp(async (dir) => ({
+      dir,
+      ...(await harvestAll(root, repo.dir, "skip")),
+    }));
+    const { candidates, outcome } = privateTmp;
     assert.equal(candidates.length, 1);
     assert.equal(outcome.skipped, 1);
     assert.deepEqual(snapshot(root), vaultBefore, "vault changed on skip");
     assert.deepEqual(snapshot(repo.dir), codeBefore, "code repo changed on skip");
-    assert.deepEqual(tempFilesWith(FAKE_KEY, tempDirs), []);
+    assert.deepEqual(filesWith(privateTmp.dir, FAKE_KEY), []);
     const manifestText = await readFile(resolve(root, "vulcanus.json"), "utf8");
     assert.ok(!manifestText.includes(FAKE_KEY));
   });
