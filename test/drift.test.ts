@@ -160,6 +160,22 @@ describe("drift claim parser", () => {
   it("does not read a path out of a comment", () => {
     assert.deepEqual(extractClaims("<!--\n`src/hidden.ts`\n-->\n", [], ON), []);
   });
+
+  it("skips single-line and inline comments and keeps line numbers", () => {
+    assert.deepEqual(extractClaims("<!-- `src/retired.ts` -->\n", [], ON), []);
+    const claims = extractClaims(
+      "a <!-- `src/a.ts` --> `src/b.ts` <!-- `src/c.ts`\n`src/d.ts`\n--> `src/e.ts`\n",
+      [],
+      ON,
+    );
+    assert.deepEqual(
+      claims.map((claim) => [claim.line, claim.text]),
+      [
+        [1, "src/b.ts"],
+        [3, "src/e.ts"],
+      ],
+    );
+  });
 });
 
 describe("drift comparison", () => {

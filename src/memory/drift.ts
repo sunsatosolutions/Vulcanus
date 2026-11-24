@@ -108,22 +108,36 @@ export function extractClaims(
   }
 
   for (let index = start; index < lines.length; index += 1) {
-    const line = lines[index];
-    const trimmed = line.trim();
+    let line = lines[index];
     const number = index + 1;
 
-    if (inComment) {
-      if (trimmed.includes("-->")) inComment = false;
-      continue;
+    if (fence === null) {
+      let kept = "";
+      let rest = line;
+      for (;;) {
+        if (inComment) {
+          const close = rest.indexOf("-->");
+          if (close === -1) break;
+          rest = rest.slice(close + 3);
+          inComment = false;
+        }
+        const open = rest.indexOf("<!--");
+        if (open === -1) {
+          kept += rest;
+          break;
+        }
+        kept += rest.slice(0, open);
+        rest = rest.slice(open + 4);
+        inComment = true;
+      }
+      line = kept;
     }
+    const trimmed = line.trim();
+
     const fenceMatch = /^(```|~~~)/.exec(trimmed);
     if (fenceMatch) {
       if (fence === null) fence = fenceMatch[1];
       else if (fenceMatch[1] === fence) fence = null;
-      continue;
-    }
-    if (fence === null && trimmed.startsWith("<!--") && !trimmed.includes("-->")) {
-      inComment = true;
       continue;
     }
 
