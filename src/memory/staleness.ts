@@ -100,6 +100,48 @@ export function latestChange(blame: BlameLine[], from: number, to: number): numb
   return latest;
 }
 
+/** One `git diff HEAD -U0` hunk: 1-indexed starts; a count of 0 means a pure insertion or deletion. */
+export interface DiffHunk {
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
+}
+
+export function parseDiffHunks(diff: string): DiffHunk[] {
+  const hunks: DiffHunk[] = [];
+  for (const row of diff.split("\n")) {
+    const m = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(row);
+    if (!m) continue;
+    hunks.push({
+      oldStart: Number(m[1]),
+      oldCount: m[2] === undefined ? 1 : Number(m[2]),
+      newStart: Number(m[3]),
+      newCount: m[4] === undefined ? 1 : Number(m[4]),
+    });
+  }
+  return hunks;
+}
+
+/**
+ * True when uncommitted work removed lines inside the working-tree range
+ * `from..to`. Blame has no row for a deleted line, so it cannot see this. A
+ * zero-count hunk at `newStart` sits just after that line.
+ */
+export function hasUncommittedDeletion(hunks: DiffHunk[], from: number, to: number): boolean {
+  return hunks.some((h) => h.oldCount > 0 && h.newStart >= from && h.newStart <= to);
+}
+
+/** Map a working-tree line number back to the HEAD file the history is read from. */
+export function headLine(hunks: DiffHunk[], line: number): number {
+  let shift = 0;
+  for (const h of hunks) {
+    const end = h.newCount === 0 ? h.newStart : h.newStart + h.newCount - 1;
+    if (end < line) shift += h.newCount - h.oldCount;
+  }
+  return line - shift;
+}
+
 /** A section git may date: live, and not marked `evergreen:: true`. */
 export function isTrackable(section: MemorySection, on?: string): boolean {
   return sectionState(section, on) === "live" && !section.evergreen;

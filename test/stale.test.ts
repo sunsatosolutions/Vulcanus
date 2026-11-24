@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { appendFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
 import { collectStale, staleCommand } from "../src/commands/stale.js";
@@ -9,7 +9,13 @@ import { buildPlan } from "../src/manifest/derive.js";
 import { writeManifest } from "../src/manifest/io.js";
 import { validateManifest } from "../src/manifest/schema.js";
 import { parseSections } from "../src/memory/lifecycle.js";
-import { latestChange, parseBlame, type StaleReport } from "../src/memory/staleness.js";
+import {
+  headLine,
+  latestChange,
+  parseBlame,
+  parseDiffHunks,
+  type StaleReport,
+} from "../src/memory/staleness.js";
 import { buildProgram } from "../src/program.js";
 import { cleanup, manifest, project, tempDir } from "./helpers.js";
 
@@ -243,6 +249,49 @@ describe("staleness helpers", () => {
     assert.equal(off.evergreen, false);
   });
 
+  it("dates a section by a committed line deletion, not by the lines left", async () => {
+    const { root, meridian, kiln } = await scaffold();
+    const decisions = resolve(root, meridian.decisions.path);
+    const capsule = resolve(root, kiln.capsule.path);
+    const decisionsBefore = await readFile(decisions, "utf8");
+    const capsuleBefore = await readFile(capsule, "utf8");
+    await writeFile(
+      decisions,
+      decisionsBefore.replace("Kept as is.\n", "Kept as is.\nExtra line.\n"),
+    );
+    await writeFile(capsule, `${capsuleBefore}Extra line.\n`);
+    commit(root, "2026-11-01T12:00:00Z", "add lines");
+    await writeFile(decisions, decisionsBefore);
+    await writeFile(capsule, capsuleBefore);
+    commit(root, "2026-11-23T12:00:00Z", "drop lines");
+
+    const result = await report(root, 90);
+    assert.ok(!result.stale.some((e) => e.heading === "Old Live"), "deleted 1 day ago");
+    assert.ok(!result.stale.some((e) => e.note === kiln.capsule.path), "capsule edited 1 day ago");
+    const rule = result.stale.find((e) => e.heading === "Old Rule")!;
+    assert.equal(rule.lastChanged, "2026-01-01", "an untouched neighbour keeps its date");
+  });
+
+  it("reports a section with an uncommitted line deletion as unknown", async () => {
+    const { root, meridian, kiln } = await scaffold();
+    const decisions = resolve(root, meridian.decisions.path);
+    const capsule = resolve(root, kiln.capsule.path);
+    await writeFile(decisions, (await readFile(decisions, "utf8")).replace("Kept as is.\n", ""));
+    await writeFile(
+      capsule,
+      (await readFile(capsule, "utf8")).split("\n").slice(0, -2).join("\n") + "\n",
+    );
+
+    const result = await report(root, 90);
+    assert.ok(result.unknown.some((e) => e.heading === "Old Live"));
+    assert.ok(!result.stale.some((e) => e.heading === "Old Live"));
+    assert.ok(result.unknown.some((e) => e.note === kiln.capsule.path));
+    assert.ok(
+      result.stale.some((e) => e.heading === "Old Rule"),
+      "other notes are unaffected",
+    );
+  });
+
   it("parses blame and treats the all-zero hash as uncommitted", () => {
     const hash = "a".repeat(40);
     const zero = "0".repeat(40);
@@ -267,5 +316,14 @@ describe("staleness helpers", () => {
     ]);
     assert.equal(latestChange(blame, 1, 2), 1000, "an uncommitted blank line is ignored");
     assert.equal(latestChange(blame, 1, 3), null);
+  });
+});
+
+describe("diff hunks", () => {
+  it("maps working-tree lines back to HEAD lines", () => {
+    const hunks = parseDiffHunks("@@ -0,0 +1,2 @@\n+a\n+b\n@@ -7 +8,0 @@ m1\n-m2\n");
+    assert.deepEqual(hunks[1], { oldStart: 7, oldCount: 1, newStart: 8, newCount: 0 });
+    assert.equal(headLine(hunks, 5), 3);
+    assert.equal(headLine(hunks, 9), 8);
   });
 });

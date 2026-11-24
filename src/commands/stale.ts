@@ -13,9 +13,13 @@ import {
   DEFAULT_STALE_DAYS,
   isoDate,
   isTrackable,
+  hasUncommittedDeletion,
+  headLine,
   latestChange,
   parseBlame,
+  parseDiffHunks,
   type BlameLine,
+  type DiffHunk,
   type StaleEntry,
   type StaleKind,
   type StaleReport,
@@ -43,6 +47,56 @@ async function blameOf(vaultRoot: string, path: string): Promise<BlameLine[] | n
     return parseBlame(stdout);
   } catch {
     return null;
+  }
+}
+
+async function hunksOf(vaultRoot: string, path: string): Promise<DiffHunk[]> {
+  try {
+    const { stdout } = await run(
+      "git",
+      ["diff", "HEAD", "-U0", "--no-ext-diff", "--no-color", "--", path],
+      { cwd: vaultRoot, maxBuffer: 256 * 1024 * 1024 },
+    );
+    return parseDiffHunks(stdout);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Last change of lines from..to, deletions included. Blame only sees lines
+ * that still exist, so a removed line would leave the date stale: committed
+ * removals come from `git log -L`, uncommitted ones make the date unknown.
+ */
+async function changedAt(
+  vaultRoot: string,
+  path: string,
+  blame: BlameLine[],
+  hunks: DiffHunk[],
+  from: number,
+  to: number,
+): Promise<number | null> {
+  const blamed = latestChange(blame, from, to);
+  if (blamed === null || hasUncommittedDeletion(hunks, from, to)) return null;
+  try {
+    const { stdout } = await run(
+      "git",
+      from === 1 && to >= blame.length
+        ? ["log", "-1", "--format=%ct", "--", path]
+        : [
+            "log",
+            "-L",
+            `${headLine(hunks, from)},${headLine(hunks, to)}:${path}`,
+            "-s",
+            "--format=%ct",
+            "-1",
+          ],
+      { cwd: vaultRoot, maxBuffer: 256 * 1024 * 1024 },
+    );
+    const logged = Number(stdout.trim());
+    return Number.isFinite(logged) && logged > blamed ? logged : blamed;
+  } catch {
+    return blamed;
   }
 }
 
@@ -78,9 +132,12 @@ export async function collectStale(
       const absolute = resolve(vaultRoot, path);
       if (!existsSync(absolute)) continue;
       const blame = useGit ? await blameOf(vaultRoot, path) : null;
+      const hunks = blame ? await hunksOf(vaultRoot, path) : [];
 
       if (kind === "capsule") {
-        const changed = blame ? latestChange(blame, 1, blame.length) : null;
+        const changed = blame
+          ? await changedAt(vaultRoot, path, blame, hunks, 1, blame.length)
+          : null;
         records.push({ ...base, kind, note: path, heading: null, changedAt: changed });
         continue;
       }
@@ -92,7 +149,9 @@ export async function collectStale(
           kind,
           note: path,
           heading: section.heading,
-          changedAt: blame ? latestChange(blame, section.line, section.endLine) : null,
+          changedAt: blame
+            ? await changedAt(vaultRoot, path, blame, hunks, section.line, section.endLine)
+            : null,
         });
       }
     }
