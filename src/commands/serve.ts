@@ -98,7 +98,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Recall a project",
       description:
-        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context, and lists any decisions or rules that are superseded or expired so you do not act on them. Query by project name, id, or a trigger word. Read-only; when nothing matches, the error lists the projects that exist.",
+        "The entry point before working on any project: returns its Capsule (the compressed must-remember summary) plus the read-next list for deeper context, and lists any decisions or rules that are superseded or expired so you do not act on them, and any whose code changed since they were recorded (`codeChanged`): verify those before relying on them. Query by project name, id, or a trigger word. Read-only; when nothing matches, the error lists the projects that exist.",
       inputSchema: { project: z.string().describe("Project name, id, or trigger word") },
       annotations: readOnly,
     },
@@ -123,7 +123,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Search the vault",
       description:
-        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top; hits inside superseded or expired sections carry a `state` and rank below every live hit. Read-only; prefer `recall` when you already know which project you need.",
+        "Layer-aware text search across the vault. Capsule and Recall Map hits rank first so the cheapest sufficient note surfaces on top; hits inside superseded or expired sections carry a `state` and rank below every live hit; hits in a section whose code changed since it was recorded carry `codeChanged: true`: verify them. Read-only; prefer `recall` when you already know which project you need.",
       inputSchema: {
         query: z.string().describe("Text to look for"),
         limit: z.number().int().min(1).max(100).optional().describe("Max hits, default 20"),

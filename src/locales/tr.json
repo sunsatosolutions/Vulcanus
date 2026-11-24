@@ -148,5 +148,11 @@
   "memoryAiConfirm": "Adaylar {cli} aracına gönderilsin mi?",
   "memoryAiRunning": "{cli} adayları inceliyor",
   "memoryAiDone": "{cli} {count} aday bıraktı",
-  "memoryAiFailed": "{cli} kullanılabilir bir yanıt vermedi ({message}); yerel adaylar geçerli."
+  "memoryAiFailed": "{cli} kullanılabilir bir yanıt vermedi ({message}); yerel adaylar geçerli.",
+  "memoryKnown": "zaten kayıtlı: {heading}",
+  "harvestReading": "Kod deposundaki commit mesajları okunuyor",
+  "harvestCandidateTitle": "{project} · {kind} · {date} tarihli commit",
+  "harvestPickProject": "Bu commit hangi projeye ait?\n\"{text}\"",
+  "harvestNoProject": "Hiçbiri: dışarıda bırak",
+  "harvestDone": "{candidates} aday, {accepted} kabul."
 }

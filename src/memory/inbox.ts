@@ -30,6 +30,7 @@ import {
   hitsIn,
   rankCandidates,
   suggestTitle,
+  type CandidateSource,
   type ExistingSection,
   type MemoryCandidate,
   type SentenceHit,
@@ -77,7 +78,7 @@ export async function findMemoryCandidates(
   };
 }
 
-async function vaultSections(handle: VaultHandle): Promise<Map<string, ExistingSection[]>> {
+export async function vaultSections(handle: VaultHandle): Promise<Map<string, ExistingSection[]>> {
   const on = today();
   const live = (section: Parameters<typeof sectionState>[0]) =>
     sectionState(section, on) === "live";
@@ -155,7 +156,7 @@ async function headingsIn(handle: VaultHandle, path: string): Promise<Set<string
 export async function reviewCandidates(
   handle: VaultHandle,
   candidates: MemoryCandidate[],
-  source: ImportSourceId,
+  source: CandidateSource,
   t: Messages,
 ): Promise<ReviewOutcome> {
   const outcome: ReviewOutcome = { accepted: 0, skipped: 0, stopped: false, written: [] };
@@ -173,9 +174,12 @@ export async function reviewCandidates(
       p.note(
         [
           `"${text}"`,
+          ...(candidate.known ? [t.memoryKnown(candidate.known.heading)] : []),
           ...(candidate.replaces ? [t.memoryMayReplace(candidate.replaces.heading)] : []),
         ].join("\n"),
-        t.memoryCandidateTitle(candidate.project, kindLabel, candidate.conversations, date),
+        candidate.commit
+          ? t.harvestCandidateTitle(candidate.project, kindLabel, date)
+          : t.memoryCandidateTitle(candidate.project, kindLabel, candidate.conversations, date),
       );
       action = await askSelect<Action>({
         message: t.memoryAction,
@@ -194,7 +198,7 @@ export async function reviewCandidates(
           { value: "skip", label: t.memorySkip },
           { value: "stop", label: t.memoryStop },
         ],
-        initialValue: candidate.replaces ? "replace" : candidate.kind,
+        initialValue: candidate.known ? "skip" : candidate.replaces ? "replace" : candidate.kind,
       });
       if (action !== "edit") break;
       text =
@@ -218,7 +222,15 @@ export async function reviewCandidates(
       (
         await askText({ message: t.memoryEditTitle, initialValue: suggested, required: true })
       ).trim() || suggested;
-    const provenance = `import · ${source} · ${date === "—" ? today() : date}`;
+    const when = date === "—" ? today() : date;
+    // A harvested candidate carries where it came from: the files and the commit,
+    // never the commit message beyond the wording the operator accepted.
+    const provenance = candidate.commit
+      ? `harvest · git · ${when}`
+      : `import · ${source} · ${when}`;
+    const fields = candidate.commit
+      ? [`paths:: ${candidate.commit.paths.join(", ")}`, `commit:: ${candidate.commit.sha}`]
+      : undefined;
     const supersedes =
       action === "replace" && candidate.replaces?.path === note.path
         ? candidate.replaces.heading
@@ -229,10 +241,12 @@ export async function reviewCandidates(
         ? appendRule(handle, candidate.project, title, text, {
             source: provenance,
             supersedes: replace,
+            fields,
           })
         : appendDecision(handle, candidate.project, title, text, undefined, {
             source: provenance,
             supersedes: replace,
+            fields,
           });
 
     try {

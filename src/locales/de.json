@@ -148,5 +148,11 @@
   "memoryAiConfirm": "Kandidaten an {cli} senden?",
   "memoryAiRunning": "{cli} prüft die Kandidaten",
   "memoryAiDone": "{count} Kandidat(en) von {cli} behalten",
-  "memoryAiFailed": "{cli} lieferte nichts Verwertbares ({message}); die lokalen Kandidaten bleiben."
+  "memoryAiFailed": "{cli} lieferte nichts Verwertbares ({message}); die lokalen Kandidaten bleiben.",
+  "memoryKnown": "bereits erfasst: {heading}",
+  "harvestReading": "Commit-Nachrichten im Code-Repository werden gelesen",
+  "harvestCandidateTitle": "{project} · {kind} · Commit vom {date}",
+  "harvestPickProject": "Zu welchem Projekt gehört dieser Commit?\n\"{text}\"",
+  "harvestNoProject": "Keines: auslassen",
+  "harvestDone": "{candidates} Kandidat(en), {accepted} angenommen."
 }

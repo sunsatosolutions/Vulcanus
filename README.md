@@ -203,7 +203,7 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair` and `--json`; `drift` accepts `--root <dir>` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair`, `--code <dir>`, and `--json`; `harvest` accepts `--since`, `--code <dir>`, and `--json`; `drift` accepts `--root <dir>` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 
@@ -235,6 +235,31 @@ $ vulcanus drift Alpha
 In CI or a git hook, run `vulcanus drift <project>` from inside the vault and let the exit code gate: `0` passes, `1` blocks. Pass `--root <dir>` when the source folder is not the one in `vulcanus.json`.
 
 Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
+
+### Decisions from your commits
+
+`vulcanus harvest` reads the commit messages of a code repository and offers the ones that give a reason as decisions. Git runs locally through `execFile` (no shell, no network, no GitHub API).
+
+- `--since 30d` (the default) reads the last N days; `--since <tag>` reads everything after a tag or commit. `--code <dir>` names the repository; without it the `root` your projects share is used.
+- A commit counts when its title or body says why: `because`, `instead of`, `revert`, `neden`, `yerine`, `weil`, `statt`, `porque`, `en lugar de`, and the decision phrases `import` already knows. Scoring, the 15-per-project cap, and the review are the import inbox's.
+- A commit belongs to a project when the first directory of every file it changed is that project's id or name. When that is not certain, you pick the project; a project is never created from a directory name.
+- A candidate the vault already records is marked *already recorded*, and one that looks like a revision is marked *may replace*.
+- What you accept is written as the wording you accepted plus `paths::`, `commit::`, and `source:: harvest · git · <date>`. The commit body is never written. At the end it prints "N candidates, M accepted"; `--json` prints only those counts.
+
+#### CODE-DRIFT
+
+`doctor` checks every live section that has both `commit::` and `paths::`: it compares those paths between the commit and `HEAD` with `git diff --ignore-all-space --ignore-blank-lines`. A difference is a `CODE-DRIFT` warning naming the section and the changed files; a change in whitespace or blank lines is not one. A commit that is not in the repository is reported as *could not verify*. Only committed code counts: edits not yet committed are not compared.
+
+```text
+$ vulcanus harvest          # accept the candidate
+$ git commit -am "Raise cache ttl"
+$ vulcanus doctor
+│  CODE-DRIFT
+│  ▲ 02_Projects/Meridian/Meridian Decisions.md: "Cache on disk" : code changed since 262a6fe in meridian/cache.txt; verify it still holds
+└  PASS — 14 notes · 60 links · 0 errors · 1 warnings
+```
+
+`recall` lists such sections under `lifecycle.codeChanged`, and `search` marks their hits `codeChanged: true`, so an agent knows to check before relying on them. The code repository is found from the project's `root` (the field `drift` already uses) or from `doctor --code <dir>`; see [docs/design](docs/design/harvest-and-code-drift.md).
 
 ### Scripting `init`
 

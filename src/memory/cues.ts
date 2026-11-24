@@ -84,6 +84,34 @@ export const CUES: Cue[] = [
   cue("correction", 2, `${B}(en realidad|corrección:?)${E}`),
 ];
 
+/**
+ * Phrases that give a reason in a commit message: a commit that says why is a
+ * decision worth a second look, one that only says what is not. Matched with
+ * the statement cues above, in the same four languages. A revert also counts
+ * as a correction, so it may be offered as the replacement of what it undoes.
+ */
+export const RATIONALE_CUES: Cue[] = [
+  // --- English ---------------------------------------------------------------
+  cue("decision", 3, `${B}(because|instead of|rather than|in favou?r of)${E}`),
+  cue("decision", 3, `${B}revert(s|ed)?${E}`),
+  cue("correction", 2, `${B}revert(s|ed)?${E}`),
+
+  // --- Turkish ---------------------------------------------------------------
+  cue("decision", 3, `${B}(neden|nedeniyle|nedenle|çünkü|yerine)${E}`),
+  cue("decision", 3, `${B}geri (al|alındı|aldık|alma)${E}`),
+  cue("correction", 2, `${B}geri (al|alındı|aldık|alma)${E}`),
+
+  // --- German ----------------------------------------------------------------
+  cue("decision", 3, `${B}(weil|statt|anstatt|anstelle|stattdessen|deshalb)${E}`),
+  cue("decision", 3, `${B}(revert|zurückgenommen|rückgängig)${E}`),
+  cue("correction", 2, `${B}(revert|zurückgenommen|rückgängig)${E}`),
+
+  // --- Spanish ---------------------------------------------------------------
+  cue("decision", 3, `${B}(porque|en lugar de|en vez de)${E}`),
+  cue("decision", 3, `${B}(revert|revierte|revertido|revertir)${E}`),
+  cue("correction", 2, `${B}(revert|revierte|revertido|revertir)${E}`),
+];
+
 export interface CueMatch {
   /** Decision or rule; a correction alone does not make a candidate. */
   kind: "decision" | "rule";

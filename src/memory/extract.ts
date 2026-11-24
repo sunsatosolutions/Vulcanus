@@ -29,11 +29,14 @@ export const MIN_SCORE = 3;
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** Where a statement came from: an import source, or a git history. */
+export type CandidateSource = ImportSourceId | "git";
+
 export interface SentenceHit {
   /** Stable within a run: `<conversation id>#<n>`. */
   id: string;
   conversationId: string;
-  source: ImportSourceId;
+  source: CandidateSource;
   project: string;
   kind: "decision" | "rule";
   weight: number;
@@ -54,11 +57,15 @@ export interface MemoryCandidate {
   /** Distinct conversations the statement appears in. */
   conversations: number;
   lastSeen: number | null;
-  sources: ImportSourceId[];
+  sources: CandidateSource[];
   /** Every source sentence merged into this candidate. */
   sentenceIds: string[];
   /** An existing live section this candidate may be revising. */
   replaces?: { heading: string; path: string; overlap: number };
+  /** A section that already records this statement; set only when known candidates are kept. */
+  known?: { heading: string; path: string };
+  /** The commit a harvested candidate came from, and the files it changed. */
+  commit?: { sha: string; paths: string[] };
 }
 
 /** Same folding the project-name analysis uses, so Turkish i variants agree. */
@@ -257,18 +264,29 @@ export function existingSections(
 
 /**
  * Drop candidates the vault already records, and point the rest at a live
- * section they may be revising. A restatement of a superseded decision is
+ * section they may be revising. With `keepKnown` a candidate the vault
+ * already records is marked rather than dropped, for a source whose items
+ * should be seen even when they repeat the vault. A restatement of a superseded decision is
  * dropped too: it is the old message, not new memory.
  */
 export function compareWithVault(
   candidates: MemoryCandidate[],
   sectionsByProject: Map<string, ExistingSection[]>,
+  options: { keepKnown?: boolean } = {},
 ): MemoryCandidate[] {
   const out: MemoryCandidate[] = [];
   for (const candidate of candidates) {
     const own = tokens(candidate.text);
     const sections = sectionsByProject.get(candidate.project) ?? [];
-    if (sections.some((entry) => coverage(own, entry.tokens) >= KNOWN_COVERAGE)) continue;
+    const known = sections.find((entry) => coverage(own, entry.tokens) >= KNOWN_COVERAGE);
+    if (known && !options.keepKnown) continue;
+    if (known) {
+      out.push({
+        ...candidate,
+        known: { heading: known.section.heading, path: known.section.path },
+      });
+      continue;
+    }
 
     const bar = candidate.correction ? REPLACES_COVERAGE_CORRECTION : REPLACES_COVERAGE;
     let best: MemoryCandidate["replaces"];

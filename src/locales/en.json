@@ -148,5 +148,11 @@
   "memoryAiConfirm": "Send the candidates to {cli}?",
   "memoryAiRunning": "{cli} is reviewing the candidates",
   "memoryAiDone": "{count} candidate(s) kept by {cli}",
-  "memoryAiFailed": "{cli} returned nothing usable ({message}); the local candidates stand."
+  "memoryAiFailed": "{cli} returned nothing usable ({message}); the local candidates stand.",
+  "memoryKnown": "already recorded: {heading}",
+  "harvestReading": "Reading commit messages in the code repository",
+  "harvestCandidateTitle": "{project} · {kind} · commit of {date}",
+  "harvestPickProject": "Which project does this commit belong to?\n\"{text}\"",
+  "harvestNoProject": "None of them: leave it out",
+  "harvestDone": "{candidates} candidate(s), {accepted} accepted."
 }
