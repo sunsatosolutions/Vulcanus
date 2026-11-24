@@ -181,6 +181,12 @@ export interface Messages {
   memoryEditTitle: string;
   memorySupersedeFailed: (heading: string, message: string) => string;
   memoryDone: (accepted: number, skipped: number) => string;
+  memoryKnown: (heading: string) => string;
+  harvestReading: string;
+  harvestCandidateTitle: (project: string, kind: string, date: string) => string;
+  harvestPickProject: (text: string) => string;
+  harvestNoProject: string;
+  harvestDone: (candidates: number, accepted: number) => string;
   memoryAiTitle: (cli: string) => string;
   memoryAiSummary: (cli: string, count: number) => string;
   memoryAiConfirm: (cli: string) => string;
@@ -225,6 +231,10 @@ const PARAMETERS: Record<string, string[]> = {
   memoryAcceptReplace: ["heading"],
   memorySupersedeFailed: ["heading", "message"],
   memoryDone: ["accepted", "skipped"],
+  memoryKnown: ["heading"],
+  harvestCandidateTitle: ["project", "kind", "date"],
+  harvestPickProject: ["text"],
+  harvestDone: ["candidates", "accepted"],
   memoryAiTitle: ["cli"],
   memoryAiSummary: ["cli", "count"],
   memoryAiConfirm: ["cli"],

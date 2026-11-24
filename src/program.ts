@@ -6,6 +6,7 @@ import { completionCommand, SHELLS } from "./commands/completion.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { driftCommand } from "./commands/drift.js";
 import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
+import { harvestCommand } from "./commands/harvest.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
 import {
@@ -161,8 +162,12 @@ export function buildProgram(): Command {
     .command("doctor")
     .description("Validate the vault against its manifest")
     .option("--repair", "rewrite generated files before validating")
+    .option(
+      "--code <dir>",
+      "code repository CODE-DRIFT compares against, instead of each project's root",
+    )
     .option("--json", "print the report as JSON")
-    .action(async (options: { repair?: boolean; json?: boolean }) => {
+    .action(async (options: { repair?: boolean; json?: boolean; code?: string }) => {
       process.exitCode = await doctorCommand(options);
     });
 
@@ -262,6 +267,20 @@ export function buildProgram(): Command {
         });
       },
     );
+
+  program
+    .command("harvest")
+    .description("Propose decisions from commit messages that give a reason; you review each one")
+    .option(
+      "--since <30d|tag>",
+      "read the last N days (30d) or everything after a tag or commit",
+      "30d",
+    )
+    .option("--code <dir>", "code repository to read, instead of the root your projects share")
+    .option("--json", "print only the counts: candidates, accepted, skipped")
+    .action(async (options: { since?: string; code?: string; json?: boolean }) => {
+      process.exitCode = await harvestCommand(options);
+    });
 
   program
     .command("agents")

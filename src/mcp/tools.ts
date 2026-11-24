@@ -14,6 +14,7 @@ import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.
 import { headingVariants, noteText } from "../generate/text.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
+import { changedSections } from "../memory/codedrift.js";
 import {
   findSection,
   headingKey,
@@ -102,6 +103,8 @@ export interface RecallResult {
   lifecycle?: {
     superseded: Array<{ heading: string; path: string; replacedBy: string[] }>;
     expired: Array<{ heading: string; path: string; validUntil: string }>;
+    /** Sections whose commit:: and paths:: no longer match the code: true when written, unverified now. */
+    codeChanged: Array<{ heading: string; path: string; files: string[]; note: string }>;
   };
 }
 
@@ -112,6 +115,14 @@ async function deadMemory(
   const superseded: NonNullable<RecallResult["lifecycle"]>["superseded"] = [];
   const expired: NonNullable<RecallResult["lifecycle"]>["expired"] = [];
   const on = today();
+  const codeChanged: NonNullable<RecallResult["lifecycle"]>["codeChanged"] = (
+    await changedSections(handle.vaultRoot, project)
+  ).map((change) => ({
+    heading: change.section.heading,
+    path: change.section.path,
+    files: change.files,
+    note: `code changed since ${change.section.commit?.slice(0, 7)}, verify before relying on it`,
+  }));
   for (const note of [project.decisions, project.rules]) {
     const path = resolve(handle.vaultRoot, note.path);
     if (!existsSync(path)) continue;
@@ -132,7 +143,9 @@ async function deadMemory(
       }
     }
   }
-  return superseded.length || expired.length ? { superseded, expired } : undefined;
+  return superseded.length || expired.length || codeChanged.length
+    ? { superseded, expired, codeChanged }
+    : undefined;
 }
 
 /**
@@ -194,6 +207,8 @@ export interface SearchHit {
    * every live hit.
    */
   state?: Exclude<LifecycleState, "live">;
+  /** Set when the section's commit:: and paths:: no longer match the code: verify before relying on it. */
+  codeChanged?: true;
 }
 
 /**
@@ -215,6 +230,12 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
 
   const hits: SearchHit[] = [];
   const on = today();
+  const codeChanged = new Set<string>();
+  for (const project of handle.plan.allProjects) {
+    for (const change of await changedSections(handle.vaultRoot, project)) {
+      codeChanged.add(`${change.section.path}\0${change.section.line}`);
+    }
+  }
   const dirs = [handle.manifest.structure.systemDir, handle.manifest.structure.projectsDir];
 
   const walk = async (dir: string): Promise<void> => {
@@ -231,12 +252,14 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
           if (text.toLowerCase().includes(needle)) {
             const section = sectionAt(sections, index + 1);
             const state = section ? sectionState(section, on) : "live";
+            const changed = section && codeChanged.has(`${relative}\0${section.line}`);
             hits.push({
               path: relative,
               line: index + 1,
               text: text.trim(),
               weight: weightOf(relative),
               ...(state !== "live" ? { state } : {}),
+              ...(changed ? { codeChanged: true as const } : {}),
             });
           }
         });
@@ -284,6 +307,8 @@ export interface MemoryWriteOptions {
   supersedes?: string;
   /** Provenance written as `source::`, e.g. "import · codex · 2026-09-14". */
   source?: string;
+  /** Extra inline field lines, written between `supersedes::` and `source::`. */
+  fields?: string[];
   /** Date recorded as `superseded-on::`; defaults to today. */
   on?: string;
 }
@@ -336,6 +361,7 @@ async function appendSection(
     superseded = old.heading;
     fields.push(`supersedes:: ${headingLink(noteName, old.heading)}`);
   }
+  fields.push(...(options.fields ?? []));
   if (options.source?.trim()) fields.push(`source:: ${options.source.trim()}`);
 
   const section = [

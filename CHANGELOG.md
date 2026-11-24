@@ -4,6 +4,20 @@
 
 ### Added
 
+- `vulcanus harvest [--since <30d|tag>] [--code <dir>]` proposes decisions from commit
+  messages that give a reason (`because`, `instead of`, `revert`, `neden`, `yerine`,
+  `weil`, `statt`, `porque`, `en lugar de`, …). Git is read locally; there is no shell,
+  network, or hosting API. Candidates go through the import review (accept, edit,
+  skip, stop), at most 15 per project per run, and one the vault already records is
+  marked. Each accepted one is written with `paths::`, `commit::`, and
+  `source:: harvest · git · <date>`; the commit body is never copied. `--json`
+  prints only the counts.
+- `doctor` reports `CODE-DRIFT` (a warning) when the code under a section's
+  `paths::` differs in content between its `commit::` and HEAD; whitespace-only
+  changes do not count. `doctor --code <dir>` names the code repository, otherwise
+  the project's `root` is used. A commit that cannot be found is reported as
+  could not verify. `recall` lists such sections under `lifecycle.codeChanged` and
+  `search` marks their hits `codeChanged`.
 - `vulcanus drift [project]` compares the paths and `npm` scripts a project's Capsule,
   Rules, and Decisions name in code with the project's source folder, and lists
   each stale claim with its note, line, and a `supersede` suggestion. Superseded

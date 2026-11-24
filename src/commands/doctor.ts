@@ -1,4 +1,6 @@
+import { resolve } from "node:path";
 import * as p from "../ui.js";
+import { expandHome } from "../util/paths.js";
 import { generateFiles, writeFiles } from "../generate/index.js";
 import { wireHubs } from "../generate/wire.js";
 import { buildPlan } from "../manifest/derive.js";
@@ -29,6 +31,8 @@ export interface DoctorOptions {
   cwd?: string;
   repair?: boolean;
   json?: boolean;
+  /** Code repository CODE-DRIFT compares against, instead of each project's `root`. */
+  code?: string;
 }
 
 export async function doctorCommand(options: DoctorOptions = {}): Promise<number> {
@@ -65,7 +69,9 @@ export async function doctorCommand(options: DoctorOptions = {}): Promise<number
     }
   }
 
-  const report = await runDoctor(vaultRoot, manifest);
+  const report = await runDoctor(vaultRoot, manifest, {
+    codeDir: options.code ? resolve(start, expandHome(options.code)) : undefined,
+  });
 
   if (options.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

@@ -25,6 +25,8 @@ export const LIFECYCLE_KEYS = [
   "superseded-on",
   "valid-until",
   "source",
+  "paths",
+  "commit",
 ] as const;
 
 export type LifecycleKey = (typeof LIFECYCLE_KEYS)[number];
@@ -54,11 +56,16 @@ export interface MemorySection {
   supersededOn?: string;
   validUntil?: string;
   source?: string;
+  /** Repo-relative files the reasoning rests on (`paths::`); set only when the field is present. */
+  paths?: string[];
+  /** Commit the section was recorded at (`commit::`). */
+  commit?: string;
   /** Field values that should be ISO dates and are not, as `key:: value`. */
   badDates: string[];
 }
 
-const FIELD = /^\s*(supersedes|superseded-by|superseded-on|valid-until|source)::[ \t]*(.*)$/;
+const FIELD =
+  /^\s*(supersedes|superseded-by|superseded-on|valid-until|source|paths|commit)::[ \t]*(.*)$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function isIsoDate(value: string): boolean {
@@ -224,7 +231,13 @@ export function parseSections(path: string, text: string): MemorySection[] {
     if (key === "supersedes") current.supersedes.push(...parseLinks(value));
     else if (key === "superseded-by") current.supersededBy.push(...parseLinks(value));
     else if (key === "source") current.source = value;
-    else {
+    else if (key === "commit") current.commit = value;
+    else if (key === "paths") {
+      current.paths = value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    } else {
       if (!isIsoDate(value)) current.badDates.push(`${key}:: ${value}`);
       else if (key === "superseded-on") current.supersededOn = value;
       else current.validUntil = value;

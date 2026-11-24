@@ -17,6 +17,7 @@ import {
   type LifecycleAnalysis,
   type LifecycleState,
 } from "../memory/lifecycle.js";
+import { checkCodeDrift, codeBackedSections, codeDirOf } from "../memory/codedrift.js";
 import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdown.js";
 import { vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
@@ -159,6 +160,8 @@ export async function repairLifecycle(
 export interface DoctorRunOptions {
   /** ISO date the lifecycle checks treat as today; injectable for tests. */
   today?: string;
+  /** Code repository for CODE-DRIFT, instead of each project's `root`. */
+  codeDir?: string;
 }
 
 export async function runDoctor(
@@ -360,6 +363,31 @@ export async function runDoctor(
     options.today ?? today(),
   );
   for (const issue of lifecycle.issues) add(issue.level, issue.code, issue.message, issue.file);
+
+  // --- Code drift ----------------------------------------------------------
+  // A section recorded with commit:: and paths:: is only as true as the code
+  // under those paths still is. Whitespace does not count as a change.
+  for (const project of plan.allProjects) {
+    const sections = await codeBackedSections(
+      vaultRoot,
+      project,
+      (path) => Promise.resolve(contents.get(path)),
+      options.today ?? today(),
+    );
+    if (sections.length === 0) continue;
+    const dir = codeDirOf(vaultRoot, project, options.codeDir);
+    for (const change of await checkCodeDrift(dir, sections)) {
+      const name = `"${change.section.heading}"`;
+      add(
+        "warning",
+        "CODE-DRIFT",
+        change.kind === "changed"
+          ? `${name}: code changed since ${change.section.commit?.slice(0, 7)} in ${change.files.join(", ")}; verify it still holds`
+          : `${name}: could not verify against the code (${change.reason})`,
+        change.section.path,
+      );
+    }
+  }
 
   // --- Agent protocol version ---------------------------------------------
   // AGENTS.md is what every agent reads before touching the vault. A vault
