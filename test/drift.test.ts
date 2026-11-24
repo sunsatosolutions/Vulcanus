@@ -176,6 +176,17 @@ describe("drift claim parser", () => {
       ],
     );
   });
+
+  it("does not treat a comment opener inside an inline code span as a comment", () => {
+    const claims = extractClaims("write `<!--` then `src/missing.ts`\n`src/next.ts`\n", [], ON);
+    assert.deepEqual(
+      claims.map((claim) => [claim.line, claim.text]),
+      [
+        [1, "src/missing.ts"],
+        [2, "src/next.ts"],
+      ],
+    );
+  });
 });
 
 describe("drift comparison", () => {

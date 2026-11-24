@@ -86,6 +86,14 @@ function cleanToken(token: string): string {
   return token.replace(/^[("'`]+|[)"'`,;.]+$/g, "");
 }
 
+/** Index of the first `<!--` outside an inline code span, or -1. */
+function commentStart(text: string): number {
+  for (const match of text.matchAll(/<!--|(`+)[^`\n]+?\1/g)) {
+    if (match[0] === "<!--") return match.index;
+  }
+  return -1;
+}
+
 /**
  * Claims in one note: inline code spans and fenced blocks only. Frontmatter and
  * HTML comments are skipped, and so is any section lifecycle has retired — a
@@ -121,7 +129,7 @@ export function extractClaims(
           rest = rest.slice(close + 3);
           inComment = false;
         }
-        const open = rest.indexOf("<!--");
+        const open = commentStart(rest);
         if (open === -1) {
           kept += rest;
           break;
