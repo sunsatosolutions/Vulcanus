@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { DoctorFinding } from "../doctor/index.js";
-import { SOURCE_FILE, TARGETS, readMarker, sourceHash } from "./targets.js";
+import { SOURCE_FILE, TARGETS, readMarker, renderTarget } from "./targets.js";
 
 /** Doctor codes this module owns; `status` counts them as instruction drift. */
 export const INSTRUCTION_CODES = ["INSTRUCTION-SOURCE", "INSTRUCTION-STALE"] as const;
@@ -20,7 +20,7 @@ export async function checkInstructions(root: string): Promise<DoctorFinding[]> 
   for (const target of TARGETS) {
     const file = resolve(root, target.path);
     if (!existsSync(file)) continue;
-    const text = await readFile(file, "utf8");
+    const text = (await readFile(file, "utf8")).replace(/\r\n/g, "\n");
     const marker = readMarker(text);
     if (!marker) continue;
 
@@ -35,7 +35,7 @@ export async function checkInstructions(root: string): Promise<DoctorFinding[]> 
       );
     } else if (target.mode === "import" && !text.split("\n").includes(`@${SOURCE_FILE}`)) {
       broken(`no longer imports ${SOURCE_FILE}; run \`vulcanus bridge --write\``);
-    } else if (target.mode === "copy" && marker.sha256 !== sourceHash(source)) {
+    } else if (target.mode === "copy" && text !== renderTarget(target, source).replace(/\r\n/g, "\n")) {
       findings.push({
         level: "error",
         code: "INSTRUCTION-STALE",
