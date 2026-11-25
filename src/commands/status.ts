@@ -11,6 +11,7 @@ import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { compareVersions } from "../util/semver.js";
 import { CLI_VERSION } from "../version.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
+import { INSTRUCTION_CODES } from "../instructions/check.js";
 
 const run = promisify(execFile);
 
@@ -56,6 +57,8 @@ export interface StatusSummary {
   doctor: { ok: boolean; errors: number; warnings: number };
   /** Decisions and rules carrying lifecycle fields, by state. */
   lifecycle: Record<LifecycleState, number>;
+  /** Bridge files whose source is gone or whose copy is out of date. */
+  instructionDrift: number;
   imports: number;
   git: GitStatus | null;
   /** Capsules older than the Decisions/Rules/Context they summarize. */
@@ -179,6 +182,9 @@ export async function collectStatus(vaultRoot: string): Promise<StatusSummary> {
       warnings: report.counts.warning,
     },
     lifecycle: report.lifecycle,
+    instructionDrift: report.findings.filter((finding) =>
+      (INSTRUCTION_CODES as readonly string[]).includes(finding.code),
+    ).length,
     imports: manifest.imports.length,
     git: await gitStatus(vaultRoot),
     staleCapsules: await findStaleCapsules(vaultRoot, plan),
@@ -217,6 +223,7 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
           `memory     ${summary.lifecycle.superseded} superseded, ${summary.lifecycle.expired} expired, ${summary.lifecycle.live} tracked live`,
         ]
       : []),
+    `bridge     instruction files: ${summary.instructionDrift ? `${summary.instructionDrift} drifted` : "consistent"}`,
     `generator  Vulcanus ${summary.generatedBy}${summary.updateAvailable ? ` (you run ${summary.cliVersion} — \`vulcanus update\`)` : ""}`,
   ];
   if (summary.git) {

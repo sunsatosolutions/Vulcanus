@@ -6,6 +6,7 @@ import { reviewCommand } from "../src/commands/review.js";
 import { collectStats } from "../src/commands/stats.js";
 import { EXIT } from "../src/errors.js";
 import { runDoctor } from "../src/doctor/index.js";
+import { openVault, recall, search } from "../src/mcp/tools.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
 import { normalizeManifest, readManifest, writeManifest } from "../src/manifest/io.js";
 import { migrateManifest } from "../src/manifest/migrate.js";
@@ -477,5 +478,66 @@ describe("stats stale count", () => {
 
     const off = await vaultWith(manifest({ projects: [project("alpha", "Alpha")] }), NOTES);
     assert.equal((await collectStats(off, ON)).staleNotes, null);
+  });
+});
+
+describe("freshness end to end", () => {
+  it("doctor finds the stale and dead-ref notes; review --ok makes the note fresh in recall and search", async () => {
+    const vault = await vaultWith(ON_INPUT, NOTES, { "src/app.ts": "export {};\n" });
+    const handle = await openVault(vault);
+    const DAY_1 = "2026-06-01";
+    const DAY_2 = "2026-06-02";
+    const statuses = async (on: string) => {
+      const result = await recall(await openVault(vault), "Alpha", on);
+      const read = new Map(result!.readNext.map((entry) => [entry.path, entry.status]));
+      return {
+        capsule: result!.capsule.status,
+        decisions: read.get(DECISIONS),
+        rules: read.get(RULES),
+      };
+    };
+
+    // Day 1: doctor and recall agree.
+    const report = await runDoctor(vault, handle.manifest, { today: DAY_1 });
+    assert.deepEqual(
+      report.findings.filter((f) => f.code === "STALE-NOTE").map((f) => f.file),
+      [DECISIONS],
+    );
+    assert.deepEqual(
+      report.findings.filter((f) => f.code === "DEAD-PATH").map((f) => f.file),
+      [RULES],
+    );
+    assert.deepEqual(await statuses(DAY_1), {
+      capsule: "unknown",
+      decisions: "stale",
+      rules: "dead-ref",
+    });
+    const hit = (await search(handle, "See", 20, DAY_1)).find((h) => h.path === DECISIONS);
+    assert.equal(hit?.status, "stale");
+
+    // Day 2: a person reviews the note.
+    const { result } = await capture(() =>
+      reviewCommand({ cwd: vault, ok: "Alpha Decisions", today: DAY_2, json: true }),
+    );
+    assert.equal(result, EXIT.ok);
+
+    assert.deepEqual(await statuses(DAY_2), {
+      capsule: "unknown",
+      decisions: "fresh",
+      rules: "dead-ref",
+    });
+    const after = (await search(handle, "See", 20, DAY_2)).find((h) => h.path === DECISIONS);
+    assert.equal(after?.status, "fresh");
+    const next = await runDoctor(vault, handle.manifest, { today: DAY_2 });
+    assert.equal(next.findings.filter((f) => f.code === "STALE-NOTE").length, 0);
+  });
+
+  it("adds no status to recall or search when the manifest has no freshness", async () => {
+    const vault = await vaultWith(manifest({ projects: [project("alpha", "Alpha")] }), NOTES);
+    const handle = await openVault(vault);
+    const result = await recall(handle, "Alpha", ON);
+    assert.ok(!("status" in result!.capsule));
+    assert.ok(result!.readNext.every((entry) => !("status" in entry)));
+    assert.ok((await search(handle, "See", 20, ON)).every((entry) => !("status" in entry)));
   });
 });

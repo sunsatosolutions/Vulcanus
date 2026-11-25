@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import * as p from "../ui.js";
 import { expandHome } from "../util/paths.js";
@@ -7,6 +8,8 @@ import { buildPlan } from "../manifest/derive.js";
 import { repairLifecycle, runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
+import { checkInstructions } from "../instructions/check.js";
+import { SOURCE_FILE } from "../instructions/targets.js";
 
 const SYMBOL: Record<string, string> = { error: "✖", warning: "▲", info: "·" };
 
@@ -35,11 +38,38 @@ export interface DoctorOptions {
   code?: string;
 }
 
+async function instructionsOnly(root: string, json?: boolean): Promise<number> {
+  const findings = await checkInstructions(root);
+  const errors = findings.filter((finding) => finding.level === "error").length;
+  const report: DoctorReport = {
+    ok: errors === 0,
+    filesChecked: 0,
+    linksChecked: 0,
+    findings,
+    counts: { error: errors, warning: findings.length - errors, info: 0 },
+    lifecycle: { live: 0, superseded: 0, expired: 0 },
+  };
+  if (json) {
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    return report.ok ? 0 : 1;
+  }
+  p.intro("doctor — instruction files (no vulcanus.json)");
+  if (findings.length > 0) reportDoctor(report);
+  p.outro(
+    `${report.ok ? "PASS" : "FAIL"} — instruction files · ${errors} errors · ${findings.length - errors} warnings`,
+  );
+  return report.ok ? 0 : 1;
+}
+
 export async function doctorCommand(options: DoctorOptions = {}): Promise<number> {
   const start = options.cwd ?? process.cwd();
   const vaultRoot = findVaultRoot(start);
 
   if (!vaultRoot) {
+    // A repository with an AGENTS.md but no manifest still gets its bridge files checked.
+    if (!options.repair && existsSync(resolve(start, SOURCE_FILE))) {
+      return instructionsOnly(resolve(start), options.json);
+    }
     return reportProblem(noVaultProblem(start, "vulcanus doctor"));
   }
 

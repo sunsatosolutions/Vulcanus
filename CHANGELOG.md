@@ -18,7 +18,25 @@
   `STALE-NOTE` (review overdue), `DEAD-PATH` (a relative path written as code does not exist)
   and `FRESHNESS` (unreadable field); none changes the exit code. `vulcanus review` lists
   stale notes oldest first; `review --ok <note>` rewrites only that note's `reviewed:` line.
-  `stats` counts stale notes. Without the field nothing changes.
+  `stats` counts stale notes. MCP `recall` (capsule and read-next notes) and `search` (hits)
+  carry `status: fresh | stale | dead-ref | unknown`; no new tool. Without the field nothing changes.
+
+- `vulcanus bridge` mirrors `AGENTS.md` into the files other tools read: `CLAUDE.md` and
+  `GEMINI.md` import it with `@AGENTS.md`; `.github/copilot-instructions.md` and
+  `.cursor/rules/agents.mdc` get a generated copy whose head carries a Vulcanus marker and
+  the SHA-256 of the source. By default it prints a diff and exits `1` when something would
+  change; `--write` writes (exit `0`), `--json` prints the result. A second `--write`
+  changes nothing. A file without the marker is the operator's: it is reported and never
+  overwritten. In a vault, `CLAUDE.md` and `.cursor/rules/vault.mdc` are the vault's own
+  and no second copy is made. No `vulcanus.json` is needed; the current folder is used.
+- `doctor` reports `INSTRUCTION-SOURCE` and `INSTRUCTION-STALE` (errors) for bridge files
+  whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`.
+  In a folder with an `AGENTS.md` but no `vulcanus.json`, `doctor` runs only these checks.
+- `doctor` warns `INSTRUCTION-BUDGET` when the file Codex reads (non-empty `AGENTS.override.md`, else `AGENTS.md`) exceeds 32 KiB
+  (Codex's default) and `INSTRUCTION-CONFLICT` when `AGENTS.md` and a hand-written target file
+  name different package managers or test runners, showing both files and lines.
+- `status` shows `instruction files: consistent` or `N drifted` (all four codes); `--json` adds
+  `instructionDrift`.
 
 ### Changed
 
