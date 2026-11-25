@@ -308,3 +308,57 @@ describe("bridge end to end", () => {
     assert.deepEqual(await checkInstructions(root), []);
   });
 });
+
+describe("first-day flow", () => {
+  it("doctor reports drift and conflict, bridge fixes the drift, hand-written files survive", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const input = manifest();
+    await writeFiles(root, generateFiles(input).files);
+    await writeManifest(root, input);
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      "# Rules\n\nInstall with `pnpm install`.\n",
+      "utf8",
+    );
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    // A copy goes stale when AGENTS.md changes; GEMINI.md is the operator's and says npm.
+    const claude = await read(root, "CLAUDE.md");
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      "# Rules\n\nInstall with `pnpm install`.\nGo.\n",
+      "utf8",
+    );
+    const mine = "My notes.\nInstall with `npm install`.\n";
+    await writeFile(resolve(root, "GEMINI.md"), mine, "utf8");
+
+    assert.equal(await quietly(() => doctorCommand({ cwd: root })), 1);
+    assert.deepEqual((await checkInstructions(root)).map((f) => [f.code, f.file]).sort(), [
+      ["INSTRUCTION-CONFLICT", "GEMINI.md"],
+      ["INSTRUCTION-STALE", ".github/copilot-instructions.md"],
+    ]);
+    assert.equal((await collectStatus(root)).instructionDrift, 2);
+
+    assert.equal(await quietly(() => bridgeCommand({ cwd: root })), 1);
+    assert.equal(await quietly(() => bridgeCommand({ cwd: root, write: true })), 0);
+    assert.equal(await read(root, "CLAUDE.md"), claude);
+    assert.equal(await read(root, "GEMINI.md"), mine);
+
+    // The conflict is the operator's file; bridge leaves it, so doctor still says so.
+    assert.deepEqual(
+      (await checkInstructions(root)).map((f) => f.code),
+      ["INSTRUCTION-CONFLICT"],
+    );
+    await writeFile(
+      resolve(root, "GEMINI.md"),
+      "My notes.\nInstall with `pnpm install`.\n",
+      "utf8",
+    );
+
+    assert.deepEqual(await checkInstructions(root), []);
+    assert.equal(await quietly(() => doctorCommand({ cwd: root })), 0);
+    const status = await collectStatus(root);
+    assert.equal(status.instructionDrift, 0);
+    assert.equal(status.doctor.ok, true);
+  });
+});
