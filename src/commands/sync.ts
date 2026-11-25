@@ -5,6 +5,7 @@ import { runDoctor, type DoctorReport } from "../doctor/index.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { reportDoctor } from "./doctor.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
+import { refreshLinkedRules } from "./rules.js";
 import { watchVault } from "./watch.js";
 
 const run = promisify(execFile);
@@ -19,6 +20,8 @@ export interface SyncOptions {
   /** Validate and stage without committing. */
   dryRun?: boolean;
   json?: boolean;
+  /** Write the current Capsule rules into linked code repositories after syncing. */
+  writeRules?: boolean;
   /** Keep running: revalidate and re-sync whenever a note changes. */
   watch?: boolean;
 }
@@ -141,9 +144,13 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
 
   const report = await runDoctor(vaultRoot, manifest);
   const summary = await runSync(vaultRoot, options, report);
+  // Rules in code repositories follow the Capsule; writing outside the vault needs --write-rules.
+  const rules = summary.ok
+    ? await refreshLinkedRules(vaultRoot, Boolean(options.writeRules) && !options.dryRun)
+    : null;
 
   if (options.json) {
-    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(rules ? { ...summary, rules } : summary, null, 2)}\n`);
     return summary.ok ? 0 : 1;
   }
 
@@ -154,5 +161,14 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
   }
   for (const change of summary.changes) p.log.debug(change);
   reportSync(summary);
+  if (rules?.written) {
+    p.log.success(
+      `rules: wrote ${rules.pending} file${rules.pending === 1 ? "" : "s"} in ${rules.repos} linked repo${rules.repos === 1 ? "" : "s"}`,
+    );
+  } else if (rules?.pending) {
+    p.log.warn(
+      `rules: ${rules.pending} file${rules.pending === 1 ? "" : "s"} in linked repositories differ from the Capsule; run \`vulcanus rules link --write\` (or sync --write-rules)`,
+    );
+  }
   return summary.ok ? 0 : 1;
 }

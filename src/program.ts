@@ -14,6 +14,7 @@ import {
   removeProjectCommand,
   renameProjectCommand,
 } from "./commands/project.js";
+import { rulesCheckCommand, rulesLinkCommand } from "./commands/rules.js";
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
 import { reviewCommand } from "./commands/review.js";
@@ -193,6 +194,35 @@ export function buildProgram(): Command {
       process.exitCode = await driftCommand(project, options);
     });
 
+  const rules = program
+    .command("rules")
+    .description("Share a project's Capsule rules with its code repository, and check they hold");
+  rules
+    .command("link")
+    .description(
+      "Write Capsule rules into AGENTS.md, CLAUDE.md, and vault.mdc (all linked repositories without a project)",
+    )
+    .argument("[project]", "project name or id; omit to refresh every linked repository")
+    .option("--root <dir>", "code repository to write into (default: the project's root)")
+    .option("--write", "write the files; without it the command only shows the difference")
+    .option("--dry-run", "show the difference, write nothing (the default)")
+    .action(
+      async (
+        project: string | undefined,
+        options: { root?: string; write?: boolean; dryRun?: boolean },
+      ) => {
+        process.exitCode = await rulesLinkCommand(project, options);
+      },
+    );
+  rules
+    .command("check")
+    .description("Find copies of the rules that differ, and paths or scripts the code lost")
+    .option("--root <dir>", "code repository to check (default: every linked repository)")
+    .option("--json", "print the report as JSON")
+    .action(async (options: { root?: string; json?: boolean }) => {
+      process.exitCode = await rulesCheckCommand(options);
+    });
+
   const add = program.command("add").description("Add memory nodes to an existing vault");
   add
     .command("project")
@@ -345,17 +375,19 @@ export function buildProgram(): Command {
     .argument("[topic]", "short topic for the commit message")
     .option("--dry-run", "validate and show pending changes without committing")
     .option("--json", "print the result as JSON")
+    .option("--write-rules", "also write the Capsule rules into linked code repositories")
     .option("--watch", "keep running: regenerate and revalidate on every edit, never commit")
     .action(
       async (
         topic: string | undefined,
-        options: { dryRun?: boolean; json?: boolean; watch?: boolean },
+        options: { dryRun?: boolean; json?: boolean; watch?: boolean; writeRules?: boolean },
       ) => {
         process.exitCode = await syncCommand({
           topic,
           dryRun: options.dryRun,
           json: options.json,
           watch: options.watch,
+          writeRules: options.writeRules,
         });
       },
     );
@@ -365,7 +397,7 @@ export function buildProgram(): Command {
     .description("Git hooks that keep a broken memory graph out of history");
   hooks
     .command("install")
-    .description("Install a pre-commit hook that runs `vulcanus doctor`")
+    .description("Install a pre-commit hook that runs `vulcanus doctor` and `vulcanus rules check`")
     .option("--force", "replace a pre-commit hook this CLI did not write")
     .action(async (options: { force?: boolean }) => {
       process.exitCode = await installHooksCommand(options);

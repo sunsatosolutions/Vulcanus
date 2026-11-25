@@ -159,6 +159,8 @@ vulcanus doctor          # validate the vault against its manifest
 ```bash
 vulcanus review          # notes whose review is overdue, oldest first (--ok <note> marks one reviewed)
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
+vulcanus rules link [project] [--root <dir>] [--write]  # put the Capsule rules into the code repo (dry run by default)
+vulcanus rules check [--root <dir>] [--json]            # copies that differ, paths or scripts that are gone
 ```
 
 ```bash
@@ -194,10 +196,11 @@ vulcanus update          # bring the vault up to date with a newer CLI
 ```bash
 vulcanus sync "topic"    # validate, then commit and push
 vulcanus sync --watch    # regenerate and revalidate on every edit; never commits
+vulcanus sync --write-rules  # also refresh the rules in linked code repositories
 ```
 
 ```bash
-vulcanus hooks install   # a pre-commit hook that refuses to commit a broken graph
+vulcanus hooks install   # a pre-commit hook that refuses to commit a broken graph or drifted rules
 ```
 
 ```bash
@@ -356,6 +359,22 @@ claude mcp add vulcanus -- vulcanus serve
 Run it from inside the vault (or any subdirectory), or pass `--cwd` when the client starts elsewhere. Registering it globally is fine: the server starts anywhere, and in a directory with no vault the tools say so instead of the server failing to come up. The manifest and the vault location are both resolved on every call, so a vault created — or edited — while the server runs is visible immediately.
 
 `recall` also tells the truth about its own freshness: when a Capsule is older than the Decisions, Rules, or Context beneath it, the answer carries a staleness warning instead of presenting an outdated summary as current.
+
+## Rules in the code repository
+
+`vulcanus rules` puts a project's Capsule rules (the bullets under Must Remember and Do Not Assume) where a coding agent reads them: `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/vault.mdc` in the code repository, as one block between `<!-- vulcanus:rules:start -->` and `<!-- vulcanus:rules:end -->`. Text outside the markers is never touched. A repository counts as *linked* when a project's `root` in `vulcanus.json` holds that block.
+
+- `rules link <project> [--root <dir>]` shows the difference and writes nothing; `--write` applies it. Without `--root` it uses the project's `root`. Without a project it refreshes every linked repository.
+- `rules check [--root <dir>] [--json]` finds copies that differ and paths or `npm` scripts the rules name that the code no longer has. It exits `1` on any finding; without `--root` it checks every linked repository, and with none it passes.
+- `doctor` reports the same findings as `RULES-DRIFT` warnings. The pre-commit hook from `hooks install` runs `rules check` and stops the commit on drift. `sync` says when linked repositories lag behind the Capsule; `sync --write-rules` updates them.
+
+Try it in five steps:
+
+1. Set `"root": "../my-app"` on the project in `vulcanus.json`, and write rules as bullets in its Capsule, for example "Build with `npm run build`".
+2. `vulcanus rules link my-app` and read the difference. Nothing is written yet.
+3. `vulcanus rules link my-app --write`, then `vulcanus rules check --json`: `"ok": true`.
+4. In the code repository, rename the `build` script or delete a path a rule names, or edit one rule in `CLAUDE.md`.
+5. `vulcanus rules check` exits `1` and names the file, line, and cause; `vulcanus doctor` warns `RULES-DRIFT`. Change a Capsule rule and `vulcanus rules link --write` brings the repositories back in line.
 
 ## Obsidian
 

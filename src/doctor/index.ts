@@ -17,6 +17,7 @@ import {
   type LifecycleAnalysis,
   type LifecycleState,
 } from "../memory/lifecycle.js";
+import { checkRepo, linkedRepos } from "../memory/rules.js";
 import { checkCodeDrift, codeBackedSections, codeDirOf } from "../memory/codedrift.js";
 import { assessNote, type NoteFreshness } from "../memory/freshness.js";
 import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdown.js";
@@ -450,6 +451,20 @@ export async function runDoctor(
           ? `${name}: code changed since ${change.section.commit?.slice(0, 7)} in ${change.files.join(", ")}; verify it still holds`
           : `${name}: could not verify against the code (${change.reason})`,
         change.section.path,
+      );
+    }
+  }
+
+  // --- Rules in linked code repositories ----------------------------------
+  // `rules link` copies Capsule rules into a code repository. A copy that
+  // differs, or a path or script it names that the code lost, is drift.
+  for (const repo of await linkedRepos(vaultRoot, manifest)) {
+    const report = await checkRepo(repo.root);
+    for (const finding of report?.findings ?? []) {
+      add(
+        "warning",
+        "RULES-DRIFT",
+        `${repo.name}: ${finding.file}${finding.line ? `:${finding.line}` : ""} ${finding.kind} \`${finding.text}\` — ${finding.reason}`,
       );
     }
   }

@@ -36,11 +36,20 @@ if ! command -v vulcanus >/dev/null 2>&1; then
   exit 0
 fi
 
-vulcanus doctor --json > /dev/null 2>&1 && exit 0
+if ! vulcanus doctor --json > /dev/null 2>&1; then
+  echo "vulcanus doctor found errors; commit refused." >&2
+  vulcanus doctor >&2
+  exit 1
+fi
 
-echo "vulcanus doctor found errors; commit refused." >&2
-vulcanus doctor >&2
-exit 1
+# Rules shared with linked code repositories: a copy that differs, or a path or
+# script the code lost, stops the commit. No linked repository passes.
+if ! vulcanus rules check --json > /dev/null 2>&1; then
+  echo "vulcanus rules check found drift; commit refused." >&2
+  vulcanus rules check >&2
+  exit 1
+fi
+exit 0
 `;
 }
 
@@ -99,7 +108,9 @@ export async function installHooksCommand(options: HooksOptions = {}): Promise<n
 
   p.intro(`hooks — ${manifest.vault.name}`);
   p.log.success(`pre-commit hook installed at ${target}`);
-  p.outro("Commits now run `vulcanus doctor` first. Bypass one with `git commit --no-verify`.");
+  p.outro(
+    "Commits now run `vulcanus doctor` and `vulcanus rules check` first. Bypass one with `git commit --no-verify`.",
+  );
   return 0;
 }
 
