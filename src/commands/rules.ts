@@ -214,6 +214,8 @@ export interface RulesRefresh {
   /** Files whose block differs from the current Capsule rules. */
   pending: number;
   written: boolean;
+  /** Linked repositories whose plan failed, with the reason; their files were not checked. */
+  failed: { project: string; reason: string }[];
 }
 
 /**
@@ -228,9 +230,13 @@ export async function refreshLinkedRules(
   const repos = await linkedRepos(vaultRoot, manifest);
   if (repos.length === 0) return null;
   let pending = 0;
+  const failed: RulesRefresh["failed"] = [];
   for (const repo of repos) {
     const plan = await planLink(vaultRoot, manifest, repo.id, repo.root);
-    if (!plan.ok) continue;
+    if (!plan.ok) {
+      failed.push({ project: repo.name, reason: plan.problem.what });
+      continue;
+    }
     for (const change of plan.changes) {
       if (change.action === "unchanged") continue;
       pending++;
@@ -240,5 +246,5 @@ export async function refreshLinkedRules(
       await writeFile(target, plan.next.get(change.file)!);
     }
   }
-  return { repos: repos.length, pending, written: write && pending > 0 };
+  return { repos: repos.length, pending, written: write && pending > 0, failed };
 }

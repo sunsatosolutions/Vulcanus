@@ -180,6 +180,7 @@ describe("lockstep end to end", () => {
       repos: 1,
       pending: 3,
       written: false,
+      failed: [],
     });
     assert.equal(await readFile(agents, "utf8"), before);
 
@@ -194,6 +195,7 @@ describe("lockstep end to end", () => {
       repos: 1,
       pending: 3,
       written: true,
+      failed: [],
     });
     assert.match(await readFile(agents, "utf8"), /Never push to `main`/);
   });
@@ -243,5 +245,108 @@ describe("pre-commit hook runs rules check", () => {
       code: 1,
       stderr: /rules check found drift; commit refused/,
     });
+  });
+});
+
+describe("sync with a real pre-commit hook", () => {
+  it("refreshes drifted rules before the commit, so the hook lets it through", async () => {
+    if (process.platform === "win32") return;
+    const { vault, codes } = await lockstep();
+    setLogLevel("quiet");
+    await rulesLinkCommand("Alpha", { cwd: vault, write: true });
+    const git = (args: string[]) => run("git", args, { cwd: vault });
+    await git(["init", "-q"]);
+    await git(["add", "-A"]);
+    await git([
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@t",
+      "commit",
+      "-qm",
+      "base",
+      "--no-verify",
+    ]);
+
+    const bin = resolve(vault, "..", "bin");
+    await mkdir(bin);
+    const tsx = resolve("node_modules/.bin/tsx");
+    const cli = resolve("src/cli.ts");
+    await writeFile(resolve(bin, "vulcanus"), `#!/bin/sh\nexec '${tsx}' '${cli}' "$@"\n`);
+    await chmod(resolve(bin, "vulcanus"), 0o755);
+
+    const forced = process.env.GIT_CONFIG_COUNT;
+    delete process.env.GIT_CONFIG_COUNT;
+    const saved = { ...process.env };
+    try {
+      assert.equal(await installHooksCommand({ cwd: vault }), 0);
+      Object.assign(process.env, {
+        PATH: `${bin}:${process.env.PATH}`,
+        GIT_AUTHOR_NAME: "t",
+        GIT_AUTHOR_EMAIL: "t@t",
+        GIT_COMMITTER_NAME: "t",
+        GIT_COMMITTER_EMAIL: "t@t",
+      });
+      await setRules(vault, "Alpha", "- Never push to `main`.");
+      // The copies diverge: the hook would refuse any commit until the refresh has run.
+      const claude = resolve(codes[0], "CLAUDE.md");
+      await writeFile(
+        claude,
+        (await readFile(claude, "utf8")).replace("Build with", "Build however with"),
+      );
+      await assert.rejects(run("sh", [resolve(vault, "../.git/hooks/pre-commit")], { cwd: vault }));
+      const agents = resolve(codes[0], "AGENTS.md");
+      assert.doesNotMatch(await readFile(agents, "utf8"), /Never push/);
+
+      const { result, output } = await capture(() =>
+        syncCommand({ cwd: vault, json: true, writeRules: true }),
+      );
+      assert.equal(result, 0);
+      const summary = JSON.parse(output) as { committed: string | null };
+      assert.ok(summary.committed);
+      assert.match(await readFile(agents, "utf8"), /Never push to `main`/);
+    } finally {
+      for (const key of [
+        "PATH",
+        "GIT_AUTHOR_NAME",
+        "GIT_AUTHOR_EMAIL",
+        "GIT_COMMITTER_NAME",
+        "GIT_COMMITTER_EMAIL",
+      ]) {
+        if (saved[key] === undefined) delete process.env[key];
+        else process.env[key] = saved[key];
+      }
+      if (forced !== undefined) process.env.GIT_CONFIG_COUNT = forced;
+    }
+  });
+});
+
+describe("a plan that cannot be made is reported", () => {
+  it("sync names the damaged repository and fails when a refresh was requested", async () => {
+    const { vault, codes } = await lockstep();
+    setLogLevel("quiet");
+    await rulesLinkCommand("Alpha", { cwd: vault, write: true });
+    await rulesLinkCommand("Beta", { cwd: vault, write: true });
+    const agents = resolve(codes[0], "AGENTS.md");
+    await writeFile(
+      agents,
+      (await readFile(agents, "utf8")).replace("<!-- vulcanus:rules:end -->", ""),
+    );
+    await setRules(vault, "Beta", "- Never push to `main`.");
+
+    const hinted = await capture(() => syncCommand({ cwd: vault, json: true }));
+    assert.equal(hinted.result, 0);
+    const rules = (
+      JSON.parse(hinted.output) as { rules: { failed: { project: string }[]; pending: number } }
+    ).rules;
+    assert.deepEqual(
+      rules.failed.map((f) => f.project),
+      ["Alpha"],
+    );
+    assert.equal(rules.pending, 3);
+
+    const asked = await capture(() => syncCommand({ cwd: vault, json: true, writeRules: true }));
+    assert.equal(asked.result, 1);
+    assert.match(await readFile(resolve(codes[1], "AGENTS.md"), "utf8"), /Never push to `main`/);
   });
 });

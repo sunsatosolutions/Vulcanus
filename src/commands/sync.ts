@@ -143,15 +143,18 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
   if (!options.json) p.intro(`sync — ${manifest.vault.name}`);
 
   const report = await runDoctor(vaultRoot, manifest);
-  const summary = await runSync(vaultRoot, options, report);
   // Rules in code repositories follow the Capsule; writing outside the vault needs --write-rules.
-  const rules = summary.ok
+  // Refresh before the commit: the pre-commit hook refuses a commit while the copies drift.
+  const rules = report.ok
     ? await refreshLinkedRules(vaultRoot, Boolean(options.writeRules) && !options.dryRun)
     : null;
+  const summary = await runSync(vaultRoot, options, report);
+  // A refresh the user asked for that could not run is a failure, not a quiet zero.
+  const exit = summary.ok && !(options.writeRules && rules?.failed.length) ? 0 : 1;
 
   if (options.json) {
     process.stdout.write(`${JSON.stringify(rules ? { ...summary, rules } : summary, null, 2)}\n`);
-    return summary.ok ? 0 : 1;
+    return exit;
   }
 
   if (!summary.doctor.ok) {
@@ -161,6 +164,9 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
   }
   for (const change of summary.changes) p.log.debug(change);
   reportSync(summary);
+  for (const failure of rules?.failed ?? []) {
+    p.log.error(`rules: ${failure.project} not refreshed — ${failure.reason}`);
+  }
   if (rules?.written) {
     p.log.success(
       `rules: wrote ${rules.pending} file${rules.pending === 1 ? "" : "s"} in ${rules.repos} linked repo${rules.repos === 1 ? "" : "s"}`,
@@ -170,5 +176,5 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
       `rules: ${rules.pending} file${rules.pending === 1 ? "" : "s"} in linked repositories differ from the Capsule; run \`vulcanus rules link --write\` (or sync --write-rules)`,
     );
   }
-  return summary.ok ? 0 : 1;
+  return exit;
 }
