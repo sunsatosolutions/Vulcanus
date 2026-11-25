@@ -15,6 +15,7 @@ import {
   removeProjectCommand,
   renameProjectCommand,
 } from "./commands/project.js";
+import { rulesCheckCommand, rulesLinkCommand } from "./commands/rules.js";
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
 import { reviewCommand } from "./commands/review.js";
@@ -201,6 +202,30 @@ export function buildProgram(): Command {
     .option("--json", "print the report as JSON")
     .action(async (project: string | undefined, options: { root?: string; json?: boolean }) => {
       process.exitCode = await driftCommand(project, options);
+    });
+
+  const rules = program
+    .command("rules")
+    .description("Share a project's Capsule rules with its code repository, and check they hold");
+  rules
+    .command("link")
+    .description("Write the project's Capsule rules into AGENTS.md, CLAUDE.md, and vault.mdc")
+    .argument("<project>", "project name or id")
+    .option("--root <dir>", "code repository to write into")
+    .option("--write", "write the files; without it the command only shows the difference")
+    .option("--dry-run", "show the difference, write nothing (the default)")
+    .action(
+      async (project: string, options: { root?: string; write?: boolean; dryRun?: boolean }) => {
+        process.exitCode = await rulesLinkCommand(project, options);
+      },
+    );
+  rules
+    .command("check")
+    .description("Find copies of the rules that differ, and paths or scripts the code lost")
+    .option("--root <dir>", "code repository to check")
+    .option("--json", "print the report as JSON")
+    .action(async (options: { root?: string; json?: boolean }) => {
+      process.exitCode = await rulesCheckCommand(options);
     });
 
   const add = program.command("add").description("Add memory nodes to an existing vault");

@@ -131,6 +131,20 @@ function commentStart(text: string): number {
 }
 
 /**
+ * Fence state after `line`: CommonMark opens on 3+ backticks or tildes (a backtick
+ * opener has no backtick in its info string) and closes only on the same character,
+ * at least as long, with no info string.
+ */
+export function fenceAfter(open: string | null, line: string): { fence: string | null; isFence: boolean } {
+  const match = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+  if (!match || (match[1][0] === "`" && match[2].includes("`"))) return { fence: open, isFence: false };
+  const run = match[1];
+  if (open === null) return { fence: run, isFence: true };
+  const closes = run[0] === open[0] && run.length >= open.length && match[2].trim() === "";
+  return { fence: closes ? null : open, isFence: true };
+}
+
+/**
  * The note with every HTML comment removed and every line kept, so line numbers
  * still match the file. Fenced blocks and inline code spans are left alone: a
  * `<!--` inside them is text. The one place comments are understood; section and
@@ -164,11 +178,7 @@ export function stripComments(text: string): string {
         }
         kept += rest;
       }
-      const fenceMatch = /^(```|~~~)/.exec(kept.trim());
-      if (fenceMatch) {
-        if (fence === null) fence = fenceMatch[1];
-        else if (fenceMatch[1] === fence) fence = null;
-      }
+      fence = fenceAfter(fence, kept).fence;
       return kept;
     })
     .join("\n");
@@ -192,14 +202,9 @@ export function parseSections(path: string, text: string): MemorySection[] {
   };
 
   lines.forEach((line, index) => {
-    const trimmed = line.trim();
-
-    const fenceMatch = /^(```|~~~)/.exec(trimmed);
-    if (fenceMatch) {
-      if (fence === null) fence = fenceMatch[1];
-      else if (fenceMatch[1] === fence) fence = null;
-      return;
-    }
+    const step = fenceAfter(fence, line);
+    fence = step.fence;
+    if (step.isFence) return;
     if (fence !== null) return;
 
     const heading = /^##\s+(.+?)\s*#*\s*$/.exec(line);
