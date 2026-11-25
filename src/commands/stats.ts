@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { noVaultProblem, reportProblem } from "../errors.js";
 import { buildPlan, type VaultPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
+import { loadVaultNotes, vaultFreshness } from "../doctor/index.js";
+import { today } from "../memory/lifecycle.js";
 import * as p from "../ui.js";
 
 /**
@@ -60,6 +62,8 @@ export interface StatsSummary {
   savedShare: number;
   projects: ProjectCost[];
   largest: NoteCost[];
+  /** Notes past their review limit; null when the manifest has no `freshness`. */
+  staleNotes: number | null;
 }
 
 async function costOf(vaultRoot: string, path: string, name: string): Promise<NoteCost | null> {
@@ -69,7 +73,7 @@ async function costOf(vaultRoot: string, path: string, name: string): Promise<No
   return { path, name, bytes: info.size, tokens: estimateTokens(content) };
 }
 
-export async function collectStats(vaultRoot: string): Promise<StatsSummary> {
+export async function collectStats(vaultRoot: string, on: string = today()): Promise<StatsSummary> {
   const manifest = await readManifest(vaultRoot);
   const plan: VaultPlan = buildPlan(manifest);
 
@@ -114,6 +118,12 @@ export async function collectStats(vaultRoot: string): Promise<StatsSummary> {
     projects.find((entry) => entry.capsuleTokens === medianCapsule)?.project ?? null;
   const typicalTokens = coldStartTokens + medianCapsule;
 
+  const staleNotes = manifest.freshness
+    ? vaultFreshness(vaultRoot, manifest, await loadVaultNotes(vaultRoot, manifest), on).filter(
+        (note) => note.state === "stale",
+      ).length
+    : null;
+
   return {
     vault: manifest.vault.name,
     root: vaultRoot,
@@ -129,12 +139,15 @@ export async function collectStats(vaultRoot: string): Promise<StatsSummary> {
     savedShare: everything > 0 ? Math.max(0, 1 - typicalTokens / everything) : 0,
     projects,
     largest: [...all].sort((a, b) => b.tokens - a.tokens).slice(0, 10),
+    staleNotes,
   };
 }
 
 export interface StatsOptions {
   cwd?: string;
   json?: boolean;
+  /** ISO date treated as today; injectable for tests. */
+  today?: string;
 }
 
 function pad(value: string | number, width: number): string {
@@ -146,7 +159,7 @@ export async function statsCommand(options: StatsOptions = {}): Promise<number> 
   const vaultRoot = findVaultRoot(start);
   if (!vaultRoot) return reportProblem(noVaultProblem(start, "vulcanus stats"));
 
-  const summary = await collectStats(vaultRoot);
+  const summary = await collectStats(vaultRoot, options.today);
 
   if (options.json) {
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
@@ -164,6 +177,7 @@ export async function statsCommand(options: StatsOptions = {}): Promise<number> 
         summary.typicalRecall.project ? `, e.g. ${summary.typicalRecall.project}` : ""
       })`,
       `whole vault  ${pad(summary.everything, 7)} tokens  (${summary.totals.notes} notes)`,
+      ...(summary.staleNotes === null ? [] : [`stale notes  ${pad(summary.staleNotes, 7)}`]),
       "",
       `A task-scoped recall reads ${Math.round(summary.savedShare * 100)}% less than the vault.`,
     ].join("\n"),
