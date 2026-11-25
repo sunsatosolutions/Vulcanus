@@ -95,7 +95,7 @@ export function renderTarget(target: Target, source: string): string {
 }
 
 /**
- * Codex reads `AGENTS.override.md`, else `AGENTS.md`, and stops adding project
+ * Codex reads the first non-empty of `AGENTS.override.md` and `AGENTS.md`, not both, and stops adding project
  * instructions once `project_doc_max_bytes` is reached; the default is 32 KiB.
  * https://developers.openai.com/codex/guides/agents-md
  */

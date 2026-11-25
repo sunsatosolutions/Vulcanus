@@ -206,7 +206,7 @@ describe("instruction budget and conflicts", () => {
   const codes = async (root: string) =>
     (await checkInstructions(root)).map((finding) => [finding.code, finding.file]);
 
-  it("warns only above the 32 KiB budget, counting AGENTS.override.md too", async () => {
+  it("warns only above the 32 KiB budget, of the one file Codex reads", async () => {
     const under = await repo("x".repeat(32 * 1024));
     assert.deepEqual(await codes(under), []);
 
@@ -216,6 +216,13 @@ describe("instruction budget and conflicts", () => {
 
     const split = await repo("x".repeat(20 * 1024));
     await writeFile(resolve(split, "AGENTS.override.md"), "y".repeat(13 * 1024), "utf8");
+    assert.deepEqual(await codes(split), []);
+
+    await writeFile(resolve(split, "AGENTS.override.md"), "y".repeat(32 * 1024 + 1), "utf8");
+    assert.deepEqual(await codes(split), [["INSTRUCTION-BUDGET", "AGENTS.override.md"]]);
+
+    await writeFile(resolve(split, "AGENTS.override.md"), "\n", "utf8");
+    await writeFile(resolve(split, "AGENTS.md"), "x".repeat(32 * 1024 + 1), "utf8");
     assert.deepEqual(await codes(split), [["INSTRUCTION-BUDGET", "AGENTS.md"]]);
   });
 

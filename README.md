@@ -273,7 +273,7 @@ $ vulcanus doctor
 `doctor` checks these files too (in a folder with only an `AGENTS.md`, it runs just these checks):
 
 - `INSTRUCTION-SOURCE`, `INSTRUCTION-STALE` (errors): a bridge file whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`. Fix: `vulcanus bridge --write`.
-- `INSTRUCTION-BUDGET` (warning): `AGENTS.override.md` plus `AGENTS.md` are larger than 32 KiB, Codex's default `project_doc_max_bytes`; Codex cuts the rest off.
+- `INSTRUCTION-BUDGET` (warning): the file Codex reads (`AGENTS.override.md` if non-empty, else `AGENTS.md`) is larger than 32 KiB, Codex's default `project_doc_max_bytes`; Codex cuts the rest off.
 - `INSTRUCTION-CONFLICT` (warning): `AGENTS.md` and a hand-written `CLAUDE.md`, `GEMINI.md`, Copilot or Cursor file name different package managers (`npm`, `pnpm`, `yarn`, `bun`) or different test runners (`vitest`, `jest`, `mocha`, `pytest`). It shows both files and lines. Only these known words are compared; fenced code blocks, lines with "not", "never", "instead of", and a file that names two tools are skipped. `npm test` against `vitest` is not a conflict.
 
 `status` shows `instruction files: consistent` or `N drifted`, counting all four codes.

@@ -62,20 +62,22 @@ function single(names: Map<string, Seen>): [string, Seen] | null {
 }
 
 async function checkBudget(root: string): Promise<DoctorFinding[]> {
-  let total = 0;
   for (const name of CODEX_FILES) {
     const file = resolve(root, name);
-    if (existsSync(file)) total += (await readFile(file)).byteLength;
+    if (!existsSync(file)) continue;
+    const bytes = await readFile(file);
+    if (bytes.toString("utf8").trim() === "") continue;
+    if (bytes.byteLength <= INSTRUCTION_BUDGET_BYTES) return [];
+    return [
+      {
+        level: "warning",
+        code: "INSTRUCTION-BUDGET",
+        message: `Codex reads only ${name}, ${bytes.byteLength} bytes; its default limit is ${INSTRUCTION_BUDGET_BYTES} and the rest is cut off`,
+        file: name,
+      },
+    ];
   }
-  if (total <= INSTRUCTION_BUDGET_BYTES) return [];
-  return [
-    {
-      level: "warning",
-      code: "INSTRUCTION-BUDGET",
-      message: `Codex reads ${total} bytes of ${CODEX_FILES.join(" and ")}; its default limit is ${INSTRUCTION_BUDGET_BYTES} and the rest is cut off`,
-      file: SOURCE_FILE,
-    },
-  ];
+  return [];
 }
 
 async function checkConflicts(root: string, source: string): Promise<DoctorFinding[]> {
