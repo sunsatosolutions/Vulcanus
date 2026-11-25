@@ -150,10 +150,13 @@ export async function syncCommand(options: SyncOptions = {}): Promise<number> {
     : null;
   const summary = await runSync(vaultRoot, options, report);
   // A refresh the user asked for that could not run is a failure, not a quiet zero.
-  const exit = summary.ok && !(options.writeRules && rules?.failed.length) ? 0 : 1;
+  const ok = summary.ok && !(options.writeRules && rules?.failed.length);
+  const exit = ok ? 0 : 1;
 
   if (options.json) {
-    process.stdout.write(`${JSON.stringify(rules ? { ...summary, rules } : summary, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(rules ? { ...summary, ok, rules } : summary, null, 2)}\n`,
+    );
     return exit;
   }
 

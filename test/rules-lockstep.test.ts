@@ -336,6 +336,7 @@ describe("a plan that cannot be made is reported", () => {
 
     const hinted = await capture(() => syncCommand({ cwd: vault, json: true }));
     assert.equal(hinted.result, 0);
+    assert.equal((JSON.parse(hinted.output) as { ok: boolean }).ok, true);
     const rules = (
       JSON.parse(hinted.output) as { rules: { failed: { project: string }[]; pending: number } }
     ).rules;
@@ -347,6 +348,7 @@ describe("a plan that cannot be made is reported", () => {
 
     const asked = await capture(() => syncCommand({ cwd: vault, json: true, writeRules: true }));
     assert.equal(asked.result, 1);
+    assert.equal((JSON.parse(asked.output) as { ok: boolean }).ok, false);
     assert.match(await readFile(resolve(codes[1], "AGENTS.md"), "utf8"), /Never push to `main`/);
   });
 });
