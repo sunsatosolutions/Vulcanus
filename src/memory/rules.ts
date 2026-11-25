@@ -110,6 +110,80 @@ function entries(body: string, firstLine: number): Entry[] {
     .filter((entry) => entry.text !== "");
 }
 
+interface AlignOp {
+  kind: "missing" | "extra";
+  index: number;
+}
+
+/** Last row of LCS lengths of a[aLo..aHi) against every prefix of b[bLo..bHi); O(b) memory. */
+function lcsRow(
+  a: string[],
+  aLo: number,
+  aHi: number,
+  b: string[],
+  bLo: number,
+  bHi: number,
+  reverse: boolean,
+): number[] {
+  const width = bHi - bLo;
+  let prev = new Array<number>(width + 1).fill(0);
+  let cur = new Array<number>(width + 1).fill(0);
+  for (let k = 0; k < aHi - aLo; k++) {
+    const x = a[reverse ? aHi - 1 - k : aLo + k];
+    for (let j = 1; j <= width; j++) {
+      const y = b[reverse ? bHi - j : bLo + j - 1];
+      cur[j] = x === y ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]);
+    }
+    [prev, cur] = [cur, prev];
+  }
+  return prev;
+}
+
+/**
+ * Lines of `want` absent from `have` ("missing") and lines of `have` absent
+ * from `want` ("extra"), in order. Hirschberg's linear-memory LCS, so a large
+ * block does not allocate an n*m table.
+ */
+function align(want: string[], have: string[]): AlignOp[] {
+  const ops: AlignOp[] = [];
+  const walk = (aLo: number, aHi: number, bLo: number, bHi: number): void => {
+    while (aLo < aHi && bLo < bHi && want[aLo] === have[bLo]) {
+      aLo++;
+      bLo++;
+    }
+    while (aLo < aHi && bLo < bHi && want[aHi - 1] === have[bHi - 1]) {
+      aHi--;
+      bHi--;
+    }
+    if (aLo === aHi || bLo === bHi || aHi - aLo === 1) {
+      let keep = -1;
+      if (aHi - aLo === 1) {
+        keep = have.indexOf(want[aLo], bLo);
+        if (keep >= bHi) keep = -1;
+      }
+      if (keep < 0) for (let i = aLo; i < aHi; i++) ops.push({ kind: "missing", index: i });
+      for (let j = bLo; j < bHi; j++) if (j !== keep) ops.push({ kind: "extra", index: j });
+      return;
+    }
+    const mid = (aLo + aHi) >> 1;
+    const front = lcsRow(want, aLo, mid, have, bLo, bHi, false);
+    const back = lcsRow(want, mid, aHi, have, bLo, bHi, true);
+    let split = 0;
+    let best = -1;
+    for (let j = 0; j <= bHi - bLo; j++) {
+      const total = front[j] + back[bHi - bLo - j];
+      if (total > best) {
+        best = total;
+        split = j;
+      }
+    }
+    walk(aLo, mid, bLo, bLo + split);
+    walk(mid, aHi, bLo + split, bHi);
+  };
+  walk(0, want.length, 0, have.length);
+  return ops;
+}
+
 /**
  * `texts` maps each rule file to its content, or null when the file is absent.
  * Returns null when no file holds a block: there is nothing to check.
@@ -179,41 +253,27 @@ export function checkRules(root: string, texts: Map<string, string | null>): Rul
       }
       // Different lengths: align in order (longest common subsequence) so
       // reordered or repeated lines show up; set membership would hide them.
-      const n = want.length;
-      const m = have.length;
-      const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-      for (let i = n - 1; i >= 0; i--) {
-        for (let j = m - 1; j >= 0; j--) {
-          lcs[i][j] =
-            want[i].text === have[j].text
-              ? lcs[i + 1][j + 1] + 1
-              : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
-        }
-      }
-      let i = 0;
-      let j = 0;
-      while (i < n || j < m) {
-        if (i < n && j < m && want[i].text === have[j].text) {
-          i++;
-          j++;
-        } else if (j >= m || (i < n && lcs[i + 1][j] >= lcs[i][j + 1])) {
+      const ops = align(
+        want.map((e) => e.text),
+        have.map((e) => e.text),
+      );
+      for (const op of ops) {
+        if (op.kind === "missing") {
           findings.push({
             kind: "divergent",
             file,
             line: block.line,
-            text: want[i].text,
+            text: want[op.index].text,
             reason: `in ${reference} but missing here`,
           });
-          i++;
         } else {
           findings.push({
             kind: "divergent",
             file,
-            line: have[j].line,
-            text: have[j].text,
+            line: have[op.index].line,
+            text: have[op.index].text,
             reason: `not in ${reference}`,
           });
-          j++;
         }
       }
     }

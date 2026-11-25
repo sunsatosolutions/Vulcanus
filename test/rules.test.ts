@@ -7,7 +7,7 @@ import { rulesCheckCommand, rulesLinkCommand } from "../src/commands/rules.js";
 import { EXIT } from "../src/errors.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
 import { writeManifest } from "../src/manifest/io.js";
-import { END, START, type RulesReport } from "../src/memory/rules.js";
+import { END, START, checkRules, type RulesReport } from "../src/memory/rules.js";
 import { setLogLevel } from "../src/ui.js";
 import { cleanup, manifest, project, tempDir } from "./helpers.js";
 
@@ -349,5 +349,55 @@ describe("rules check: copies of different length", () => {
     const swapped = await check(code);
     assert.equal(swapped.report.ok, false);
     assert.ok(swapped.report.findings.some((f) => f.kind === "divergent"));
+  });
+});
+
+describe("rules link: fence length and character", () => {
+  it("does not close a four-backtick fence on a three-backtick line", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(
+      resolve(vault, CAPSULE),
+      [
+        "# Alpha Capsule",
+        "",
+        "## Must Remember",
+        "",
+        "- Real rule one",
+        "````md",
+        "```",
+        "- Fake example rule",
+        "```",
+        "- Another fake rule",
+        "````",
+        "~~~",
+        "````",
+        "- Fake inside tilde fence",
+        "~~~",
+        "- Real rule two",
+        "",
+      ].join("\n"),
+    );
+    assert.equal((await link(vault, code, { write: true })).result, EXIT.ok);
+    const text = await read(code, "AGENTS.md");
+    assert.ok(text.includes("- Real rule one\n- Real rule two\n"));
+    assert.ok(!text.includes("fake") && !text.includes("Fake"));
+  });
+});
+
+describe("rules check: large copies of different length", () => {
+  it("compares long blocks without an n*m table and still finds each difference", () => {
+    const body = (lines: string[]) => `${START}\n${lines.join("\n")}\n${END}\n`;
+    const want = Array.from({ length: 6000 }, (_, i) => `- rule ${i}`);
+    const have = want.filter((_, i) => i !== 10 && i !== 4000);
+    have.splice(2500, 0, "- extra");
+    const report = checkRules(
+      "/tmp/x",
+      new Map([
+        ["AGENTS.md", body(want)],
+        ["CLAUDE.md", body(have)],
+      ]),
+    )!;
+    const reasons = report.findings.filter((f) => f.kind === "divergent").map((f) => f.text);
+    assert.deepEqual(reasons.sort(), ["- extra", "- rule 10", "- rule 4000"]);
   });
 });

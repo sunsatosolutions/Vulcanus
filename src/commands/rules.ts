@@ -74,10 +74,15 @@ function capsuleRules(text: string, path: string, language: Locale) {
     let open = false;
     let gap = false;
     for (const line of lines.slice(section.line, section.endLine)) {
-      const fenceMatch = /^\s*(```|~~~)/.exec(line);
-      if (fenceMatch) {
-        if (fence === null) fence = fenceMatch[1];
-        else if (fenceMatch[1] === fence) fence = null;
+      // CommonMark: a fence closes only on the same character, at least as long
+      // as the opener, with no info string.
+      const fenceMatch = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+      if (fenceMatch && !(fenceMatch[1][0] === "`" && fenceMatch[2].includes("`"))) {
+        const run = fenceMatch[1];
+        if (fence === null) fence = run;
+        else if (run[0] === fence[0] && run.length >= fence.length && fenceMatch[2].trim() === "") {
+          fence = null;
+        }
         gap = true;
         continue;
       }
