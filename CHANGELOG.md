@@ -9,7 +9,8 @@
   `STALE-NOTE` (review overdue), `DEAD-PATH` (a relative path written as code does not exist)
   and `FRESHNESS` (unreadable field); none changes the exit code. `vulcanus review` lists
   stale notes oldest first; `review --ok <note>` rewrites only that note's `reviewed:` line.
-  `stats` counts stale notes. Without the field nothing changes.
+  `stats` counts stale notes. MCP `recall` (capsule and read-next notes) and `search` (hits)
+  carry `status: fresh | stale | dead-ref | unknown`; no new tool. Without the field nothing changes.
 
 ### Changed
 

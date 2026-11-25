@@ -237,9 +237,35 @@ In CI or a git hook, run `vulcanus drift <project>` from inside the vault and le
 
 Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
 
-### Notes that go stale
+### Notes that go stale (Tazelik denetimi)
 
-Opt in with `"freshness": { "staleAfterDays": { "decisions": 180 } }` in `vulcanus.json` (note `type` to days). A note then carries `reviewed: 2026-11-01` and, to override the default, `stale_after: 60`. `doctor` warns `STALE-NOTE` when the review is older than that, `DEAD-PATH` when a relative path written as code does not exist (vault root, then the project's `root`), and `FRESHNESS` for an unreadable field. All are warnings; the exit code does not change. `vulcanus review` lists the stale notes, oldest first; `vulcanus review --ok "<note>"` sets `reviewed:` to today and touches nothing else. Without the field, none of this runs. See [docs/design](docs/design/note-freshness.md).
+Opt in with `"freshness": { "staleAfterDays": { "decisions": 180 } }` in `vulcanus.json` (note `type` to days). A note then carries `reviewed: 2026-11-01` and, to override the default, `stale_after: 60`. `doctor` warns `STALE-NOTE` when the review is older than that, `DEAD-PATH` when a relative path written as code does not exist (vault root, then the project's `root`), and `FRESHNESS` for an unreadable field. All are warnings; the exit code does not change. `vulcanus review` lists the stale notes, oldest first; `vulcanus review --ok "<note>"` sets `reviewed:` to today and touches nothing else. MCP `recall` (on the capsule and each read-next note) and `search` (on each hit) carry `status: fresh | stale | dead-ref | unknown`; a note without `reviewed:` is `unknown`, never an error. `stats` prints the stale count. Without the field, none of this runs, and `recall` and `search` answer as before. See [docs/design](docs/design/note-freshness.md).
+
+#### Tazelik denetimi: try it on your vault
+
+Manifest (`vulcanus.json`):
+
+```json
+"freshness": { "staleAfterDays": { "decisions": 180, "capsule": 90 } }
+```
+
+Note frontmatter (both optional):
+
+```yaml
+reviewed: 2026-11-01   # the day a person last checked the note
+stale_after: 60        # days; replaces the manifest default for this note
+```
+
+Four commands:
+
+```bash
+vulcanus doctor                          # STALE-NOTE and DEAD-PATH show up as warnings
+vulcanus review                          # stale notes, longest unreviewed first
+vulcanus review --ok "<Project> Decisions"   # after you checked it: reviewed: today, nothing else changes
+vulcanus stats                           # "stale notes" line; then ask your agent to recall the project and read each note's status
+```
+
+A project's own notes look for a relative path in the vault and in the project's `root`; set `root` first or code paths read as dead.
 
 ### Decisions from your commits
 
