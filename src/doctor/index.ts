@@ -152,10 +152,12 @@ export function vaultFreshness(
   const generated = new Set([plan.systemHub, ...plan.system.values()].map((note) => note.path));
   // A note belongs to the nearest project directory above it; nested projects nest their dirs.
   const projectRoots = plan.allProjects
-    .filter((project) => typeof project.project.root === "string")
     .map((project) => ({
       dir: `${project.dir}/`,
-      root: resolve(vaultRoot, expandHome(project.project.root!)),
+      root:
+        typeof project.project.root === "string"
+          ? resolve(vaultRoot, expandHome(project.project.root))
+          : undefined,
     }))
     .sort((a, b) => b.dir.length - a.dir.length);
   const rootFor = (file: string) => projectRoots.find((entry) => file.startsWith(entry.dir))?.root;
