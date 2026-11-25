@@ -240,9 +240,37 @@ In CI or a git hook, run `vulcanus drift <project>` from inside the vault and le
 
 Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
 
-### Notes that go stale
+### Notes that go stale (Tazelik denetimi)
 
-Opt in with `"freshness": { "staleAfterDays": { "decisions": 180 } }` in `vulcanus.json` (note `type` to days). A note then carries `reviewed: 2026-11-01` and, to override the default, `stale_after: 60`. `doctor` warns `STALE-NOTE` when the review is older than that, `DEAD-PATH` when a relative path written as code does not exist (vault root, then the project's `root`), and `FRESHNESS` for an unreadable field. All are warnings; the exit code does not change. `vulcanus review` lists the stale notes, oldest first; `vulcanus review --ok "<note>"` sets `reviewed:` to today and touches nothing else. Without the field, none of this runs. See [docs/design](docs/design/note-freshness.md).
+Opt in with `"freshness": { "staleAfterDays": { "decisions": 180 } }` in `vulcanus.json` (note `type` to days). A note then carries `reviewed: 2026-11-01` and, to override the default, `stale_after: 60`. `doctor` warns `STALE-NOTE` when the review is older than that, `DEAD-PATH` when a relative path written as code does not exist (vault root, then the project's `root`), and `FRESHNESS` for an unreadable field. All are warnings; the exit code does not change. `vulcanus review` lists the stale notes, oldest first; `vulcanus review --ok "<note>"` sets `reviewed:` to today and touches nothing else. MCP `recall` (on the capsule and each read-next note) and `search` (on each hit) carry `status: fresh | stale | dead-ref | unknown`; a note without `reviewed:` is `unknown`, never an error. `stats` prints the stale count. Without the field, none of this runs, and `recall` and `search` answer as before. See [docs/design](docs/design/note-freshness.md).
+
+#### Tazelik denetimi: try it on your vault
+
+Manifest (`vulcanus.json`):
+
+```json
+"freshness": { "staleAfterDays": { "decisions": 180, "capsule": 90 } }
+```
+
+Note frontmatter (both optional):
+
+```yaml
+# the day a person last checked the note
+reviewed: 2026-11-01
+# days; replaces the manifest default for this note
+stale_after: 60
+```
+
+Four commands:
+
+```bash
+vulcanus doctor                          # STALE-NOTE and DEAD-PATH show up as warnings
+vulcanus review                          # stale notes, longest unreviewed first
+vulcanus review --ok "<Project> Decisions"   # after you checked it: reviewed: today, nothing else changes
+vulcanus stats                           # "stale notes" line; then ask your agent to recall the project and read each note's status
+```
+
+A project's own notes look for a relative path in the vault and in the project's `root`; set `root` first or code paths read as dead.
 
 ### Decisions from your commits
 
@@ -268,6 +296,18 @@ $ vulcanus doctor
 ```
 
 `recall` lists such sections under `lifecycle.codeChanged`, and `search` marks their hits `codeChanged: true`, so an agent knows to check before relying on them. The code repository is found from the project's `root` (the field `drift` already uses) or from `doctor --code <dir>`; see [docs/design](docs/design/harvest-and-code-drift.md).
+
+### One instruction file for every tool
+
+`vulcanus bridge` mirrors `AGENTS.md` into the files other tools read: `CLAUDE.md` and `GEMINI.md` import it with `@AGENTS.md`; `.github/copilot-instructions.md` and `.cursor/rules/agents.mdc` get a generated copy that starts with a `vulcanus:bridge` marker. It prints a diff and exits `1` when something would change; `--write` writes, `--json` prints the result. A file without the marker is yours and is never overwritten. It needs no `vulcanus.json`.
+
+`doctor` checks these files too (in a folder with only an `AGENTS.md`, it runs just these checks):
+
+- `INSTRUCTION-SOURCE`, `INSTRUCTION-STALE` (errors): a bridge file whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`. Fix: `vulcanus bridge --write`.
+- `INSTRUCTION-BUDGET` (warning): the file Codex reads (`AGENTS.override.md` if non-empty, else `AGENTS.md`) is larger than 32 KiB, Codex's default `project_doc_max_bytes`; Codex cuts the rest off.
+- `INSTRUCTION-CONFLICT` (warning): `AGENTS.md` and a hand-written `CLAUDE.md`, `GEMINI.md`, Copilot or Cursor file name different package managers (`npm`, `pnpm`, `yarn`, `bun`) or different test runners (`vitest`, `jest`, `mocha`, `pytest`). It shows both files and lines. Only these known words are compared; fenced code blocks, lines with "not", "never", "instead of", and a file that names two tools are skipped. `npm test` against `vitest` is not a conflict.
+
+`status` shows `instruction files: consistent` or `N drifted`, counting all four codes.
 
 ### Scripting `init`
 
