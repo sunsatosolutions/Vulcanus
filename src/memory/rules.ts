@@ -177,28 +177,43 @@ export function checkRules(root: string, texts: Map<string, string | null>): Rul
         });
         continue;
       }
-      const haveSet = new Set(have.map((entry) => entry.text));
-      const wantSet = new Set(want.map((entry) => entry.text));
-      for (const entry of want) {
-        if (!haveSet.has(entry.text)) {
+      // Different lengths: align in order (longest common subsequence) so
+      // reordered or repeated lines show up; set membership would hide them.
+      const n = want.length;
+      const m = have.length;
+      const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+      for (let i = n - 1; i >= 0; i--) {
+        for (let j = m - 1; j >= 0; j--) {
+          lcs[i][j] =
+            want[i].text === have[j].text
+              ? lcs[i + 1][j + 1] + 1
+              : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+        }
+      }
+      let i = 0;
+      let j = 0;
+      while (i < n || j < m) {
+        if (i < n && j < m && want[i].text === have[j].text) {
+          i++;
+          j++;
+        } else if (j >= m || (i < n && lcs[i + 1][j] >= lcs[i][j + 1])) {
           findings.push({
             kind: "divergent",
             file,
             line: block.line,
-            text: entry.text,
+            text: want[i].text,
             reason: `in ${reference} but missing here`,
           });
-        }
-      }
-      for (const entry of have) {
-        if (!wantSet.has(entry.text)) {
+          i++;
+        } else {
           findings.push({
             kind: "divergent",
             file,
-            line: entry.line,
-            text: entry.text,
+            line: have[j].line,
+            text: have[j].text,
             reason: `not in ${reference}`,
           });
+          j++;
         }
       }
     }

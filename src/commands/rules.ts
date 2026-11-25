@@ -69,16 +69,31 @@ function capsuleRules(text: string, path: string, language: Locale) {
   const rules: string[] = [];
   for (const section of parseSections(path, text)) {
     if (!wanted.has(`## ${section.heading}`)) continue;
+    let fence: string | null = null;
+    let open = false;
     for (const line of lines.slice(section.line, section.endLine)) {
-      if (/^\s*[-*]\s+\S/.test(line)) {
-        // Wikilinks mean nothing outside the vault: keep the label.
-        rules.push(
-          line
-            .trimEnd()
-            .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, "$2")
-            .replace(/\[\[([^\]#]*)[^\]]*\]\]/g, "$1"),
-        );
+      const fenceMatch = /^\s*(```|~~~)/.exec(line);
+      if (fenceMatch) {
+        if (fence === null) fence = fenceMatch[1];
+        else if (fenceMatch[1] === fence) fence = null;
+        open = false;
+        continue;
       }
+      if (fence !== null) continue;
+      if (line.trim() === "") {
+        open = false;
+        continue;
+      }
+      // A bullet's wrapped lines belong to the rule; keep them.
+      if (!open && !/^\s*[-*]\s+\S/.test(line)) continue;
+      open = true;
+      // Wikilinks mean nothing outside the vault: keep the label.
+      rules.push(
+        line
+          .trimEnd()
+          .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, "$2")
+          .replace(/\[\[([^\]#]*)[^\]]*\]\]/g, "$1"),
+      );
     }
   }
   return rules;

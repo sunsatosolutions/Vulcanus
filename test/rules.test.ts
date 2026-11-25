@@ -248,3 +248,69 @@ describe("rules help", () => {
     assert.match(help, /check\b/);
   });
 });
+
+describe("rules link: capsule parsing", () => {
+  it("keeps wrapped bullet lines and skips fenced examples", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(
+      resolve(vault, CAPSULE),
+      [
+        "# Alpha Capsule",
+        "",
+        "## Must Remember",
+        "",
+        "- Production deployment is permitted",
+        "  only after explicit approval.",
+        "- Second rule.",
+        "",
+        "```md",
+        "- Example rule inside a fence",
+        "  example continuation",
+        "```",
+        "",
+        "Loose paragraph, not a rule.",
+        "",
+      ].join("\n"),
+    );
+    assert.equal((await link(vault, code, { write: true })).result, EXIT.ok);
+    const text = await read(code, "AGENTS.md");
+    assert.ok(
+      text.includes(
+        "- Production deployment is permitted\n  only after explicit approval.\n- Second rule.\n",
+      ),
+    );
+    assert.ok(!text.includes("Example rule"));
+    assert.ok(!text.includes("example continuation"));
+    assert.ok(!text.includes("Loose paragraph"));
+  });
+});
+
+describe("rules check: copies of different length", () => {
+  it("flags order and repeat differences, not only missing text", async () => {
+    const { vault, code } = await scaffold();
+    await link(vault, code, { write: true });
+    const agents = await read(code, "AGENTS.md");
+    const settings = "- Settings live in `config/app.json`.";
+    // Duplicate one line (same set, longer) in CLAUDE.md.
+    await writeFile(
+      resolve(code, "CLAUDE.md"),
+      (await read(code, "CLAUDE.md")).replace(settings, `${settings}\n${settings}`),
+    );
+    const dup = await check(code);
+    assert.equal(dup.code, EXIT.failed);
+    assert.ok(dup.report.findings.some((f) => f.kind === "divergent" && f.file === "CLAUDE.md"));
+
+    // Same set, different order and length.
+    const lines = agents.split("\n");
+    const first = lines.findIndex((l) => l.startsWith("- Entry point"));
+    const reordered = [...lines];
+    [reordered[first], reordered[first + 1]] = [reordered[first + 1], reordered[first]];
+    await writeFile(
+      resolve(code, "CLAUDE.md"),
+      reordered.join("\n").replace(settings, `${settings}\n${settings}`),
+    );
+    const swapped = await check(code);
+    assert.equal(swapped.report.ok, false);
+    assert.ok(swapped.report.findings.some((f) => f.kind === "divergent"));
+  });
+});
