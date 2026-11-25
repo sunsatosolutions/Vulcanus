@@ -266,6 +266,18 @@ $ vulcanus doctor
 
 `recall` lists such sections under `lifecycle.codeChanged`, and `search` marks their hits `codeChanged: true`, so an agent knows to check before relying on them. The code repository is found from the project's `root` (the field `drift` already uses) or from `doctor --code <dir>`; see [docs/design](docs/design/harvest-and-code-drift.md).
 
+### One instruction file for every tool
+
+`vulcanus bridge` mirrors `AGENTS.md` into the files other tools read: `CLAUDE.md` and `GEMINI.md` import it with `@AGENTS.md`; `.github/copilot-instructions.md` and `.cursor/rules/agents.mdc` get a generated copy that starts with a `vulcanus:bridge` marker. It prints a diff and exits `1` when something would change; `--write` writes, `--json` prints the result. A file without the marker is yours and is never overwritten. It needs no `vulcanus.json`.
+
+`doctor` checks these files too (in a folder with only an `AGENTS.md`, it runs just these checks):
+
+- `INSTRUCTION-SOURCE`, `INSTRUCTION-STALE` (errors): a bridge file whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`. Fix: `vulcanus bridge --write`.
+- `INSTRUCTION-BUDGET` (warning): `AGENTS.override.md` plus `AGENTS.md` are larger than 32 KiB, Codex's default `project_doc_max_bytes`; Codex cuts the rest off.
+- `INSTRUCTION-CONFLICT` (warning): `AGENTS.md` and a hand-written `CLAUDE.md`, `GEMINI.md`, Copilot or Cursor file name different package managers (`npm`, `pnpm`, `yarn`, `bun`) or different test runners (`vitest`, `jest`, `mocha`, `pytest`). It shows both files and lines. Only these known words are compared; fenced code blocks, lines with "not", "never", "instead of", and a file that names two tools are skipped. `npm test` against `vitest` is not a conflict.
+
+`status` shows `instruction files: consistent` or `N drifted`, counting all four codes.
+
 ### Scripting `init`
 
 Every wizard question can be answered from a flag, so `init` also runs without a TTY — in CI, containers, or an agent's shell. A flag skips exactly its question; `--defaults` answers everything else with the default, and `--dry-run` prints the tree that would be created without writing:

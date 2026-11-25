@@ -201,3 +201,103 @@ describe("bridge inside a vault", () => {
     assert.equal(status.doctor.ok, false);
   });
 });
+
+describe("instruction budget and conflicts", () => {
+  const codes = async (root: string) =>
+    (await checkInstructions(root)).map((finding) => [finding.code, finding.file]);
+
+  it("warns only above the 32 KiB budget, counting AGENTS.override.md too", async () => {
+    const under = await repo("x".repeat(32 * 1024));
+    assert.deepEqual(await codes(under), []);
+
+    const over = await repo("x".repeat(32 * 1024 + 1));
+    assert.deepEqual(await codes(over), [["INSTRUCTION-BUDGET", "AGENTS.md"]]);
+    assert.equal(await quietly(() => doctorCommand({ cwd: over })), 0);
+
+    const split = await repo("x".repeat(20 * 1024));
+    await writeFile(resolve(split, "AGENTS.override.md"), "y".repeat(13 * 1024), "utf8");
+    assert.deepEqual(await codes(split), [["INSTRUCTION-BUDGET", "AGENTS.md"]]);
+  });
+
+  it("flags a different package manager and shows both files and the line", async () => {
+    const root = await repo("Install with `pnpm install`.\n");
+    await writeFile(resolve(root, "GEMINI.md"), "# Gemini\nRun `npm ci` first.\n", "utf8");
+    const [finding] = await checkInstructions(root);
+    assert.equal(finding.code, "INSTRUCTION-CONFLICT");
+    assert.equal(finding.level, "warning");
+    assert.equal(finding.file, "GEMINI.md");
+    assert.match(
+      finding.message,
+      /npm \(line 2: "Run `npm ci` first\."\).*pnpm in AGENTS\.md \(line 1/,
+    );
+  });
+
+  it("flags a different test runner", async () => {
+    const root = await repo("Tests: `vitest run`.\n");
+    await writeFile(resolve(root, "GEMINI.md"), "Tests: `jest`.\n", "utf8");
+    const [finding] = await checkInstructions(root);
+    assert.equal(finding.code, "INSTRUCTION-CONFLICT");
+    assert.match(finding.message, /test runner jest .* vitest/);
+  });
+
+  it("raises no alarm for the same command written differently, fenced blocks, or one file's own mix", async () => {
+    const root = await repo(
+      "Use `npm test`.\n\n```sh\npnpm install\n```\nDo not use yarn here.\nBoth `npm run build` and `bun run build` work.\n",
+    );
+    await writeFile(
+      resolve(root, "GEMINI.md"),
+      "Run `npm run test` or `vitest`.\n```\nyarn test\n```\n",
+      "utf8",
+    );
+    await writeFile(resolve(root, "CLAUDE.md"), "Prefer `pnpm test`; never npm.\n", "utf8");
+    assert.deepEqual(await checkInstructions(root), []);
+  });
+
+  it("skips bridge-generated files: they are AGENTS.md", async () => {
+    const root = await repo("Run `npm test`.\n");
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    assert.deepEqual(await checkInstructions(root), []);
+  });
+
+  it("counts both rules in status", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const input = manifest();
+    await writeFiles(root, generateFiles(input).files);
+    await writeManifest(root, input);
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      `Use \`npm ci\`.\n${"x".repeat(33 * 1024)}`,
+      "utf8",
+    );
+    await writeFile(resolve(root, "GEMINI.md"), "Use `yarn add`.\n", "utf8");
+    const status = await collectStatus(root);
+    assert.equal(status.instructionDrift, 2);
+    assert.equal(status.doctor.ok, true);
+  });
+});
+
+describe("bridge end to end", () => {
+  it("doctor fails on diverged files, bridge --write makes it clean", async () => {
+    const root = await repo("# Rules\n\nRun `npm test`.\n");
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    await writeFile(
+      resolve(root, "CLAUDE.md"),
+      "<!-- vulcanus:bridge source=AGENTS.md -->\nOld rules, no import.\n",
+      "utf8",
+    );
+    assert.equal(await quietly(() => doctorCommand({ cwd: root })), 1);
+    assert.deepEqual(await checkInstructions(root), [
+      {
+        level: "error",
+        code: "INSTRUCTION-SOURCE",
+        message: "no longer imports AGENTS.md; run `vulcanus bridge --write`",
+        file: "CLAUDE.md",
+      },
+    ]);
+
+    assert.equal(await quietly(() => bridgeCommand({ cwd: root, write: true })), 0);
+    assert.equal(await quietly(() => doctorCommand({ cwd: root })), 0);
+    assert.deepEqual(await checkInstructions(root), []);
+  });
+});

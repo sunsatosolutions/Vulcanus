@@ -93,3 +93,11 @@ export function renderTarget(target: Target, source: string): string {
     body.endsWith("\n") ? body : `${body}\n`,
   ].join("\n");
 }
+
+/**
+ * Codex reads `AGENTS.override.md`, else `AGENTS.md`, and stops adding project
+ * instructions once `project_doc_max_bytes` is reached; the default is 32 KiB.
+ * https://developers.openai.com/codex/guides/agents-md
+ */
+export const CODEX_FILES: readonly string[] = ["AGENTS.override.md", SOURCE_FILE];
+export const INSTRUCTION_BUDGET_BYTES = 32 * 1024;

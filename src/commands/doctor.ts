@@ -40,12 +40,13 @@ export interface DoctorOptions {
 
 async function instructionsOnly(root: string, json?: boolean): Promise<number> {
   const findings = await checkInstructions(root);
+  const errors = findings.filter((finding) => finding.level === "error").length;
   const report: DoctorReport = {
-    ok: findings.length === 0,
+    ok: errors === 0,
     filesChecked: 0,
     linksChecked: 0,
     findings,
-    counts: { error: findings.length, warning: 0, info: 0 },
+    counts: { error: errors, warning: findings.length - errors, info: 0 },
     lifecycle: { live: 0, superseded: 0, expired: 0 },
   };
   if (json) {
@@ -54,7 +55,9 @@ async function instructionsOnly(root: string, json?: boolean): Promise<number> {
   }
   p.intro("doctor — instruction files (no vulcanus.json)");
   if (findings.length > 0) reportDoctor(report);
-  p.outro(report.ok ? "PASS — instruction files" : `FAIL — ${findings.length} errors`);
+  p.outro(
+    `${report.ok ? "PASS" : "FAIL"} — instruction files · ${errors} errors · ${findings.length - errors} warnings`,
+  );
   return report.ok ? 0 : 1;
 }
 

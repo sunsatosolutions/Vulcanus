@@ -22,7 +22,10 @@
 - `doctor` reports `INSTRUCTION-SOURCE` and `INSTRUCTION-STALE` (errors) for bridge files
   whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`.
   In a folder with an `AGENTS.md` but no `vulcanus.json`, `doctor` runs only these checks.
-- `status` shows `instruction files: consistent` or `N drifted`; `--json` adds
+- `doctor` warns `INSTRUCTION-BUDGET` when `AGENTS.override.md` plus `AGENTS.md` exceed 32 KiB
+  (Codex's default) and `INSTRUCTION-CONFLICT` when `AGENTS.md` and a hand-written target file
+  name different package managers or test runners, showing both files and lines.
+- `status` shows `instruction files: consistent` or `N drifted` (all four codes); `--json` adds
   `instructionDrift`.
 
 ### Changed
