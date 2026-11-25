@@ -18,8 +18,9 @@ import {
   type LifecycleState,
 } from "../memory/lifecycle.js";
 import { checkCodeDrift, codeBackedSections, codeDirOf } from "../memory/codedrift.js";
+import { assessNote, type NoteFreshness } from "../memory/freshness.js";
 import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdown.js";
-import { vaultRelative } from "../util/paths.js";
+import { expandHome, vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
 import { SKILL_DIRS } from "../generate/skills.js";
 import { CLI_VERSION, PROTOCOL_VERSION } from "../version.js";
@@ -130,6 +131,47 @@ export async function vaultLifecycle(
   const notes = await loadVaultNotes(vaultRoot, manifest);
   const capsules = buildPlan(manifest).allProjects.map((project) => project.capsule.path);
   return analyzeLifecycle(notes.contents, notes.resolveTarget, capsules, on);
+}
+
+/**
+ * Freshness of every note, or an empty list when the manifest has no
+ * `freshness` (the layer is off). A path a note names is looked for from the
+ * vault root and, for a project's own notes, from the project's `root`.
+ */
+export function vaultFreshness(
+  vaultRoot: string,
+  manifest: VaultManifest,
+  notes: VaultNotes,
+  on: string = today(),
+): NoteFreshness[] {
+  const config = manifest.freshness;
+  if (!config || typeof config.staleAfterDays !== "object" || !config.staleAfterDays) return [];
+
+  const plan = buildPlan(manifest);
+  // The generated system notes name files as examples (`path/to/file.md`, `Index.md`).
+  const generated = new Set([plan.systemHub, ...plan.system.values()].map((note) => note.path));
+  // A note belongs to the nearest project directory above it; nested projects nest their dirs.
+  const projectRoots = plan.allProjects
+    .map((project) => ({
+      dir: `${project.dir}/`,
+      root:
+        typeof project.project.root === "string"
+          ? resolve(vaultRoot, expandHome(project.project.root))
+          : undefined,
+    }))
+    .sort((a, b) => b.dir.length - a.dir.length);
+  const rootFor = (file: string) => projectRoots.find((entry) => file.startsWith(entry.dir))?.root;
+
+  return notes.files.map((file) => {
+    const projectRoot = rootFor(file);
+    const roots = projectRoot ? [vaultRoot, projectRoot] : [vaultRoot];
+    return assessNote(file, notes.contents.get(file)!, {
+      today: on,
+      staleAfterDays: config.staleAfterDays,
+      exists: (ref) => roots.some((root) => existsSync(resolve(root, ref))),
+      checkRefs: !generated.has(file),
+    });
+  });
 }
 
 /**
@@ -363,6 +405,29 @@ export async function runDoctor(
     options.today ?? today(),
   );
   for (const issue of lifecycle.issues) add(issue.level, issue.code, issue.message, issue.file);
+
+  // --- Note freshness ----------------------------------------------------
+  // Warnings only: a dead path can be a rename the note has not caught up with
+  // or a folder in a repository this vault does not know about.
+  for (const note of vaultFreshness(
+    vaultRoot,
+    manifest,
+    { files, contents, byStem, resolveTarget },
+    options.today ?? today(),
+  )) {
+    if (note.state === "stale") {
+      add(
+        "warning",
+        "STALE-NOTE",
+        `last reviewed ${note.reviewed}, ${note.ageDays} days ago (limit ${note.staleAfter}); check it, then run \`vulcanus review --ok "${baseName(note.path)}"\``,
+        note.path,
+      );
+    }
+    for (const ref of note.deadRefs) {
+      add("warning", "DEAD-PATH", `\`${ref}\` does not exist`, note.path);
+    }
+    for (const problem of note.problems) add("warning", "FRESHNESS", problem, note.path);
+  }
 
   // --- Code drift ----------------------------------------------------------
   // A section recorded with commit:: and paths:: is only as true as the code

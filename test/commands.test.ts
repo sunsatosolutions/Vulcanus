@@ -368,12 +368,22 @@ describe("doctor command", () => {
 });
 
 describe("manifest migration", () => {
-  it("stamps an older manifest to the current version with no migrations pending", () => {
+  it("stamps an older manifest to the current version", () => {
     const input = manifest({ manifestVersion: 0 });
     const result = migrateManifest(input);
     assert.equal(result.fromFuture, false);
-    assert.deepEqual(result.applied, []);
+    assert.deepEqual(
+      result.applied.map((entry) => entry.split(":")[0]),
+      ["v2"],
+    );
     assert.equal(result.manifest.manifestVersion, MANIFEST_VERSION);
+  });
+
+  it("leaves a manifest already at the current version alone", () => {
+    const input = manifest({ manifestVersion: MANIFEST_VERSION });
+    const result = migrateManifest(input);
+    assert.deepEqual(result.applied, []);
+    assert.deepEqual(result.manifest, input);
   });
 
   it("refuses to touch a manifest from a newer CLI", () => {
@@ -385,6 +395,7 @@ describe("manifest migration", () => {
 
   it("applies pending migrations in order and skips already-reached versions", () => {
     const next = MANIFEST_VERSION + 1;
+    const shipped = [...MIGRATIONS];
     MIGRATIONS.push(
       {
         // Already satisfied: the manifest is at MANIFEST_VERSION, so this
@@ -405,7 +416,7 @@ describe("manifest migration", () => {
       },
     );
     try {
-      const result = migrateManifest(manifest());
+      const result = migrateManifest(manifest({ manifestVersion: MANIFEST_VERSION }));
       assert.deepEqual(
         result.applied.map((entry) => entry.split(":")[0]),
         [`v${next}`],
@@ -413,7 +424,7 @@ describe("manifest migration", () => {
       assert.equal(result.manifest.manifestVersion, next);
       assert.equal(result.manifest.groups.at(-1)?.name, "Migrated");
     } finally {
-      MIGRATIONS.length = 0;
+      MIGRATIONS.splice(0, MIGRATIONS.length, ...shipped);
     }
   });
 });

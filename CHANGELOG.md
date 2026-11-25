@@ -13,6 +13,16 @@
 - `vulcanus rules check --root <dir> [--json]` finds copies of the block that differ, and
   paths or `npm` scripts the rules name that the repository no longer has (the `drift`
   rules). It exits `1` on any finding; `--json` prints a stable report.
+- Note freshness (opt-in). `vulcanus.json` gains `freshness.staleAfterDays` (note type to days);
+  a note may carry `reviewed: YYYY-MM-DD` and `stale_after: <days>`. `doctor` warns with
+  `STALE-NOTE` (review overdue), `DEAD-PATH` (a relative path written as code does not exist)
+  and `FRESHNESS` (unreadable field); none changes the exit code. `vulcanus review` lists
+  stale notes oldest first; `review --ok <note>` rewrites only that note's `reviewed:` line.
+  `stats` counts stale notes. Without the field nothing changes.
+
+### Changed
+
+- `manifestVersion` is 2. The migration only stamps the version; `freshness` is optional.
 
 ## 0.7.0 — 2026-11-24
 

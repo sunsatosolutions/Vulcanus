@@ -157,6 +157,7 @@ vulcanus doctor          # validate the vault against its manifest
 ```
 
 ```bash
+vulcanus review          # notes whose review is overdue, oldest first (--ok <note> marks one reviewed)
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
 vulcanus rules link <project> --root <dir> [--write]  # put the Capsule rules into the code repo (dry run by default)
 vulcanus rules check --root <dir> [--json]            # copies that differ, paths or scripts that are gone
@@ -205,7 +206,7 @@ vulcanus hooks install   # a pre-commit hook that refuses to commit a broken gra
 vulcanus completion zsh  # completion script for bash | zsh | fish | pwsh
 ```
 
-`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `doctor` accepts `--repair`, `--code <dir>`, and `--json`; `harvest` accepts `--since`, `--code <dir>`, and `--json`; `drift` accepts `--root <dir>` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
+`init` accepts `--lang en|tr|de|es`, `--ai [cli]`, and a target directory; `add project` and `import` accept `--ai [cli]`; `status` and `stats` accept `--json`; `review` accepts `--ok <note>` and `--json`; `doctor` accepts `--repair`, `--code <dir>`, and `--json`; `harvest` accepts `--since`, `--code <dir>`, and `--json`; `drift` accepts `--root <dir>` and `--json`; `import` accepts `--source`, `--path`, `--ai-group [cli]`, `--memory`, `--no-memory`, `--memory-only`, `--ai-extract [cli]`, `--json`, and `--all`; `update` accepts `--dry-run`, `--force`, `--profile core|full`, and `--json`; `sync` accepts `--dry-run`, `--json`, and `--watch`; `skills` accepts `--raw`, `--install`, and `--force`.
 
 `--verbose` and `--quiet` work on every command, and `--json` implies quiet so machine-readable output owns stdout.
 
@@ -237,6 +238,10 @@ $ vulcanus drift Alpha
 In CI or a git hook, run `vulcanus drift <project>` from inside the vault and let the exit code gate: `0` passes, `1` blocks. Pass `--root <dir>` when the source folder is not the one in `vulcanus.json`.
 
 Exit codes: `0` no drift, `1` at least one stale claim, `2` the project has no root (the error shows how to set one), the folder is missing, or the project is unknown. `drift` never writes a file; `--json` prints each finding with its note, line, claim, reason, and the suggested `supersede` fields.
+
+### Notes that go stale
+
+Opt in with `"freshness": { "staleAfterDays": { "decisions": 180 } }` in `vulcanus.json` (note `type` to days). A note then carries `reviewed: 2026-11-01` and, to override the default, `stale_after: 60`. `doctor` warns `STALE-NOTE` when the review is older than that, `DEAD-PATH` when a relative path written as code does not exist (vault root, then the project's `root`), and `FRESHNESS` for an unreadable field. All are warnings; the exit code does not change. `vulcanus review` lists the stale notes, oldest first; `vulcanus review --ok "<note>"` sets `reviewed:` to today and touches nothing else. Without the field, none of this runs. See [docs/design](docs/design/note-freshness.md).
 
 ### Decisions from your commits
 
