@@ -252,8 +252,10 @@ Manifest (`vulcanus.json`):
 Note frontmatter (both optional):
 
 ```yaml
-reviewed: 2026-11-01   # the day a person last checked the note
-stale_after: 60        # days; replaces the manifest default for this note
+# the day a person last checked the note
+reviewed: 2026-11-01
+# days; replaces the manifest default for this note
+stale_after: 60
 ```
 
 Four commands:
