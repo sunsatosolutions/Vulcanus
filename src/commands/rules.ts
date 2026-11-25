@@ -70,23 +70,30 @@ function capsuleRules(text: string, path: string, language: Locale) {
   for (const section of parseSections(path, text)) {
     if (!wanted.has(`## ${section.heading}`)) continue;
     let fence: string | null = null;
+    // open: inside a bullet; gap: a blank line or fence came since the last rule line.
     let open = false;
+    let gap = false;
     for (const line of lines.slice(section.line, section.endLine)) {
       const fenceMatch = /^\s*(```|~~~)/.exec(line);
       if (fenceMatch) {
         if (fence === null) fence = fenceMatch[1];
         else if (fenceMatch[1] === fence) fence = null;
-        open = false;
+        gap = true;
         continue;
       }
       if (fence !== null) continue;
       if (line.trim() === "") {
+        gap = true;
+        continue;
+      }
+      // A bullet's wrapped lines belong to the rule, even after a blank line or
+      // an example, while they stay indented; an unindented paragraph ends it.
+      if (/^\s*[-*]\s+\S/.test(line)) open = true;
+      else if (!open || (gap && !/^\s/.test(line))) {
         open = false;
         continue;
       }
-      // A bullet's wrapped lines belong to the rule; keep them.
-      if (!open && !/^\s*[-*]\s+\S/.test(line)) continue;
-      open = true;
+      gap = false;
       // Wikilinks mean nothing outside the vault: keep the label.
       rules.push(
         line

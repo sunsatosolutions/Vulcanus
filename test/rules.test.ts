@@ -285,6 +285,43 @@ describe("rules link: capsule parsing", () => {
   });
 });
 
+describe("rules link: continuations across gaps", () => {
+  it("keeps indented lines after a blank line or a fenced example", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(
+      resolve(vault, CAPSULE),
+      [
+        "# Alpha Capsule",
+        "",
+        "## Must Remember",
+        "",
+        "- Deployment is permitted",
+        "",
+        "  only after explicit approval.",
+        "- Release only when",
+        "  ```sh",
+        "  npm run fake-example",
+        "  ```",
+        "  the checks are green.",
+        "",
+        "Unindented paragraph after a gap.",
+        "  indented but not part of a rule.",
+        "",
+      ].join("\n"),
+    );
+    assert.equal((await link(vault, code, { write: true })).result, EXIT.ok);
+    const text = await read(code, "AGENTS.md");
+    assert.ok(
+      text.includes(
+        "- Deployment is permitted\n  only after explicit approval.\n- Release only when\n  the checks are green.\n",
+      ),
+    );
+    assert.ok(!text.includes("fake-example"));
+    assert.ok(!text.includes("Unindented paragraph"));
+    assert.ok(!text.includes("not part of a rule"));
+  });
+});
+
 describe("rules check: copies of different length", () => {
   it("flags order and repeat differences, not only missing text", async () => {
     const { vault, code } = await scaffold();
