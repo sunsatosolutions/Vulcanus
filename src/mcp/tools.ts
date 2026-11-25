@@ -9,12 +9,14 @@
 import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadVaultNotes, vaultFreshness } from "../doctor/index.js";
 import { findStaleCapsules } from "../commands/status.js";
 import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.js";
 import { headingVariants, noteText } from "../generate/text.js";
 import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { changedSections } from "../memory/codedrift.js";
+import type { FreshnessState } from "../memory/freshness.js";
 import { COMMIT_ID } from "../util/git.js";
 import {
   findSection,
@@ -87,9 +89,10 @@ export interface RecallResult {
    * a private project named in something public.
    */
   visibilityWarning?: string;
-  capsule: { name: string; path: string; content: string };
+  /** `status` is the note's freshness; absent when the manifest has no `freshness`. */
+  capsule: { name: string; path: string; content: string; status?: FreshnessState };
   /** Deeper notes in the order the vault protocol says to read them. */
-  readNext: Array<{ name: string; path: string }>;
+  readNext: Array<{ name: string; path: string; status?: FreshnessState }>;
   /**
    * Set when the capsule is older than the notes it summarizes. An agent that
    * recalls a stale capsule would otherwise answer confidently from a summary
@@ -107,6 +110,29 @@ export interface RecallResult {
     /** Sections whose commit:: and paths:: no longer match the code: true when written, unverified now. */
     codeChanged: Array<{ heading: string; path: string; files: string[]; note: string }>;
   };
+}
+
+/**
+ * Note path to freshness state, or undefined when the manifest has no
+ * `freshness` (the layer is off and results carry no `status`).
+ */
+async function freshnessByPath(
+  handle: VaultHandle,
+  on: string,
+): Promise<Map<string, FreshnessState> | undefined> {
+  if (!handle.manifest.freshness) return undefined;
+  const notes = await loadVaultNotes(handle.vaultRoot, handle.manifest);
+  return new Map(
+    vaultFreshness(handle.vaultRoot, handle.manifest, notes, on).map((note) => [
+      note.path,
+      note.state,
+    ]),
+  );
+}
+
+/** `{ status }` for a note, `{}` when the layer is off; a note the scan did not see is `unknown`. */
+function statusOf(states: Map<string, FreshnessState> | undefined, path: string) {
+  return states ? { status: states.get(path) ?? ("unknown" as const) } : {};
 }
 
 async function deadMemory(
@@ -153,7 +179,11 @@ async function deadMemory(
  * The token-economy entry point: one capsule, plus where to go deeper. This is
  * the read an agent performs before touching a project.
  */
-export async function recall(handle: VaultHandle, query: string): Promise<RecallResult | null> {
+export async function recall(
+  handle: VaultHandle,
+  query: string,
+  on: string = today(),
+): Promise<RecallResult | null> {
   const project = matchProject(handle.plan, query);
   if (!project) return null;
 
@@ -166,6 +196,7 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
     allProjects: [project],
   });
   const lifecycle = await deadMemory(handle, project);
+  const states = await freshnessByPath(handle, on);
 
   return {
     project: project.project.name,
@@ -178,7 +209,12 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
           visibilityWarning: `${project.project.name} is marked private. Do not name it, quote it, or describe its work outside this vault — not in public repositories, commit messages, issues, or anything shared with someone who is not the operator.`,
         }
       : {}),
-    capsule: { name: project.capsule.name, path: project.capsule.path, content },
+    capsule: {
+      name: project.capsule.name,
+      path: project.capsule.path,
+      content,
+      ...statusOf(states, project.capsule.path),
+    },
     ...(stale
       ? {
           staleWarning: `${stale.capsule} is older than ${stale.changedSince.join(", ")}. Read those before trusting the summary, and refresh the capsule once the operator confirms what changed.`,
@@ -191,7 +227,7 @@ export async function recall(handle: VaultHandle, query: string): Promise<Recall
       project.rules,
       project.context,
       ...project.specialized.map((entry) => entry.note),
-    ].map((note) => ({ name: note.name, path: note.path })),
+    ].map((note) => ({ name: note.name, path: note.path, ...statusOf(states, note.path) })),
   };
 }
 
@@ -210,13 +246,20 @@ export interface SearchHit {
   state?: Exclude<LifecycleState, "live">;
   /** Set when the section's commit:: and paths:: no longer match the code: verify before relying on it. */
   codeChanged?: true;
+  /** Freshness of the note the hit is in. Absent when the manifest has no `freshness`. */
+  status?: FreshnessState;
 }
 
 /**
  * Layer-aware text search: capsules first, hubs second, depth last, so the
  * cheapest sufficient note surfaces at the top.
  */
-export async function search(handle: VaultHandle, query: string, limit = 20): Promise<SearchHit[]> {
+export async function search(
+  handle: VaultHandle,
+  query: string,
+  limit = 20,
+  on: string = today(),
+): Promise<SearchHit[]> {
   const needle = query.trim().toLowerCase();
   if (!needle) return [];
 
@@ -230,7 +273,7 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
   };
 
   const hits: SearchHit[] = [];
-  const on = today();
+  const states = await freshnessByPath(handle, on);
   const codeChanged = new Set<string>();
   for (const project of handle.plan.allProjects) {
     for (const change of await changedSections(handle.vaultRoot, project)) {
@@ -261,6 +304,7 @@ export async function search(handle: VaultHandle, query: string, limit = 20): Pr
               weight: weightOf(relative),
               ...(state !== "live" ? { state } : {}),
               ...(changed ? { codeChanged: true as const } : {}),
+              ...statusOf(states, relative),
             });
           }
         });

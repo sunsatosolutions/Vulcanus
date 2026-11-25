@@ -60,7 +60,8 @@ Limits, on purpose:
 - `review`: stale notes, longest unreviewed first, ties by path. `--json` prints `{ enabled, today, stale }`.
 - `review --ok <note>`: sets `reviewed:` to today. The note is found by name (no case, no `.md`) or by vault-relative path; an unknown or ambiguous name is a usage error (exit 2). Only the `reviewed:` line changes: replaced where it stands, or added before the closing `---`; line endings are kept. A note without frontmatter is refused, not rewritten.
 - `stats`: `staleNotes`, null when freshness is off.
+- MCP `recall` and `search`: `status` (`fresh`, `stale`, `dead-ref`, `unknown`) on the capsule and each read-next note, and on each search hit (the state of the note it sits in). Absent when the manifest has no `freshness`. No new tool. `recall` already returns the project's own `status`, so the note state sits on `capsule` and `readNext` entries, not at the top.
 
 ## Not in this round
 
-MCP `recall` and `search` do not mention freshness. `doctor --repair` never touches `reviewed:`; a review is a person's act.
+`doctor --repair` never touches `reviewed:`; a review is a person's act.
