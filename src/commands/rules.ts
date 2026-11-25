@@ -6,7 +6,7 @@ import { headingVariants } from "../generate/text.js";
 import { buildPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
 import type { Locale } from "../i18n.js";
-import { parseSections, stripComments } from "../memory/lifecycle.js";
+import { fenceAfter, parseSections, stripComments } from "../memory/lifecycle.js";
 import {
   RULE_FILES,
   applyBlock,
@@ -74,15 +74,9 @@ function capsuleRules(text: string, path: string, language: Locale) {
     let open = false;
     let gap = false;
     for (const line of lines.slice(section.line, section.endLine)) {
-      // CommonMark: a fence closes only on the same character, at least as long
-      // as the opener, with no info string.
-      const fenceMatch = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-      if (fenceMatch && !(fenceMatch[1][0] === "`" && fenceMatch[2].includes("`"))) {
-        const run = fenceMatch[1];
-        if (fence === null) fence = run;
-        else if (run[0] === fence[0] && run.length >= fence.length && fenceMatch[2].trim() === "") {
-          fence = null;
-        }
+      const step = fenceAfter(fence, line);
+      fence = step.fence;
+      if (step.isFence) {
         gap = true;
         continue;
       }

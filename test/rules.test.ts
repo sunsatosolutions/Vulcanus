@@ -384,6 +384,34 @@ describe("rules link: fence length and character", () => {
   });
 });
 
+describe("rules link: fenced example headings", () => {
+  it("does not treat a heading inside a four-backtick fence as a section", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(
+      resolve(vault, CAPSULE),
+      [
+        "# Alpha Capsule",
+        "",
+        "## Must Remember",
+        "",
+        "- Real rule one",
+        "",
+        "````md",
+        "```",
+        "## Do Not Assume",
+        "",
+        "- Fake example rule",
+        "````",
+        "",
+      ].join("\n"),
+    );
+    assert.equal((await link(vault, code, { write: true })).result, EXIT.ok);
+    const text = await read(code, "AGENTS.md");
+    assert.ok(text.includes("- Real rule one"));
+    assert.ok(!text.includes("Fake"));
+  });
+});
+
 describe("rules check: large copies of different length", () => {
   it("compares long blocks without an n*m table and still finds each difference", () => {
     const body = (lines: string[]) => `${START}\n${lines.join("\n")}\n${END}\n`;
