@@ -324,6 +324,31 @@ describe("doctor freshness codes", () => {
     ]);
   });
 
+  it("resolves a hand-written note's paths against its nearest project root", async () => {
+    const input = manifest({
+      projects: [
+        project("alpha", "Alpha", { root: "../alpha-src" }),
+        project("beta", "Beta", { root: "../beta-src", parent: "alpha" }),
+      ],
+      freshness: { staleAfterDays: { decisions: 100 } },
+    });
+    const body = (name: string) =>
+      note(["reviewed: 2026-05-25"], `# ${name}\n\nSee \`package.json\`.\n`);
+    const vault = await vaultWith(
+      input,
+      {
+        "02_Projects/Alpha/Extra.md": body("Extra"),
+        "02_Projects/Alpha/Beta/Extra.md": body("BetaExtra"),
+      },
+      { "package.json": "{}\n" },
+    );
+    const dead = (await runDoctor(vault, await readManifest(vault), { today: ON })).findings
+      .filter((finding) => finding.code === "DEAD-PATH" && finding.file?.endsWith("Extra.md"))
+      .map((finding) => finding.file);
+    // alpha-src has package.json; beta-src, the nearest root for the nested note, does not.
+    assert.deepEqual(dead, ["02_Projects/Alpha/Beta/Extra.md"]);
+  });
+
   it("says nothing when the manifest has no freshness field", async () => {
     const input = manifest({ projects: [project("alpha", "Alpha")] });
     const vault = await vaultWith(input, NOTES);

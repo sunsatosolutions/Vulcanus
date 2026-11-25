@@ -150,15 +150,19 @@ export function vaultFreshness(
   const plan = buildPlan(manifest);
   // The generated system notes name files as examples (`path/to/file.md`, `Index.md`).
   const generated = new Set([plan.systemHub, ...plan.system.values()].map((note) => note.path));
-  const rootOf = new Map<string, string>();
-  for (const project of plan.allProjects) {
-    const root = project.project.root;
-    if (typeof root !== "string") continue;
-    for (const note of project.notes) rootOf.set(note.path, resolve(vaultRoot, expandHome(root)));
-  }
+  // A note belongs to the nearest project directory above it; nested projects nest their dirs.
+  const projectRoots = plan.allProjects
+    .filter((project) => typeof project.project.root === "string")
+    .map((project) => ({
+      dir: `${project.dir}/`,
+      root: resolve(vaultRoot, expandHome(project.project.root!)),
+    }))
+    .sort((a, b) => b.dir.length - a.dir.length);
+  const rootFor = (file: string) => projectRoots.find((entry) => file.startsWith(entry.dir))?.root;
 
   return notes.files.map((file) => {
-    const roots = [vaultRoot, ...(rootOf.has(file) ? [rootOf.get(file)!] : [])];
+    const projectRoot = rootFor(file);
+    const roots = projectRoot ? [vaultRoot, projectRoot] : [vaultRoot];
     return assessNote(file, notes.contents.get(file)!, {
       today: on,
       staleAfterDays: config.staleAfterDays,
