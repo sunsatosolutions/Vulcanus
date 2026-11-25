@@ -35,7 +35,10 @@ export async function checkInstructions(root: string): Promise<DoctorFinding[]> 
       );
     } else if (target.mode === "import" && !text.split("\n").includes(`@${SOURCE_FILE}`)) {
       broken(`no longer imports ${SOURCE_FILE}; run \`vulcanus bridge --write\``);
-    } else if (target.mode === "copy" && text !== renderTarget(target, source).replace(/\r\n/g, "\n")) {
+    } else if (
+      target.mode === "copy" &&
+      text !== renderTarget(target, source).replace(/\r\n/g, "\n")
+    ) {
       findings.push({
         level: "error",
         code: "INSTRUCTION-STALE",

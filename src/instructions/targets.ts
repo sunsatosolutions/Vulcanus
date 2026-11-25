@@ -61,7 +61,7 @@ export function sourceHash(text: string): string {
   return createHash("sha256").update(text.replace(/\r\n/g, "\n")).digest("hex");
 }
 
-const MARKER = /<!--\s*vulcanus:bridge\s+source=(\S+?)(?:\s+sha256=([0-9a-f]{64}))?\s*-->/;
+const MARKER = /^<!--\s*vulcanus:bridge\s+source=(\S+?)(?:\s+sha256=([0-9a-f]{64}))?\s*-->/;
 
 export interface Marker {
   source: string;
@@ -69,10 +69,13 @@ export interface Marker {
   sha256?: string;
 }
 
-/** The Vulcanus marker, only when it sits in the file's head: a quoted one in prose is not ownership. */
+/**
+ * The Vulcanus marker, only where `bridge` writes it: the first line, or the first line
+ * after a leading frontmatter block. A marker quoted in an example or prose is not ownership.
+ */
 export function readMarker(text: string): Marker | null {
-  const head = text.split("\n", 8).join("\n");
-  const found = MARKER.exec(head);
+  const body = text.replace(/\r\n/g, "\n").replace(/^---\n[\s\S]*?\n---\n/, "");
+  const found = MARKER.exec(body);
   return found ? { source: found[1], sha256: found[2] } : null;
 }
 

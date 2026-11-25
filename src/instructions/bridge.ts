@@ -50,7 +50,7 @@ export async function planBridge(root: string): Promise<BridgeEntry[]> {
     let action: BridgeAction;
     if (before === null) action = "create";
     else if (!readMarker(before)) action = "hand-written";
-    else action = before === after ? "unchanged" : "update";
+    else action = before.replace(/\r\n/g, "\n") === after ? "unchanged" : "update";
     entries.push({ path: target.path, action, before, after });
   }
   return entries;
