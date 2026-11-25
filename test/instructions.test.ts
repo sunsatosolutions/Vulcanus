@@ -128,6 +128,26 @@ describe("bridge", () => {
     await writeFile(resolve(root, "AGENTS.md"), "# Rules\n\nBe kind.\n", "utf8");
     assert.deepEqual(await checkInstructions(root), []);
   });
+
+  it("accepts a CRLF checkout of the bridge files", async () => {
+    const root = await repo();
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    for (const path of ["CLAUDE.md", "GEMINI.md", ...COPIES]) {
+      await writeFile(resolve(root, path), (await read(root, path)).replace(/\n/g, "\r\n"), "utf8");
+    }
+    assert.deepEqual(await checkInstructions(root), []);
+  });
+
+  it("flags a copy whose body was edited though its marker hash is intact", async () => {
+    const root = await repo();
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    const path = ".github/copilot-instructions.md";
+    await writeFile(resolve(root, path), (await read(root, path)).replace("Be kind.", "Be rude."), "utf8");
+    assert.deepEqual(
+      (await checkInstructions(root)).map((finding) => [finding.code, finding.file]),
+      [["INSTRUCTION-STALE", path]],
+    );
+  });
 });
 
 describe("bridge inside a vault", () => {
