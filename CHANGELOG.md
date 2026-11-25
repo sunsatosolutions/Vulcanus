@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- Note freshness (opt-in). `vulcanus.json` gains `freshness.staleAfterDays` (note type to days);
+  a note may carry `reviewed: YYYY-MM-DD` and `stale_after: <days>`. `doctor` warns with
+  `STALE-NOTE` (review overdue), `DEAD-PATH` (a relative path written as code does not exist)
+  and `FRESHNESS` (unreadable field); none changes the exit code. `vulcanus review` lists
+  stale notes oldest first; `review --ok <note>` rewrites only that note's `reviewed:` line.
+  `stats` counts stale notes. Without the field nothing changes.
+
+### Changed
+
+- `manifestVersion` is 2. The migration only stamps the version; `freshness` is optional.
+
 ## 0.7.0 — 2026-11-24
 
 ### Added

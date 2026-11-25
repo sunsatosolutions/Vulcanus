@@ -9,10 +9,17 @@ export interface Migration {
 
 /**
  * Ordered manifest migrations. Each one takes a manifest at `to - 1` and returns
- * it at `to`. The list is empty while version 1 is current; the machinery exists
- * so a future schema change can never silently corrupt an existing vault.
+ * it at `to`, so a schema change can never silently corrupt an existing vault.
  */
-export const MIGRATIONS: Migration[] = [];
+export const MIGRATIONS: Migration[] = [
+  {
+    to: 2,
+    description: "optional note freshness settings (absent: freshness stays off)",
+    // The new field is optional, so a version 1 manifest is already valid; the
+    // step only records the schema it was written against.
+    apply: (manifest) => manifest,
+  },
+];
 
 export interface MigrationResult {
   manifest: VaultManifest;

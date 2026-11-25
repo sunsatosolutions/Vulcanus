@@ -1,6 +1,6 @@
 import { slugify } from "../util/text.js";
 
-export const MANIFEST_VERSION = 1;
+export const MANIFEST_VERSION = 2;
 export const MANIFEST_FILENAME = "vulcanus.json";
 
 export type Language = "en" | "tr" | "de" | "es";
@@ -100,6 +100,16 @@ export interface ProjectNode {
   root?: string;
 }
 
+/**
+ * Note freshness. Present means the layer is on; absent means it is off and no
+ * note is ever flagged. Each key is a frontmatter `type` (capsule, decisions,
+ * ...) and its value the days a `reviewed:` date stays good. A note's own
+ * `stale_after:` overrides it.
+ */
+export interface FreshnessConfig {
+  staleAfterDays: Record<string, number>;
+}
+
 export interface ImportRecord {
   source: string;
   date: string;
@@ -132,6 +142,8 @@ export interface VaultManifest {
   groups: ProjectGroup[];
   projects: ProjectNode[];
   imports: ImportRecord[];
+  /** Optional: when omitted, note freshness is not checked. */
+  freshness?: FreshnessConfig;
 }
 
 export const DEFAULT_STRUCTURE: StructureConfig = {
@@ -194,7 +206,9 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
   const error = (message: string) => issues.push({ level: "error", message });
   const warn = (message: string) => issues.push({ level: "warning", message });
 
-  if (manifest.manifestVersion !== MANIFEST_VERSION) {
+  // Only a newer manifest is a mismatch: an older one is what the migration
+  // chain upgrades, and every field it lacks is optional.
+  if (manifest.manifestVersion > MANIFEST_VERSION) {
     warn(
       `manifest version ${manifest.manifestVersion} does not match this CLI (${MANIFEST_VERSION}); some checks may not apply`,
     );
@@ -221,6 +235,19 @@ export function validateManifest(manifest: VaultManifest): ValidationIssue[] {
     const key = trimmed.toLowerCase();
     if (declaredNotes.has(key)) error(`duplicate system note: ${trimmed}`);
     declaredNotes.add(key);
+  }
+
+  if (manifest.freshness !== undefined) {
+    const days = manifest.freshness?.staleAfterDays;
+    if (typeof days !== "object" || days === null || Array.isArray(days)) {
+      warn("freshness.staleAfterDays must map note types to a number of days; freshness is off");
+    } else {
+      for (const [type, value] of Object.entries(days)) {
+        if (!Number.isInteger(value) || value <= 0) {
+          warn(`freshness.staleAfterDays["${type}"] must be a whole number of days above 0`);
+        }
+      }
+    }
   }
 
   const groupIds = new Set<string>();

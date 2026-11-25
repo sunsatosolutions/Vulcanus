@@ -16,6 +16,7 @@ import {
 } from "./commands/project.js";
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
+import { reviewCommand } from "./commands/review.js";
 import { statsCommand } from "./commands/stats.js";
 import { statusCommand } from "./commands/status.js";
 import { syncCommand } from "./commands/sync.js";
@@ -169,6 +170,15 @@ export function buildProgram(): Command {
     .option("--json", "print the report as JSON")
     .action(async (options: { repair?: boolean; json?: boolean; code?: string }) => {
       process.exitCode = await doctorCommand(options);
+    });
+
+  program
+    .command("review")
+    .description("List notes whose review is overdue, oldest first; --ok marks one as reviewed")
+    .option("--ok <note>", "set reviewed: to today in this note's frontmatter, nothing else")
+    .option("--json", "print the result as JSON")
+    .action(async (options: { ok?: string; json?: boolean }) => {
+      process.exitCode = await reviewCommand(options);
     });
 
   program
