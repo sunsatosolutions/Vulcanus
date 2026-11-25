@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- `vulcanus rules link <project> --root <dir>` writes the project's Capsule rules (the bullets
+  under Must Remember and Do Not Assume) into the code repository as one managed block,
+  between `<!-- vulcanus:rules:start -->` and `<!-- vulcanus:rules:end -->`, in `AGENTS.md`,
+  `CLAUDE.md`, and `.cursor/rules/vault.mdc`. It is a dry run that shows the difference
+  until you pass `--write`. Text outside the markers is never touched, missing files are
+  created, and a second run changes nothing.
+- `vulcanus rules check --root <dir> [--json]` finds copies of the block that differ, and
+  paths or `npm` scripts the rules name that the repository no longer has (the `drift`
+  rules). It exits `1` on any finding; `--json` prints a stable report.
+
 ## 0.7.0 — 2026-11-24
 
 ### Added

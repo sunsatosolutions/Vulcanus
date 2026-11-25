@@ -158,6 +158,8 @@ vulcanus doctor          # validate the vault against its manifest
 
 ```bash
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
+vulcanus rules link <project> --root <dir> [--write]  # put the Capsule rules into the code repo (dry run by default)
+vulcanus rules check --root <dir> [--json]            # copies that differ, paths or scripts that are gone
 ```
 
 ```bash
