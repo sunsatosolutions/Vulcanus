@@ -22,6 +22,7 @@ import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdo
 import { vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
 import { SKILL_DIRS } from "../generate/skills.js";
+import { checkInstructions } from "../instructions/check.js";
 import { CLI_VERSION, PROTOCOL_VERSION } from "../version.js";
 
 export type FindingLevel = "error" | "warning" | "info";
@@ -451,6 +452,9 @@ export async function runDoctor(
       }
     }
   }
+
+  // --- Bridge files ---------------------------------------------------------
+  findings.push(...(await checkInstructions(vaultRoot)));
 
   // --- Ignore rules --------------------------------------------------------
   const gitignorePath = resolve(vaultRoot, ".gitignore");

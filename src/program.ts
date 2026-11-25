@@ -3,6 +3,7 @@ import { LOCALES } from "./i18n.js";
 import { addProjectCommand } from "./commands/add.js";
 import { agentsCommand } from "./commands/agents.js";
 import { completionCommand, SHELLS } from "./commands/completion.js";
+import { bridgeCommand } from "./commands/bridge.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { driftCommand } from "./commands/drift.js";
 import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
@@ -169,6 +170,15 @@ export function buildProgram(): Command {
     .option("--json", "print the report as JSON")
     .action(async (options: { repair?: boolean; json?: boolean; code?: string }) => {
       process.exitCode = await doctorCommand(options);
+    });
+
+  program
+    .command("bridge")
+    .description("Mirror AGENTS.md into the instruction files other tools read (shows a diff)")
+    .option("--write", "write the files instead of only showing the diff")
+    .option("--json", "print the result as JSON")
+    .action(async (options: { write?: boolean; json?: boolean }) => {
+      process.exitCode = await bridgeCommand(options);
     });
 
   program
