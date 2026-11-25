@@ -116,6 +116,14 @@ describe("bridge", () => {
     assert.equal(await read(root, "GEMINI.md"), text);
   });
 
+  it("is not fooled by a marker inside a fenced example in the first lines", async () => {
+    const root = await repo();
+    const text = "# Notes\n```md\n<!-- vulcanus:bridge source=AGENTS.md -->\n```\n";
+    await writeFile(resolve(root, "GEMINI.md"), text, "utf8");
+    await quietly(() => bridgeCommand({ cwd: root, write: true }));
+    assert.equal(await read(root, "GEMINI.md"), text);
+  });
+
   it("fails with a usage error when there is no AGENTS.md", async () => {
     const root = await tempDir();
     dirs.push(root);
@@ -136,13 +144,19 @@ describe("bridge", () => {
       await writeFile(resolve(root, path), (await read(root, path)).replace(/\n/g, "\r\n"), "utf8");
     }
     assert.deepEqual(await checkInstructions(root), []);
+    // bridge agrees with doctor: nothing to update.
+    assert.equal(await quietly(() => bridgeCommand({ cwd: root })), 0);
   });
 
   it("flags a copy whose body was edited though its marker hash is intact", async () => {
     const root = await repo();
     await quietly(() => bridgeCommand({ cwd: root, write: true }));
     const path = ".github/copilot-instructions.md";
-    await writeFile(resolve(root, path), (await read(root, path)).replace("Be kind.", "Be rude."), "utf8");
+    await writeFile(
+      resolve(root, path),
+      (await read(root, path)).replace("Be kind.", "Be rude."),
+      "utf8",
+    );
     assert.deepEqual(
       (await checkInstructions(root)).map((finding) => [finding.code, finding.file]),
       [["INSTRUCTION-STALE", path]],
