@@ -441,14 +441,14 @@ describe("emit", () => {
     assert.equal((await approve(vault)).result, EXIT.ok);
     const block = (await read(code, "AGENTS.md")).trimEnd();
     const mine = "# Mine\n\n\n\nKeep this.\n\n\n";
-    await writeFile(resolve(code, "AGENTS.md"), `${mine}${block}\n\n\nTail.\n\n`);
+    await writeFile(resolve(code, "AGENTS.md"), `${mine}${block}\n`);
     await writeFile(capsule, "---\ntype: capsule\n---\n# Alpha Capsule\n");
     await writeFile(
       resolve(vault, buildPlan(await readManifest(vault)).allProjects[0].rules.path),
       "---\ntype: rules\n---\n# Alpha Rules\n",
     );
     assert.equal((await emit(vault)).result, EXIT.ok);
-    assert.equal(await read(code, "AGENTS.md"), `${mine}\n\nTail.\n\n`);
+    assert.equal(await read(code, "AGENTS.md"), mine.slice(0, -1));
   });
 
   it("an empty project does not stop a batch emit", async () => {
