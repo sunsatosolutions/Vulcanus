@@ -1,6 +1,7 @@
 import type { DoctorFinding } from "../doctor/index.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { buildPlan } from "../manifest/derive.js";
+import { hasEmitMarker } from "./block.js";
 import { planProject, staleReason } from "./plan.js";
 
 /**
@@ -28,7 +29,7 @@ export async function checkEmit(
     if (!("files" in job)) continue;
     const behind = job.files.filter((file) => file.state !== "unchanged");
     if (behind.length === 0) continue;
-    const emitted = job.files.some((file) => file.state === "update" || file.state === "unchanged");
+    const emitted = job.files.some(hasEmitMarker);
     const name = plan.project.name;
     if (!emitted) {
       if (job.files.every((file) => file.state === "create" || file.state === "append")) {

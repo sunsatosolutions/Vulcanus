@@ -28,6 +28,12 @@ export interface FilePlan {
   text: string | null;
 }
 
+/** True when `emit` has been here: the file holds a vulcanus marker, whole or damaged. */
+export function hasEmitMarker(file: FilePlan): boolean {
+  if (file.state === "update" || file.state === "broken") return true;
+  return file.state === "unchanged" && Boolean(file.text?.includes(BEGIN));
+}
+
 export function renderBlock(template: EmitTemplate, content: string): string[] {
   return [BEGIN, NOTICE, ...template.body(content).split("\n"), END];
 }

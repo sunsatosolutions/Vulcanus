@@ -353,6 +353,22 @@ describe("emit", () => {
     assert.equal(await read(code, "CLAUDE.md"), bridged);
   });
 
+  it("--emitted-only ignores a bridged CLAUDE.md but still checks a damaged marker", async () => {
+    const { vault, code } = await scaffold();
+    const check = () => emit(vault, { check: true, emittedOnly: true }, undefined);
+    await writeFile(
+      resolve(code, "CLAUDE.md"),
+      "<!-- vulcanus:bridge source=AGENTS.md -->\n@AGENTS.md\n",
+    );
+    assert.equal((await check()).result, EXIT.ok, "never emitted: not this check's business");
+    await writeFile(resolve(code, "AGENTS.md"), "<!-- vulcanus:begin -->\nhalf a block\n");
+    assert.equal(
+      (await check()).result,
+      EXIT.failed,
+      "a damaged marker is emit's output gone wrong",
+    );
+  });
+
   it("takes the repository from --repo, and needs one", async () => {
     const parent = await tempDir();
     tempDirs.push(parent);
@@ -556,6 +572,14 @@ describe("emit with doctor, --yes and the pre-commit hook", () => {
     assert.deepEqual(await codes(vault), []);
     await rm(resolve(code, "CLAUDE.md"));
     assert.deepEqual(await codes(vault), ["EMIT-STALE:warning"]);
+  });
+
+  it("doctor does not call a bridged CLAUDE.md emit output, and flags a damaged marker", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(resolve(code, "CLAUDE.md"), "@AGENTS.md\n");
+    assert.deepEqual(await codes(vault), ["EMIT-MISSING:info"]);
+    await writeFile(resolve(code, "AGENTS.md"), "<!-- vulcanus:begin -->\nhalf a block\n");
+    assert.ok((await codes(vault)).includes("EMIT-STALE:warning"));
   });
 
   it("the pre-commit hook stops a commit while the emitted copy is stale", async (t) => {

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { loadVaultNotes } from "../doctor/index.js";
-import { BEGIN, END, type FilePlan } from "../emit/block.js";
+import { BEGIN, END, hasEmitMarker, type FilePlan } from "../emit/block.js";
 import { planProject, staleReason, type EmitJob } from "../emit/plan.js";
 import { EXIT, noVaultProblem, reportProblem } from "../errors.js";
 import { buildPlan, type ProjectPlan } from "../manifest/derive.js";
@@ -112,7 +112,7 @@ export async function emitCommand(
     // A repository `emit` never wrote to is not this check's business.
     if (
       options.emittedOnly &&
-      !job.files.some((file) => file.state === "update" || file.state === "unchanged")
+      !job.files.some(hasEmitMarker)
     )
       continue;
     jobs.push(job);
