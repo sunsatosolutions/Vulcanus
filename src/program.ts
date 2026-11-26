@@ -4,6 +4,7 @@ import { addProjectCommand } from "./commands/add.js";
 import { agentsCommand } from "./commands/agents.js";
 import { completionCommand, SHELLS } from "./commands/completion.js";
 import { bridgeCommand } from "./commands/bridge.js";
+import { emitCommand } from "./commands/emit.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { driftCommand } from "./commands/drift.js";
 import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
@@ -191,6 +192,34 @@ export function buildProgram(): Command {
     .action(async (options: { write?: boolean; json?: boolean }) => {
       process.exitCode = await bridgeCommand(options);
     });
+
+  program
+    .command("emit")
+    .description(
+      "Write a project's current Capsule and rules into its repository's agent files (shows a diff)",
+    )
+    .argument("[project]", "project name or id; omit for every project that has a root")
+    .option("--repo <dir>", "repository to write into, instead of `root` in vulcanus.json")
+    .option("--dry-run", "show the difference, write nothing")
+    .option("--check", "write nothing; exit 1 when a file is stale or missing")
+    .option("--include-private", "also write projects marked visibility: private")
+    .option("--emitted-only", "with --check: skip repositories that have no vulcanus block yet")
+    .option("--yes", "approve creating files and appending to files that have no block")
+    .action(
+      async (
+        project: string | undefined,
+        options: {
+          repo?: string;
+          dryRun?: boolean;
+          check?: boolean;
+          includePrivate?: boolean;
+          yes?: boolean;
+          emittedOnly?: boolean;
+        },
+      ) => {
+        process.exitCode = await emitCommand(project, options);
+      },
+    );
 
   program
     .command("drift")

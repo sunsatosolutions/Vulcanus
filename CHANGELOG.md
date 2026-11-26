@@ -4,6 +4,15 @@
 
 ### Added
 
+- `vulcanus emit [project]` writes the project's current Capsule and Rules sections into its
+  repository as one managed block, between `<!-- vulcanus:begin -->` and `<!-- vulcanus:end -->`,
+  in `AGENTS.md`, `CLAUDE.md` (an `@AGENTS.md` import), `.cursor/rules/vulcanus.mdc`, and
+  `.github/copilot-instructions.md`. Superseded and expired sections and private projects stay
+  out. Text outside the block is never touched; a file without markers is shown as a diff and
+  needs approval (`--yes` approves without a terminal). `--dry-run` writes nothing;
+  `--check` writes nothing and exits `1` on a stale or missing file.
+  `doctor` reports a stale block (`EMIT-STALE`), and the pre-commit hook from `hooks install`
+  runs `emit --check --emitted-only`, so a stale copy stops the commit.
 - `vulcanus rules link <project> --root <dir>` writes the project's Capsule rules (the bullets
   under Must Remember and Do Not Assume) into the code repository as one managed block,
   between `<!-- vulcanus:rules:start -->` and `<!-- vulcanus:rules:end -->`, in `AGENTS.md`,
