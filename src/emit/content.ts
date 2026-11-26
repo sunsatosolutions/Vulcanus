@@ -49,7 +49,7 @@ function squash(raw: string, bare = false): string {
     .normalize("NFKD")
     .toLowerCase()
     .replace(/[\u0400-\u04ff]/g, (c) => HOMOGLYPHS[c] ?? c)
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^\p{L}\p{N}]/gu, "");
 }
 
 /** Words of a line, each folded the way `squash` folds. */
@@ -103,13 +103,17 @@ export function projectContent(options: ContentOptions): string | null {
           project.dirName ?? "",
           ...project.triggers,
         ]);
-  const hidden = [...new Set(hiddenNames.map((word) => squash(word)).filter(Boolean))];
+  const squashed = [...new Set(hiddenNames.map((word) => squash(word)).filter(Boolean))];
+  // A short Latin id would match inside unrelated words, so it must stand as a whole word.
+  const isShort = (name: string) => name.length < 4 && /^[a-z0-9]+$/.test(name);
+  const hidden = squashed.filter((name) => !isShort(name));
+  const hiddenShort = squashed.filter(isShort);
   const hiddenWords = hiddenNames.map((name) => [...words(name)]).filter((list) => list.length > 1);
 
   /** Indexes of the lines that name a hidden project, also when the name wraps onto the next line. */
   const leakedLines = (lines: string[]): Set<number> => {
     const found = new Set<number>();
-    if (hidden.length === 0) return found;
+    if (hidden.length === 0 && hiddenShort.length === 0) return found;
     let flat = "";
     let bare = "";
     const owner: number[] = [];
@@ -117,11 +121,16 @@ export function projectContent(options: ContentOptions): string | null {
     lines.forEach((line, index) => {
       const piece = squash(line);
       flat += piece;
-      bare += squash(line, true);
+      const bits = squash(line, true);
+      bare += bits;
       for (let i = 0; i < piece.length; i++) owner.push(index);
-      for (let i = 0; i < squash(line, true).length; i++) bareOwner.push(index);
+      for (let i = 0; i < bits.length; i++) bareOwner.push(index);
       const tokens = words(line);
       if (hiddenWords.some((list) => list.every((word) => tokens.has(word)))) found.add(index);
+      if (hiddenShort.length > 0) {
+        const bareTokens = words(line.replace(/<[^>]*>|\]\([^)]*\)|\]\[[^\]]*\]/g, " "));
+        if (hiddenShort.some((name) => tokens.has(name) || bareTokens.has(name))) found.add(index);
+      }
     });
     for (const [text, rows] of [
       [flat, owner],

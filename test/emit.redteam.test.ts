@@ -356,3 +356,55 @@ describe("emit private filter: other names that belong to the private project", 
     }
   });
 });
+
+describe("emit private filter: non-Latin names and short ids", () => {
+  async function run(name: string, id: string, lines: string[]) {
+    const parent = await tempDir();
+    tempDirs.push(parent);
+    const vault = resolve(parent, "vault");
+    const code = resolve(parent, "code");
+    await mkdir(code, { recursive: true });
+    const input = manifest({
+      projects: [
+        project("alpha", "Alpha", { root: code }),
+        project(id, name, { visibility: "private", root: resolve(parent, "secret-repo") }),
+      ],
+    });
+    await writeFiles(vault, generateFiles(input).files);
+    await writeManifest(vault, input);
+    const alpha = buildPlan(input).allProjects.find((plan) => plan.project.id === "alpha")!;
+    const head = "---\ntype: capsule\n---\n# Alpha Capsule\n\n";
+    await writeFile(
+      resolve(vault, alpha.capsule.path),
+      `${head}## Must Remember\n\n${lines.join("\n")}\n`,
+    );
+    const { texts } = await emitted(vault, code);
+    return texts[0];
+  }
+
+  it("drops a line that names a private project in a non-Latin script", async () => {
+    const text = await run("秘密計画", "himitsu", ["- Keep 秘密計画 quiet.", "- Public note."]);
+    assert.ok(!text.includes("秘密計画"), text);
+    assert.ok(text.includes("Public note."), text);
+  });
+
+  it("keeps an unrelated line when a private id is one letter", async () => {
+    const text = await run("Hush", "h", [
+      "- Run the test suite before shipping.",
+      "- Ask h about it.",
+    ]);
+    assert.ok(text.includes("Run the test suite before shipping."), text);
+    assert.ok(!text.includes("Ask h about it."), text);
+  });
+
+  it("finishes a very long section in linear time", async () => {
+    const line = `- ${"word ".repeat(40)}`;
+    const started = Date.now();
+    await run(
+      "Hush",
+      "hush",
+      Array.from({ length: 4000 }, () => line),
+    );
+    assert.ok(Date.now() - started < 10_000, "took too long");
+  });
+});
