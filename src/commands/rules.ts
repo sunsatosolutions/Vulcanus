@@ -11,6 +11,7 @@ import {
   RULE_FILES,
   applyBlock,
   checkRules,
+  plainLinks,
   readBlock,
   renderBlock,
   type RulesReport,
@@ -93,13 +94,7 @@ function capsuleRules(text: string, path: string, language: Locale) {
         continue;
       }
       gap = false;
-      // Wikilinks mean nothing outside the vault: keep the label.
-      rules.push(
-        line
-          .trimEnd()
-          .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, "$2")
-          .replace(/\[\[([^\]#]*)[^\]]*\]\]/g, "$1"),
-      );
+      rules.push(plainLinks(line.trimEnd()));
     }
   }
   return rules;

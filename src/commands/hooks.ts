@@ -36,11 +36,19 @@ if ! command -v vulcanus >/dev/null 2>&1; then
   exit 0
 fi
 
-vulcanus doctor --json > /dev/null 2>&1 && exit 0
+if ! vulcanus doctor --json > /dev/null 2>&1; then
+  echo "vulcanus doctor found errors; commit refused." >&2
+  vulcanus doctor >&2
+  exit 1
+fi
 
-echo "vulcanus doctor found errors; commit refused." >&2
-vulcanus doctor >&2
-exit 1
+# Agent files that fell behind the notes would hand agents rules that no longer hold.
+if ! vulcanus emit --check --emitted-only > /dev/null 2>&1; then
+  echo "agent files are out of date; commit refused. Run: vulcanus emit" >&2
+  vulcanus emit --check --emitted-only >&2
+  exit 1
+fi
+exit 0
 `;
 }
 
@@ -99,7 +107,9 @@ export async function installHooksCommand(options: HooksOptions = {}): Promise<n
 
   p.intro(`hooks — ${manifest.vault.name}`);
   p.log.success(`pre-commit hook installed at ${target}`);
-  p.outro("Commits now run `vulcanus doctor` first. Bypass one with `git commit --no-verify`.");
+  p.outro(
+    "Commits now run `vulcanus doctor` and `vulcanus emit --check --emitted-only` first. Bypass one with `git commit --no-verify`.",
+  );
   return 0;
 }
 

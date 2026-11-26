@@ -29,22 +29,30 @@ function countOf(text: string, needle: string): number {
   return text.split(needle).length - 1;
 }
 
-export function readBlock(text: string): BlockRead {
-  const starts = countOf(text, START);
-  const ends = countOf(text, END);
+/** Markers default to the `rules link` pair; `emit` reads its own pair with the same logic. */
+export function readBlock(text: string, start = START, stop = END): BlockRead {
+  const starts = countOf(text, start);
+  const ends = countOf(text, stop);
   if (starts === 0 && ends === 0) return { kind: "none" };
   if (starts !== 1 || ends !== 1) {
     return { kind: "broken", reason: `${starts} start and ${ends} end markers; expected one each` };
   }
-  const from = text.indexOf(START);
-  const end = text.indexOf(END);
+  const from = text.indexOf(start);
+  const end = text.indexOf(stop);
   if (end < from) return { kind: "broken", reason: "the end marker comes before the start marker" };
   const body = text
-    .slice(from + START.length, end)
+    .slice(from + start.length, end)
     .replace(/^\r?\n/, "")
     .replace(/\r?\n$/, "");
-  const line = text.slice(0, from + START.length).split("\n").length + 1;
-  return { kind: "ok", from, to: end + END.length, body, line };
+  const line = text.slice(0, from + start.length).split("\n").length + 1;
+  return { kind: "ok", from, to: end + stop.length, body, line };
+}
+
+/** Wikilinks mean nothing outside the vault: keep the label. */
+export function plainLinks(line: string): string {
+  return line
+    .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, "$2")
+    .replace(/\[\[([^\]#]*)[^\]]*\]\]/g, "$1");
 }
 
 export function eolOf(text: string): string {
