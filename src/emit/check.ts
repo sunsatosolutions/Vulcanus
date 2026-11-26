@@ -32,14 +32,12 @@ export async function checkEmit(
     const emitted = job.files.some(hasEmitMarker);
     const name = plan.project.name;
     if (!emitted) {
-      if (job.files.every((file) => file.state === "create" || file.state === "append")) {
-        findings.push({
-          level: "info",
-          code: "EMIT-MISSING",
-          message: `${name}: agent files hold no vulcanus block yet; \`vulcanus emit ${plan.project.id} --dry-run\` shows what would be written`,
-        });
-        continue;
-      }
+      findings.push({
+        level: "info",
+        code: "EMIT-MISSING",
+        message: `${name}: agent files hold no vulcanus block yet; \`vulcanus emit ${plan.project.id} --dry-run\` shows what would be written`,
+      });
+      continue;
     }
     for (const file of behind) {
       findings.push({

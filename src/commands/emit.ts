@@ -110,11 +110,7 @@ export async function emitCommand(
       return reportProblem(job);
     }
     // A repository `emit` never wrote to is not this check's business.
-    if (
-      options.emittedOnly &&
-      !job.files.some(hasEmitMarker)
-    )
-      continue;
+    if (options.emittedOnly && !job.files.some(hasEmitMarker)) continue;
     jobs.push(job);
   }
 
