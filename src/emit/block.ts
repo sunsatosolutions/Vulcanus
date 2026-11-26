@@ -88,6 +88,7 @@ export function planRemoval(template: EmitTemplate, existing: string | null): Fi
   const eol = eolOf(existing);
   const tail = existing.slice(read.to).replace(/^\r?\n/, "");
   let head = existing.slice(0, read.from);
-  if (tail === "") head = head.replace(/(\r?\n){2,}$/, eol);
+  // Only the one blank line `append` put in front of a block at the end is ours.
+  if (tail === "" && head.endsWith(eol + eol)) head = head.slice(0, -eol.length);
   return { ...base, state: "update", before: read.body.split(/\r?\n/), text: head + tail };
 }

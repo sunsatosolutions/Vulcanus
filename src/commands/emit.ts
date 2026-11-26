@@ -157,13 +157,7 @@ export async function emitCommand(
         const stale = planRemoval(template, await readOrNull(resolve(repo, template.path)));
         if (stale) files.push(stale);
       }
-      if (files.length === 0) {
-        return reportProblem({
-          what: `${plan.project.name} has no current Capsule or Rules section to write.`,
-          why: "Every section is missing, expired, superseded, or empty.",
-          fix: `Check ${plan.capsule.path} and ${plan.rules.path}.`,
-        });
-      }
+      // No block to take out is a clean state, not an error; other projects go on.
       jobs.push({ plan, repo, files });
       continue;
     }

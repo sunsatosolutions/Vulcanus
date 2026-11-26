@@ -432,6 +432,36 @@ describe("emit", () => {
       const text = await read(code, file);
       assert.ok(!text.includes("vulcanus:begin"), file);
     }
-    assert.equal((await emit(vault)).result, EXIT.usage, "nothing left to clean");
+    assert.equal((await emit(vault)).result, EXIT.ok, "nothing left to clean");
+    assert.equal((await emit(vault, { check: true })).result, EXIT.ok, "clean is current");
+  });
+
+  it("removal keeps blank lines the person wrote around the block, byte for byte", async () => {
+    const { vault, code, capsule } = await scaffold();
+    assert.equal((await approve(vault)).result, EXIT.ok);
+    const block = (await read(code, "AGENTS.md")).trimEnd();
+    const mine = "# Mine\n\n\n\nKeep this.\n\n\n";
+    await writeFile(resolve(code, "AGENTS.md"), `${mine}${block}\n\n\nTail.\n\n`);
+    await writeFile(capsule, "---\ntype: capsule\n---\n# Alpha Capsule\n");
+    await writeFile(
+      resolve(vault, buildPlan(await readManifest(vault)).allProjects[0].rules.path),
+      "---\ntype: rules\n---\n# Alpha Rules\n",
+    );
+    assert.equal((await emit(vault)).result, EXIT.ok);
+    assert.equal(await read(code, "AGENTS.md"), `${mine}\n\nTail.\n\n`);
+  });
+
+  it("an empty project does not stop a batch emit", async () => {
+    const { vault, code } = await scaffold();
+    const m = await readManifest(vault);
+    const other = resolve(code, "..", "other");
+    await mkdir(other, { recursive: true });
+    await writeManifest(vault, {
+      ...m,
+      projects: [...m.projects, project("beta", "Beta", { root: other })],
+    });
+    const run = await emit(vault, { check: true }, undefined);
+    assert.notEqual(run.result, EXIT.usage);
+    assert.match(run.output, /AGENTS\.md/);
   });
 });
