@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { loadVaultNotes } from "../doctor/index.js";
-import { BEGIN, END, planFile, type FilePlan } from "../emit/block.js";
+import { BEGIN, END, planFile, planRemoval, type FilePlan } from "../emit/block.js";
 import { projectContent } from "../emit/content.js";
 import { TEMPLATES } from "../emit/templates/index.js";
 import { EXIT, noVaultProblem, reportProblem, type Problem } from "../errors.js";
@@ -151,11 +151,21 @@ export async function emitCommand(
       includePrivate: Boolean(options.includePrivate),
     });
     if (content === null) {
-      return reportProblem({
-        what: `${plan.project.name} has no current Capsule or Rules section to write.`,
-        why: "Every section is missing, expired, superseded, or empty.",
-        fix: `Check ${plan.capsule.path} and ${plan.rules.path}.`,
-      });
+      // Nothing current is left: take out what an earlier run wrote, keep the rest.
+      const files: FilePlan[] = [];
+      for (const template of TEMPLATES) {
+        const stale = planRemoval(template, await readOrNull(resolve(repo, template.path)));
+        if (stale) files.push(stale);
+      }
+      if (files.length === 0) {
+        return reportProblem({
+          what: `${plan.project.name} has no current Capsule or Rules section to write.`,
+          why: "Every section is missing, expired, superseded, or empty.",
+          fix: `Check ${plan.capsule.path} and ${plan.rules.path}.`,
+        });
+      }
+      jobs.push({ plan, repo, files });
+      continue;
     }
     if (content.includes(BEGIN) || content.includes(END)) {
       return reportProblem({

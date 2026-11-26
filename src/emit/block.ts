@@ -72,3 +72,22 @@ export function planFile(
   const gap = existing === "" ? "" : existing.endsWith("\n") ? eol : eol + eol;
   return { ...base, state: "append", before: [], text: `${existing}${gap}${block}${eol}` };
 }
+
+/**
+ * The file with its managed block taken out, for a project that has nothing current
+ * left to say; null when the file has no block (nothing of ours to clean up).
+ */
+export function planRemoval(template: EmitTemplate, existing: string | null): FilePlan | null {
+  if (existing === null) return null;
+  const read = readBlock(existing, BEGIN, END);
+  if (read.kind === "none") return null;
+  const base = { path: template.path, after: [] };
+  if (read.kind === "broken") {
+    return { ...base, state: "broken", reason: read.reason, before: [], text: null };
+  }
+  const eol = eolOf(existing);
+  const tail = existing.slice(read.to).replace(/^\r?\n/, "");
+  let head = existing.slice(0, read.from);
+  if (tail === "") head = head.replace(/(\r?\n){2,}$/, eol);
+  return { ...base, state: "update", before: read.body.split(/\r?\n/), text: head + tail };
+}

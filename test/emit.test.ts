@@ -7,7 +7,7 @@ import { emitCommand, type EmitOptions } from "../src/commands/emit.js";
 import { EXIT } from "../src/errors.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
 import { buildPlan } from "../src/manifest/derive.js";
-import { writeManifest } from "../src/manifest/io.js";
+import { readManifest, writeManifest } from "../src/manifest/io.js";
 import { setPromptDriver, type PromptDriver } from "../src/prompts.js";
 import { setLogLevel } from "../src/ui.js";
 import { cleanup, manifest, project, tempDir } from "./helpers.js";
@@ -376,5 +376,62 @@ describe("emit", () => {
     for (const flag of ["--repo", "--dry-run", "--check", "--include-private"]) {
       assert.ok(flags.includes(flag), flag);
     }
+  });
+
+  it("keeps a private project out of code blocks and wikilink aliases", async () => {
+    const { vault, code, capsule } = await scaffold();
+    await writeFile(
+      capsule,
+      CAPSULE.replace(
+        "## Read Next",
+        [
+          "## Setup",
+          "",
+          "- Ask [[Hidden Lab|the lab]] first.",
+          "- Public step.",
+          "",
+          "```sh",
+          "deploy --to hidden-lab",
+          "deploy --to hidden",
+          "echo Hidden Lab",
+          "echo public",
+          "```",
+          "",
+          "## Read Next",
+        ].join("\n"),
+      ),
+    );
+    assert.equal((await approve(vault)).result, EXIT.ok);
+    const agents = await read(code, "AGENTS.md");
+    assert.ok(!agents.includes("the lab"));
+    assert.ok(!agents.includes("Hidden Lab"));
+    assert.ok(!agents.includes("deploy --to"));
+    assert.ok(agents.includes("- Public step."));
+    assert.ok(agents.includes("```sh\necho public\n```"));
+  });
+
+  it("removes the managed block when nothing current is left, and keeps the rest", async () => {
+    const { vault, code, capsule } = await scaffold();
+    const mine = "# Mine\n\nKeep this.\n";
+    await writeFile(resolve(code, "AGENTS.md"), mine);
+    assert.equal((await approve(vault)).result, EXIT.ok);
+    assert.ok((await read(code, "AGENTS.md")).includes("### Must Remember"));
+
+    const expired =
+      "---\ntype: capsule\n---\n# Alpha Capsule\n\n## Old\n\n- Old.\nvalid-until:: 2026-01-01\n";
+    await writeFile(capsule, expired);
+    await writeFile(
+      resolve(vault, buildPlan(await readManifest(vault)).allProjects[0].rules.path),
+      "---\ntype: rules\n---\n# Alpha Rules\n",
+    );
+    const check = await emit(vault, { check: true });
+    assert.equal(check.result, EXIT.failed);
+    assert.equal((await emit(vault)).result, EXIT.ok);
+    assert.equal(await read(code, "AGENTS.md"), mine);
+    for (const file of FILES.filter((file) => file !== "AGENTS.md")) {
+      const text = await read(code, file);
+      assert.ok(!text.includes("vulcanus:begin"), file);
+    }
+    assert.equal((await emit(vault)).result, EXIT.usage, "nothing left to clean");
   });
 });

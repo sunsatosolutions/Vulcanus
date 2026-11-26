@@ -56,9 +56,13 @@ export function projectContent(options: ContentOptions): string | null {
         fence = step.fence;
         const inCode = step.isFence || fence !== null;
         if (!inCode && LIFECYCLE_LINE.test(line)) continue;
-        const kept = plainLinks(line.trimEnd());
-        if (!inCode && leaks(kept)) continue;
-        body.push(kept);
+        // Checked on the raw line: a wikilink alias would hide the target name,
+        // and a code block is copied as it is.
+        if (leaks(line)) {
+          if (step.isFence) body.push(/^\s*(?:`{3,}|~{3,})/.exec(line)?.[0] ?? "```");
+          continue;
+        }
+        body.push(plainLinks(line.trimEnd()));
       }
       while (body.length && body[0] === "") body.shift();
       while (body.length && body[body.length - 1] === "") body.pop();
