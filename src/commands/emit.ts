@@ -113,7 +113,9 @@ export async function emitCommand(
     // A repository `emit` never wrote to is not this check's business.
     if (
       options.emittedOnly &&
-      !job.files.some((file) => file.state === "update" || file.state === "unchanged")
+      !job.files.some(
+        (file) => file.state === "update" || file.state === "unchanged" || file.state === "broken",
+      )
     )
       continue;
     jobs.push(job);

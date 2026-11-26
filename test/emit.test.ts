@@ -334,6 +334,16 @@ describe("emit", () => {
     assert.match(output, /copilot-instructions\.md {2}no vulcanus block/);
   });
 
+  it("--check --emitted-only fails when the only emitted file has damaged markers", async () => {
+    const { vault, code } = await scaffold();
+    await writeFile(resolve(code, "AGENTS.md"), "text\n<!-- vulcanus:begin -->\nhalf a block\n");
+    const plain = await emit(vault, { check: true }, undefined);
+    assert.equal(plain.result, EXIT.failed);
+    const hook = await emit(vault, { check: true, emittedOnly: true }, undefined);
+    assert.equal(hook.result, EXIT.failed);
+    assert.match(hook.output, /damaged markers/);
+  });
+
   it("refuses to write around damaged markers", async () => {
     const { vault, code } = await scaffold();
     const broken = "text\n<!-- vulcanus:begin -->\nhalf a block\n";
