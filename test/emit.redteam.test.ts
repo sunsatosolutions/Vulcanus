@@ -283,7 +283,7 @@ describe("emit private filter: the name is not written in one piece", () => {
     "soft hyphen inside": ["- Shared with Project Fal\u00adcon next quarter."],
     "combining mark inside": ["- Shared with Project Falco\u0301n next quarter."],
     "right-to-left override": ["- Shared with \u202enoclaF tcejorP\u202c next quarter."],
-    "long s": ["- Shared with Project Fa\u017Fcon next quarter."],
+    "script small l": ["- Shared with Project Fa\u2113con next quarter."],
   });
 
   table("markup that reads as the name", {

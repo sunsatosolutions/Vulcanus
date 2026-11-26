@@ -9,6 +9,7 @@ import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { today } from "../memory/lifecycle.js";
 import { askConfirm } from "../prompts.js";
 import * as p from "../ui.js";
+import { isPrivate } from "../emit/content.js";
 import { findProject } from "./project.js";
 
 export interface EmitOptions {
@@ -69,9 +70,9 @@ export async function emitCommand(
       });
     }
     chosen = all.filter((plan) => plan.project.id === found.id);
-    if (found.visibility === "private" && !options.includePrivate) {
+    if (isPrivate(manifest, found) && !options.includePrivate) {
       return reportProblem({
-        what: `${found.name} is marked private, so nothing is written to its repository.`,
+        what: `${found.name} is marked private (or sits under a private project), so nothing is written to its repository.`,
         why: "The agent files in a repository are often public; a private project stays out by default.",
         fix: `vulcanus emit ${found.id} --include-private`,
       });
@@ -80,7 +81,7 @@ export async function emitCommand(
     chosen = all.filter(
       (plan) =>
         typeof plan.project.root === "string" &&
-        (options.includePrivate || plan.project.visibility !== "private"),
+        (options.includePrivate || !isPrivate(manifest, plan.project)),
     );
     if (chosen.length === 0 && options.emittedOnly) return EXIT.ok;
     if (chosen.length === 0) {
