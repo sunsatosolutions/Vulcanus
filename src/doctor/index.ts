@@ -23,6 +23,7 @@ import { parseNote, wikiTargets, wikiTargetsUnderHeadings } from "../util/markdo
 import { expandHome, vaultRelative } from "../util/paths.js";
 import { compareVersions } from "../util/semver.js";
 import { SKILL_DIRS } from "../generate/skills.js";
+import { checkEmit } from "../emit/check.js";
 import { checkInstructions } from "../instructions/check.js";
 import { CLI_VERSION, PROTOCOL_VERSION } from "../version.js";
 
@@ -520,6 +521,9 @@ export async function runDoctor(
 
   // --- Bridge files ---------------------------------------------------------
   findings.push(...(await checkInstructions(vaultRoot)));
+
+  // --- Emitted agent files -------------------------------------------------
+  findings.push(...(await checkEmit(vaultRoot, manifest, contents, options.today ?? today())));
 
   // --- Ignore rules --------------------------------------------------------
   const gitignorePath = resolve(vaultRoot, ".gitignore");
