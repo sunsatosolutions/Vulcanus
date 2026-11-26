@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { loadVaultNotes } from "../doctor/index.js";
 import { BEGIN, END, hasEmitMarker, type FilePlan } from "../emit/block.js";
-import { planProject, staleReason, type EmitJob } from "../emit/plan.js";
+import { planProject, repoHasEmitMarker, staleReason, type EmitJob } from "../emit/plan.js";
 import { EXIT, noVaultProblem, reportProblem } from "../errors.js";
 import { buildPlan, type ProjectPlan } from "../manifest/derive.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
@@ -96,7 +96,7 @@ export async function emitCommand(
   const on = options.on ?? today();
   const jobs: EmitJob[] = [];
   for (const plan of chosen) {
-    const job = await planProject(plan, {
+    const input = {
       vaultRoot,
       manifest,
       notes: notes.contents,
@@ -104,9 +104,11 @@ export async function emitCommand(
       repo: options.repo,
       on,
       includePrivate: Boolean(options.includePrivate),
-    });
+    };
+    const job = await planProject(plan, input);
     if (!("files" in job)) {
-      if (options.emittedOnly) continue;
+      // A repository `emit` never wrote to is not this check's business; one it did is.
+      if (options.emittedOnly && !(await repoHasEmitMarker(plan, input))) continue;
       return reportProblem(job);
     }
     // A repository `emit` never wrote to is not this check's business.

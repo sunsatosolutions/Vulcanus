@@ -6,6 +6,7 @@ import type { ProjectPlan } from "../manifest/derive.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { expandHome } from "../util/paths.js";
 import { BEGIN, END, planFile, planRemoval, type FilePlan } from "./block.js";
+import { readBlock } from "../memory/rules.js";
 import { projectContent } from "./content.js";
 import { TEMPLATES } from "./templates/index.js";
 
@@ -105,4 +106,18 @@ export function staleReason(file: FilePlan): string {
   if (file.state === "append") return "no vulcanus block";
   if (file.state === "broken") return `damaged markers (${file.reason})`;
   return "stale";
+}
+
+/**
+ * True when `emit` has been here: a template file in the repository holds a vulcanus
+ * marker, whole or damaged. For a project whose notes could not be planned.
+ */
+export async function repoHasEmitMarker(plan: ProjectPlan, input: PlanInput): Promise<boolean> {
+  const repo = repoOf(plan, input.vaultRoot, input.cwd, input.repo);
+  if (typeof repo !== "string") return false;
+  for (const template of TEMPLATES) {
+    const text = await readOrNull(resolve(repo, template.path));
+    if (text !== null && readBlock(text, BEGIN, END).kind !== "none") return true;
+  }
+  return false;
 }

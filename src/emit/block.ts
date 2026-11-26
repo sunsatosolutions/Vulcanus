@@ -91,14 +91,9 @@ export function planRemoval(template: EmitTemplate, existing: string | null): Fi
   if (read.kind === "broken") {
     return { ...base, state: "broken", reason: read.reason, before: [], text: null };
   }
-  const eol = eolOf(existing);
-  let tail = existing.slice(read.to);
-  let head = existing.slice(0, read.from);
-  // Only what `append` added is ours: a blank line before a block that ends the file,
-  // and the one line ending after it. Anything else is the person's, byte for byte.
-  if (tail === eol && head.endsWith(eol + eol)) {
-    head = head.slice(0, -eol.length);
-    tail = "";
-  }
+  // Every byte outside the markers stays: a blank line before the block or a line ending
+  // after it may be the person's, and the bytes cannot say who wrote them.
+  const head = existing.slice(0, read.from);
+  const tail = existing.slice(read.to);
   return { ...base, state: "update", before: read.body.split(/\r?\n/), text: head + tail };
 }

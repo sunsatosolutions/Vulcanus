@@ -2,7 +2,7 @@ import type { DoctorFinding } from "../doctor/index.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { buildPlan } from "../manifest/derive.js";
 import { hasEmitMarker } from "./block.js";
-import { planProject, staleReason } from "./plan.js";
+import { planProject, repoHasEmitMarker, staleReason, type PlanInput } from "./plan.js";
 
 /**
  * Doctor findings for the agent files `emit` writes: a block that fell behind the notes,
@@ -18,15 +18,25 @@ export async function checkEmit(
   const findings: DoctorFinding[] = [];
   for (const plan of buildPlan(manifest).allProjects) {
     if (typeof plan.project.root !== "string" || plan.project.visibility === "private") continue;
-    const job = await planProject(plan, {
+    const input: PlanInput = {
       vaultRoot,
       manifest,
       notes,
       cwd: vaultRoot,
       on,
       includePrivate: false,
-    });
-    if (!("files" in job)) continue;
+    };
+    const job = await planProject(plan, input);
+    if (!("files" in job)) {
+      if (await repoHasEmitMarker(plan, input)) {
+        findings.push({
+          level: "warning",
+          code: "EMIT-STALE",
+          message: `${plan.project.name}: cannot plan the agent files: ${job.what} ${job.why}`,
+        });
+      }
+      continue;
+    }
     const behind = job.files.filter((file) => file.state !== "unchanged");
     if (behind.length === 0) continue;
     const emitted = job.files.some(hasEmitMarker);

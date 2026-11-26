@@ -153,6 +153,11 @@ async function approve(vault: string, options: EmitOptions = {}, name = "alpha")
   }
 }
 
+const codes = async (vault: string) =>
+  (await runDoctor(vault, await readManifest(vault), { today: ON })).findings
+    .filter((finding) => finding.code.startsWith("EMIT-"))
+    .map((finding) => `${finding.code}:${finding.level}`);
+
 const read = (code: string, file: string) => readFile(resolve(code, file), "utf8");
 
 describe("emit", () => {
@@ -449,7 +454,7 @@ describe("emit", () => {
     const check = await emit(vault, { check: true });
     assert.equal(check.result, EXIT.failed);
     assert.equal((await emit(vault)).result, EXIT.ok);
-    assert.equal(await read(code, "AGENTS.md"), mine);
+    assert.equal(await read(code, "AGENTS.md"), `${mine}\n\n`, "bytes around the block stay");
     for (const file of FILES.filter((file) => file !== "AGENTS.md")) {
       const text = await read(code, file);
       assert.ok(!text.includes("vulcanus:begin"), file);
@@ -506,7 +511,53 @@ describe("emit", () => {
     }
   });
 
-  it("removal undoes the separator that append added", async () => {
+  it("removal keeps a blank line before the block that could be the person's", async () => {
+    const cases: [string, string][] = [
+      ["# Mine\n\n", "\n"],
+      ["# Mine\r\n\r\n", "\r\n"],
+    ];
+    for (const [before, after] of cases) {
+      assert.equal(
+        await removeAround(before, after),
+        before + after,
+        JSON.stringify([before, after]),
+      );
+    }
+  });
+
+  it("--emitted-only and doctor report notes that cannot be planned once emit has written", async () => {
+    const { vault, code, capsule } = await scaffold();
+    assert.equal((await approve(vault)).result, EXIT.ok);
+    const written = await read(code, "AGENTS.md");
+    await writeFile(
+      capsule,
+      CAPSULE.replace(
+        "## Old Layout",
+        "- Never write `<!-- vulcanus:begin -->` by hand.\n\n## Old Layout",
+      ),
+    );
+    const check = await emit(vault, { check: true, emittedOnly: true }, undefined);
+    assert.notEqual(check.result, EXIT.ok);
+    assert.match(check.output, /emit marker/);
+    assert.equal(await read(code, "AGENTS.md"), written);
+    assert.ok((await codes(vault)).includes("EMIT-STALE:warning"));
+  });
+
+  it("--emitted-only and doctor leave an unplannable project alone before the first emit", async () => {
+    const { vault, capsule } = await scaffold();
+    await writeFile(
+      capsule,
+      CAPSULE.replace(
+        "## Old Layout",
+        "- Never write `<!-- vulcanus:begin -->` by hand.\n\n## Old Layout",
+      ),
+    );
+    const check = await emit(vault, { check: true, emittedOnly: true }, undefined);
+    assert.equal(check.result, EXIT.ok);
+    assert.deepEqual(await codes(vault), []);
+  });
+
+  it("removal does not undo a separator that append added", async () => {
     const { vault, code, capsule } = await scaffold();
     await writeFile(resolve(code, "AGENTS.md"), "# Mine\r\n");
     assert.equal((await approve(vault)).result, EXIT.ok);
@@ -516,7 +567,7 @@ describe("emit", () => {
       "---\ntype: rules\n---\n# Alpha Rules\n",
     );
     assert.equal((await emit(vault)).result, EXIT.ok);
-    assert.equal(await read(code, "AGENTS.md"), "# Mine\r\n");
+    assert.equal(await read(code, "AGENTS.md"), "# Mine\r\n\r\n\r\n");
   });
 
   it("an empty project does not stop a batch emit", async () => {
@@ -535,11 +586,6 @@ describe("emit", () => {
 });
 
 describe("emit with doctor, --yes and the pre-commit hook", () => {
-  const codes = async (vault: string) =>
-    (await runDoctor(vault, await readManifest(vault), { today: ON })).findings
-      .filter((finding) => finding.code.startsWith("EMIT-"))
-      .map((finding) => `${finding.code}:${finding.level}`);
-
   it("--yes approves a first write with no terminal, and without it nothing is written", async () => {
     const { vault, code } = await scaffold();
     assert.equal((await emit(vault)).result, EXIT.failed);
