@@ -135,9 +135,13 @@ function commentStart(text: string): number {
  * opener has no backtick in its info string) and closes only on the same character,
  * at least as long, with no info string.
  */
-export function fenceAfter(open: string | null, line: string): { fence: string | null; isFence: boolean } {
+export function fenceAfter(
+  open: string | null,
+  line: string,
+): { fence: string | null; isFence: boolean } {
   const match = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-  if (!match || (match[1][0] === "`" && match[2].includes("`"))) return { fence: open, isFence: false };
+  if (!match || (match[1][0] === "`" && match[2].includes("`")))
+    return { fence: open, isFence: false };
   const run = match[1];
   if (open === null) return { fence: run, isFence: true };
   const closes = run[0] === open[0] && run.length >= open.length && match[2].trim() === "";

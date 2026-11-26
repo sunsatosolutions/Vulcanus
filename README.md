@@ -161,6 +161,7 @@ vulcanus review          # notes whose review is overdue, oldest first (--ok <no
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
 vulcanus rules link <project> --root <dir> [--write]  # put the Capsule rules into the code repo (dry run by default)
 vulcanus rules check --root <dir> [--json]            # copies that differ, paths or scripts that are gone
+vulcanus emit [project] [--dry-run | --check]         # write current Capsule and rules into the repo's agent files
 ```
 
 ```bash
@@ -199,7 +200,7 @@ vulcanus sync --watch    # regenerate and revalidate on every edit; never commit
 ```
 
 ```bash
-vulcanus hooks install   # a pre-commit hook that refuses to commit a broken graph
+vulcanus hooks install   # a pre-commit hook that refuses a broken graph or stale emitted agent files
 ```
 
 ```bash
@@ -303,10 +304,32 @@ $ vulcanus doctor
 `doctor` checks these files too (in a folder with only an `AGENTS.md`, it runs just these checks):
 
 - `INSTRUCTION-SOURCE`, `INSTRUCTION-STALE` (errors): a bridge file whose source is gone, no longer imported, or whose copy no longer matches `AGENTS.md`. Fix: `vulcanus bridge --write`.
+- `EMIT-STALE` (warning), `EMIT-MISSING` (info): see [Current rules in every agent file](#current-rules-in-every-agent-file).
 - `INSTRUCTION-BUDGET` (warning): the file Codex reads (`AGENTS.override.md` if non-empty, else `AGENTS.md`) is larger than 32 KiB, Codex's default `project_doc_max_bytes`; Codex cuts the rest off.
 - `INSTRUCTION-CONFLICT` (warning): `AGENTS.md` and a hand-written `CLAUDE.md`, `GEMINI.md`, Copilot or Cursor file name different package managers (`npm`, `pnpm`, `yarn`, `bun`) or different test runners (`vitest`, `jest`, `mocha`, `pytest`). It shows both files and lines. Only these known words are compared; fenced code blocks, lines with "not", "never", "instead of", and a file that names two tools are skipped. `npm test` against `vitest` is not a conflict.
 
 `status` shows `instruction files: consistent` or `N drifted`, counting all four codes.
+
+### Current rules in every agent file
+
+`vulcanus emit [project]` writes a project's Capsule and Rules sections that still hold into the agent files of its code repository, as one managed block between `<!-- vulcanus:begin -->` and `<!-- vulcanus:end -->`:
+
+| File | What the block holds |
+| --- | --- |
+| `AGENTS.md` | the content (the source the others point at) |
+| `CLAUDE.md` | `@AGENTS.md` |
+| `.cursor/rules/vulcanus.mdc` | the content, in a rule file with `alwaysApply: true` |
+| `.github/copilot-instructions.md` | a copy of the content |
+
+- Only the inside of the block is ever written. Text outside it is kept byte for byte. A file with no markers gets the block appended; a missing file is created. Either one is shown as a diff and needs your yes, so with no terminal nothing is written unless you pass `--yes` (`--dry-run` still shows the difference). Updating a block that is already there needs no question.
+- A section that is superseded (`superseded-by::`) or past `valid-until::` is left out, the same way `doctor` reads lifecycle. `Read Next` and the lifecycle field lines are left out too, and wikilinks keep only their label.
+- A project marked `visibility: private` is not written (`--include-private` overrides). Lines that name a private project in another project's notes are dropped.
+- The repository is the project's `root` in `vulcanus.json`, or `--repo <dir>`. With no project name, `emit` handles every project that has a `root`.
+- `--dry-run` shows the difference and writes nothing. `--check` writes nothing and exits `0` when every file is current; it exits `1` and lists the files that are stale, missing, or have no block.
+- The output is the same for the same notes and the same day. A `CLAUDE.md` that already has an `@AGENTS.md` line (for example from `bridge`) counts as current.
+- `vulcanus doctor` reports `EMIT-STALE` (warning) when a block fell behind the notes, a file went missing or its markers are damaged, and one `EMIT-MISSING` info line for a repository `emit` never wrote to.
+- `vulcanus hooks install` also makes the pre-commit hook run `vulcanus emit --check --emitted-only`: a stale copy stops the commit. Repositories `emit` never wrote to are skipped, so projects that do not use `emit` are not blocked.
+- To support another tool, add one file under `src/emit/templates/` and list it in `index.ts`.
 
 ### Scripting `init`
 
