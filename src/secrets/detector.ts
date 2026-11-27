@@ -99,7 +99,7 @@ const PATTERNS: Pattern[] = [
   },
   {
     kind: "bearer-token",
-    regex: /\bAuthorization["']?\s*[:=]\s*["']?Bearer\s+([A-Za-z0-9._~+/=-]{8,})/gi,
+    regex: /\bAuthorization["']?\s*[:=]\s*["'`]?Bearer\s+([A-Za-z0-9._~+/=-]{8,})/gi,
     group: 1,
     accept: (value) => !isPlaceholder(value),
   },
@@ -163,8 +163,25 @@ function isIdentifier(value: string): boolean {
   return /^(?:sha(?:1|256|384|512)|md5)[-:]/i.test(value);
 }
 
-function looksRandom(value: string, options: Required<DetectOptions>): boolean {
+/** Kebab or snake case made of words ("rotate-every-90-days") is prose, not a token. */
+function isWordy(value: string): boolean {
+  if (!/^[a-z0-9]+(?:[-_][a-z0-9]+){2,}$/.test(value)) return false;
+  const parts = value.split(/[-_]/);
+  const words = parts.filter((p) => /^[a-z]{3,}$/.test(p)).length;
+  return words * 2 >= parts.length;
+}
+
+/** A key name that says the value is a digest or identifier, not a credential. */
+const DIGEST_KEY =
+  /(?:hash|sha\d*|md5|digest|checksum|commit|rev|etag|fingerprint|uuid|id)["']?\s*(?:[:=]|=>)\s*["'`]?$/i;
+
+function looksRandom(value: string, options: Required<DetectOptions>, keyPart = ""): boolean {
   if (value.length < options.minLength) return false;
+  if (isWordy(value)) return false;
+  // 64 hex under a credential key (api_key, db_password) is a secret; under a digest key it is not.
+  if (/^[0-9a-f]{64}$/i.test(value) && !DIGEST_KEY.test(keyPart)) {
+    return shannonEntropy(value) >= options.entropyThreshold;
+  }
   if (/^(?:https?:|\/|\.{1,2}\/|~|\[\[)/i.test(value)) return false;
   if (isIdentifier(value)) return false;
   if (!/\d/.test(value) || !/[A-Za-z]/.test(value)) return false;
@@ -202,7 +219,11 @@ function collect(text: string, options: Required<DetectOptions>): Span[] {
 
   for (const match of text.matchAll(KEYWORD_VALUE)) {
     const value = match[1];
-    if (isPlaceholder(value) || !looksRandom(value, options)) continue;
+    if (
+      isPlaceholder(value) ||
+      !looksRandom(value, options, match[0].slice(0, match[0].lastIndexOf(value)))
+    )
+      continue;
     const start = (match.index ?? 0) + match[0].lastIndexOf(value);
     spans.push({
       start,
