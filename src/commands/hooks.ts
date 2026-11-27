@@ -23,9 +23,9 @@ function hookScript(vaultRoot: string): string {
   return `#!/bin/sh
 ${SIGNATURE}
 #
-# Refuse a commit that would put a broken memory graph into history: a dangling
-# wikilink is far cheaper to fix now than to discover months later, when an
-# agent silently recalls nothing.
+# Refuse a commit that would put a secret or a broken memory graph into history:
+# a dangling wikilink is far cheaper to fix now than to discover months later,
+# when an agent silently recalls nothing.
 #
 # Bypass once with:  git commit --no-verify
 
@@ -34,6 +34,13 @@ cd ${quoted} || exit 1
 if ! command -v vulcanus >/dev/null 2>&1; then
   echo "vulcanus not on PATH; skipping vault validation." >&2
   exit 0
+fi
+
+# Known-pattern secrets in what is staged (allow a false positive in .vulcanus-allow).
+if ! vulcanus secrets --staged >/dev/null 2>&1; then
+  echo "secret match in staged files; commit refused." >&2
+  vulcanus secrets --staged >&2
+  exit 1
 fi
 
 if ! vulcanus doctor --json > /dev/null 2>&1; then
@@ -108,7 +115,7 @@ export async function installHooksCommand(options: HooksOptions = {}): Promise<n
   p.intro(`hooks — ${manifest.vault.name}`);
   p.log.success(`pre-commit hook installed at ${target}`);
   p.outro(
-    "Commits now run `vulcanus doctor` and `vulcanus emit --check --emitted-only` first. Bypass one with `git commit --no-verify`.",
+    "Commits now run `vulcanus secrets --staged`, `vulcanus doctor` and `vulcanus emit --check --emitted-only` first. Bypass one with `git commit --no-verify`.",
   );
   return 0;
 }

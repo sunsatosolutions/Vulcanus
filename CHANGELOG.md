@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Added
+- Secret gates on every path that writes to the vault, all on the same detector and the same
+  `.vulcanus-allow`:
+  - `vulcanus sync` scans every file git would commit (tracked, and untracked but not ignored)
+    before it stages anything. A match not accepted in `.vulcanus-allow` stops the run with
+    exit `1` and no commit; each finding is `file:line kind fingerprint`, never the value.
+    `sync --json` reports `reason: "secrets-found"` and the same lines in `secrets`.
+  - `vulcanus hooks install` now also runs `vulcanus secrets --staged`, which scans the
+    staged version of each added or changed file and refuses the commit on a match. Re-run
+    `hooks install` to update an existing hook. The existing graph and emit checks are
+    unchanged. `vulcanus secrets` without `--staged` scans the whole working tree.
+  - `vulcanus import` masks secrets (`‹secret:<kind>›`) in conversations before analysis, so the
+    candidate list, `--json`, the seen ledger, AI digests and accepted notes never hold the value.
+  - MCP `append_decision`, `append_rule` and `update_capsule` refuse input that holds a
+    secret, naming the field and kind, never the value.
+  - `doctor` prints the fingerprint next to each secret finding.
+  These catch known patterns only; see "Secret scanning" in the README.
 - `vulcanus doctor` scans the vault's notes for secrets that match known patterns (cloud and
   token prefixes, private-key blocks, passworded database URLs, `Authorization: Bearer`,
   command-line passwords, and a high-entropy value next to `password`, `secret`, `token` or

@@ -30,7 +30,7 @@ export function reportDoctor(report: DoctorReport): void {
             : finding.file
               ? `${finding.file}: `
               : ""
-        }${finding.message}`,
+        }${finding.message}${finding.fingerprint ? ` ${finding.fingerprint}` : ""}`,
     );
     p.log.message(`${code}\n${lines.join("\n")}`);
   }

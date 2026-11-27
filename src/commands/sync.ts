@@ -6,6 +6,7 @@ import { findVaultRoot, readManifest } from "../manifest/io.js";
 import { reportDoctor } from "./doctor.js";
 import { noVaultProblem, reportProblem } from "../errors.js";
 import { watchVault } from "./watch.js";
+import { gateLines, scanWorktree } from "../secrets/gate.js";
 
 const run = promisify(execFile);
 
@@ -37,7 +38,10 @@ export interface SyncSummary {
   pushError: string | null;
   dryRun: boolean;
   /** Absent git or a clean tree are outcomes, not failures — say which. */
-  reason: "committed" | "clean" | "not-a-repository" | "dry-run" | "doctor-failed";
+  reason:
+    "committed" | "clean" | "not-a-repository" | "dry-run" | "doctor-failed" | "secrets-found";
+  /** Unallowed secret matches that stopped the run, as `file:line kind fingerprint`; never a value. */
+  secrets: string[];
 }
 
 /** The validate/commit/push work, with no printing. Pass a report already computed to skip a second doctor run. */
@@ -65,6 +69,7 @@ export async function runSync(
     pushError: null,
     dryRun: Boolean(options.dryRun),
     reason: "doctor-failed",
+    secrets: [],
   };
 
   if (!report.ok) return base;
@@ -74,6 +79,10 @@ export async function runSync(
   } catch {
     return { ...base, reason: "not-a-repository" };
   }
+
+  // Before anything is staged: `git add -A` would commit every file this looks at.
+  const secrets = gateLines(await scanWorktree(vaultRoot));
+  if (secrets.length > 0) return { ...base, ok: false, secrets, reason: "secrets-found" };
 
   const status = await git(vaultRoot, ["status", "--porcelain"]);
   const changes = status.stdout
@@ -106,6 +115,12 @@ function reportSync(summary: SyncSummary): void {
   switch (summary.reason) {
     case "doctor-failed":
       p.outro(`FAIL — ${summary.doctor.errors} error(s); nothing was committed.`);
+      return;
+    case "secrets-found":
+      p.log.message(summary.secrets.join("\n"));
+      p.outro(
+        `FAIL — ${summary.secrets.length} secret finding(s); nothing was committed. Remove them, or accept a false positive in .vulcanus-allow with a reason.`,
+      );
       return;
     case "not-a-repository":
       p.outro("Not a Git repository; validation passed but nothing was committed.");

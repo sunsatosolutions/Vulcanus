@@ -201,7 +201,8 @@ vulcanus sync --watch    # regenerate and revalidate on every edit; never commit
 ```
 
 ```bash
-vulcanus hooks install   # a pre-commit hook that refuses a broken graph or stale emitted agent files
+vulcanus hooks install   # a pre-commit hook that refuses staged secrets, a broken graph or stale emitted agent files
+vulcanus secrets [--staged] # known-pattern secret check: the working tree, or only what is staged
 ```
 
 ```bash
@@ -443,6 +444,28 @@ The graph view doubles as a health check: projects appear as clusters, hubs at t
 Your own notes are never rewritten — `update` reports how many it left untouched. That includes the Index, the hubs, and the Import Log: they hold what you wrote, so a new project or a deeper system layer is *linked in* rather than regenerated. `AGENTS.md` is merged — sections you added stay, sections the protocol adds arrive. `--dry-run` shows the plan first, and notes the manifest no longer describes are listed rather than deleted. A vault written by a *newer* CLI is refused outright instead of being downgraded.
 
 After a command, the CLI checks npm at most once a day and prints a one-line notice when a newer release exists. Set `VULCANUS_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER`, or run in CI) to turn it off; it fails silently offline.
+
+## Secret scanning
+
+Four gates look for secrets, all with one detector and one allow file:
+
+- `vulcanus doctor` scans the vault's notes.
+- `vulcanus sync` scans every file git would commit, before staging. A match stops it with exit `1` and no commit.
+- The pre-commit hook from `hooks install` runs `vulcanus secrets --staged`: it reads the staged version of each added or changed file and refuses the commit on a match. `git commit --no-verify` skips it.
+- `vulcanus import` masks secrets in conversations before analysis, and the MCP write tools (`append_decision`, `append_rule`, `update_capsule`) refuse input that holds one.
+
+A finding prints as `file:line kind fingerprint`. The value is never printed.
+
+To accept a false positive, add one line to `.vulcanus-allow` at the vault root, with a reason after `#`:
+
+```
+notes/api.md:12:aws-key # documented example key, not a real one
+3f9a1c0b7d42 # same finding, kept when the line moves
+```
+
+The first form is `file:line:kind`; the second is the 12-hex fingerprint from the output or `doctor --json`. **A reason is required.** A line without one accepts nothing and is itself reported as an error.
+
+**Limits.** This finds *known patterns*: cloud and token prefixes, private-key blocks, passworded URLs, bearer headers, command-line passwords, and high-entropy values next to words like `password` or `token`. A scan with no findings does not mean the vault holds no secret. It is not a secrets manager, it does not rotate or store anything, and it does not claim full coverage. A secret already in git history stays there; rotate it.
 
 ## Validation
 

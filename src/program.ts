@@ -23,6 +23,7 @@ import { skillsCommand } from "./commands/skills.js";
 import { reviewCommand } from "./commands/review.js";
 import { statsCommand } from "./commands/stats.js";
 import { statusCommand } from "./commands/status.js";
+import { secretsCommand } from "./commands/secrets.js";
 import { syncCommand } from "./commands/sync.js";
 import { updateCommand } from "./commands/update.js";
 import type { ImportSourceId } from "./importers/index.js";
@@ -241,6 +242,16 @@ export function buildProgram(): Command {
     .option("--allow <file:line>", "record the findings on that line as false positives")
     .action(async (options: { fix?: boolean; allow?: string }) => {
       process.exitCode = await scanCommand(options);
+    });
+
+  program
+    .command("secrets")
+    .description(
+      "Check for known-pattern secrets; exit 1 on a match (the pre-commit hook runs --staged)",
+    )
+    .option("--staged", "only what is staged for the next commit")
+    .action(async (options: { staged?: boolean }) => {
+      process.exitCode = await secretsCommand(options);
     });
 
   const rules = program
