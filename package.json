@@ -41,6 +41,7 @@
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node scripts/run-tests.mjs",
+    "bench:secrets": "tsx test/bench/secrets.ts",
     "prepublishOnly": "npm run build",
     "format": "prettier --write src test scripts eslint.config.js",
     "format:check": "prettier --check src test scripts eslint.config.js",
