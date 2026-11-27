@@ -186,10 +186,10 @@ describe("vulcanus doctor and secrets", () => {
   async function run(root: string) {
     const lines: string[] = [];
     const original = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
+    process.stdout.write = (chunk: string | Uint8Array) => {
       lines.push(String(chunk));
       return true;
-    });
+    };
     try {
       const code = await doctorCommand({ cwd: root, json: true });
       return { code, out: lines.join("") };
