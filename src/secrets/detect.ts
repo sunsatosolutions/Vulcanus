@@ -8,8 +8,8 @@ export interface SecretRule {
   type: string;
   level: SecretLevel;
   pattern: RegExp;
-  /** Capture group holding the secret itself; the whole match when absent. */
-  group?: number;
+  /** Capture group holding the secret itself (the first that matched, if a list); the whole match when absent. */
+  group?: number | number[];
   /** Extra check on the secret value; return false to drop the match. */
   accept?: (value: string) => boolean;
 }
@@ -98,8 +98,9 @@ export const RULES: readonly SecretRule[] = [
     id: "password",
     type: "password",
     level: "error",
-    pattern: /(?<![A-Za-z0-9])(?:password|passwd|pwd)\s*[=:]\s*["']?([^\s"'<>{}$]{6,})/gi,
-    group: 1,
+    pattern:
+      /(?<![A-Za-z0-9])(?:password|passwd|pwd)\s*[=:]\s*(?:"([^"\r\n]{6,})"|'([^'\r\n]{6,})'|["']?([^\s"'<>{}$]{6,}))/gi,
+    group: [1, 2, 3],
     accept: looksSecret,
   },
   {
@@ -122,7 +123,8 @@ export function detectLine(line: string): SecretMatch[] {
   for (const rule of RULES) {
     const pattern = new RegExp(rule.pattern.source, `${rule.pattern.flags.replace("d", "")}d`);
     for (const match of line.matchAll(pattern)) {
-      const span = match.indices?.[rule.group ?? 0];
+      const groups = [rule.group ?? 0].flat();
+      const span = groups.map((g) => match.indices?.[g]).find(Boolean);
       if (!span) continue;
       const [start, end] = span;
       const value = line.slice(start, end);

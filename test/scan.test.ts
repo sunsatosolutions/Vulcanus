@@ -150,6 +150,43 @@ describe("vulcanus scan", () => {
     assert.equal(again.result, EXIT.ok);
   });
 
+  it("masks a whole quoted password that contains spaces", async () => {
+    for (const line of ['password: "correct horse 9 battery"', "pwd = 'tr0ub4dor and 3 more'"]) {
+      const value = line.slice(line.search(/["']/) + 1, -1);
+      const found = detectLine(line);
+      assert.equal(found.length, 1, line);
+      assert.equal(line.slice(found[0].start, found[0].end), value);
+    }
+    const vault = await vaultWith('password: "correct horse 9 battery"\n');
+    const restore = setPromptDriver(scriptedPrompts([true]).driver);
+    const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
+    restore();
+    assert.equal(run.result, EXIT.ok);
+    assert.ok(!run.output.includes("horse"));
+    assert.equal(
+      await readFile(resolve(vault, NOTE), "utf8"),
+      'password: "[REDACTED:password]"\n',
+    );
+  });
+
+  it("--fix does not overwrite a file that changed while waiting for approval", async () => {
+    const github = positives().find((fixture) => fixture.type === "github_token")!;
+    const vault = await vaultWith(`${github.line}\n`);
+    const edited = `${github.line}\nuser note\n`;
+    const base = scriptedPrompts([]).driver;
+    const restore = setPromptDriver({
+      ...base,
+      async confirm() {
+        await writeFile(resolve(vault, NOTE), edited);
+        return true;
+      },
+    });
+    const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
+    restore();
+    assert.equal(run.result, EXIT.failed);
+    assert.equal(await readFile(resolve(vault, NOTE), "utf8"), edited);
+  });
+
   it("--allow stores a hash, not the value, and scan then passes", async () => {
     const github = positives().find((fixture) => fixture.type === "github_token")!;
     const vault = await vaultWith(`x\n${github.line}\n`);

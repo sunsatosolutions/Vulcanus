@@ -135,6 +135,19 @@ async function fix(
     p.outro("Nothing was written.");
     return EXIT.cancelled;
   }
+  for (const file of edits.keys()) {
+    const now = await readFile(resolve(vaultRoot, file), "utf8").catch(() => null);
+    if (now !== texts.get(file)) {
+      return reportProblem(
+        {
+          what: `${file} changed while waiting for approval. Nothing was written.`,
+          why: "Writing now would overwrite the newer content.",
+          fix: "run vulcanus scan --fix again",
+        },
+        EXIT.failed,
+      );
+    }
+  }
   for (const [file, text] of edits) await writeFile(resolve(vaultRoot, file), text);
   p.outro(`Redacted ${findings.length} finding(s) in ${edits.size} file(s).`);
   return EXIT.ok;
