@@ -1,4 +1,5 @@
 import { jsonListIn, runHeadless, type DetectedCli, type Exec } from "./clis.js";
+import { maskSecrets } from "../secrets/detector.js";
 import type { MemoryCandidate } from "../memory/extract.js";
 
 /**
@@ -28,7 +29,12 @@ export interface ExtractedEntry {
 }
 
 export function buildExtractDigest(candidates: MemoryCandidate[]): ExtractDigestEntry[] {
-  return candidates.map(({ id, project, kind, text }) => ({ id, project, kind, text }));
+  return candidates.map(({ id, project, kind, text }) => ({
+    id,
+    project,
+    kind,
+    text: maskSecrets(text).text,
+  }));
 }
 
 export function buildExtractPrompt(digest: ExtractDigestEntry[]): string {
@@ -99,7 +105,7 @@ export function applyExtracted(
     out.push({
       ...lead,
       kind: entry.kind,
-      text: entry.text,
+      text: maskSecrets(entry.text).text,
       correction: known.some((source) => source.correction),
       score: Math.max(...known.map((source) => source.score)),
       conversations: Math.max(...known.map((source) => source.conversations)),

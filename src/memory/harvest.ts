@@ -9,6 +9,7 @@
  * the reason (plus the title) ever becomes a candidate: never a whole body.
  */
 import type { VaultPlan } from "../manifest/derive.js";
+import { maskSecrets } from "../secrets/detector.js";
 import { git, gitOrNull } from "../util/git.js";
 import { classify, CUES, RATIONALE_CUES } from "./cues.js";
 import {
@@ -172,7 +173,7 @@ export async function harvestCandidates(
       kind: statement.kind,
       weight: statement.weight,
       correction: statement.correction,
-      text: statement.text,
+      text: maskSecrets(statement.text).text,
       time: commit.time,
     };
     hits.push(hit);
