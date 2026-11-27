@@ -111,7 +111,12 @@ export async function scanStagedCommand(options: HooksOptions = {}): Promise<num
   const allow = await readAllow(vaultRoot);
   let found = 0;
   for (const name of names) {
-    const { stdout } = await run_(vaultRoot, ["show", `:./${name}`]);
+    let stdout: Buffer;
+    try {
+      ({ stdout } = await run_(vaultRoot, ["show", `:./${name}`]));
+    } catch {
+      continue; // submodule/gitlink entry: no blob to read
+    }
     if (stdout.includes(0)) continue; // binary
     for (const hit of scanText(stdout.toString("utf8"), toPosix(name))) {
       if (isAllowed(allow, hit)) continue;

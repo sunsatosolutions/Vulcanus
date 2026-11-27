@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
 import { completionCommand, completionScript, SHELLS } from "../src/commands/completion.js";
 import { buildProgram } from "../src/program.js";
-import { installHooksCommand, uninstallHooksCommand } from "../src/commands/hooks.js";
+import { installHooksCommand, scanStagedCommand, uninstallHooksCommand } from "../src/commands/hooks.js";
 import { collectStats, estimateTokens, statsCommand } from "../src/commands/stats.js";
 import { badChoiceProblem, formatProblem, noVaultProblem, EXIT } from "../src/errors.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
@@ -238,6 +238,15 @@ describe("git hooks", () => {
     });
     const ran = (await readFile(where, "utf8")).trim();
     assert.equal(await realpath(ran), await realpath(vault));
+  });
+
+  it("scan-staged skips a staged submodule entry instead of crashing", async () => {
+    const root = await scaffold();
+    await gitInit(root);
+    await run("git", ["update-index", "--add", "--cacheinfo", `160000,${"1".repeat(40)},sub`], {
+      cwd: root,
+    });
+    assert.equal(await scanStagedCommand({ cwd: root }), 0);
   });
 
   it("refuses to overwrite a hook it did not write", async () => {
