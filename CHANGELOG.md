@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+- One secret detector. `vulcanus scan` now uses the same detector as doctor, import, the MCP
+  writes and the pre-commit hook (`src/secrets/detector.ts`); the second pattern list is gone.
+  Kinds are the detector's (`github-token`, not `github_token`) and there is no warning level:
+  any match exits 1. `scan` and `doctor` print `file:line kind fingerprint`.
+- `scan --allow <file:line>` needs `--reason <text>` and writes the same `<fingerprint> # reason`
+  entry every gate reads; it no longer writes `sha256:` lines. Old `sha256:` lines are not read
+  and doctor reports them as `SECRET-ALLOW`; re-add them with `scan --allow`.
+- The README has a "Secret scanning" section: the four gates, `.vulcanus-allow`, and the limit.
+
 ### Added
 - Blackbar detects JWTs (`jwt`) and a quoted `password=` value that holds an escaped quote, whose
   tail the keyword rule used to leave readable. A recall fixture set (37 fake patterns built at
@@ -12,8 +22,8 @@
   `[REDACTED:<kind>]`; MCP `append_decision`, `append_rule` and `update_capsule` refuse content
   with a new secret and write nothing; `doctor` suggests `vulcanus scan --fix` when it finds
   one; `hooks install` adds a staged-content scan (`vulcanus hooks scan-staged`) to the
-  pre-commit hook. `.vulcanus-allow` is honoured on all of them. The mask is now
-  `[REDACTED:<kind>]` (was `‹secret:<kind>›`).
+  pre-commit hook. `.vulcanus-allow` is honoured on all of them. The mask is
+  `[REDACTED:<kind>]` everywhere.
 - `vulcanus doctor` scans the vault's notes for secrets that match known patterns (cloud and
   token prefixes, private-key blocks, passworded database URLs, `Authorization: Bearer`,
   command-line passwords, and a high-entropy value next to `password`, `secret`, `token` or
@@ -27,10 +37,10 @@
 
 - `vulcanus scan` looks for secrets in the vault's managed notes with built-in rules (no LLM, no new
   dependency): `sk-`, GitHub, AWS, Slack and JWT formats, `Authorization: Bearer`, `password=`,
-  passwords in connection strings, and a high-entropy warning. It prints `file:line type` and never
-  a value. Exit `1` on an error finding; warnings alone exit `0`. `--fix` replaces findings with
+  passwords in connection strings, and a high-entropy value. It prints `file:line kind` and never
+  a value. Exit `1` on a match. `--fix` replaces findings with
   `[REDACTED:<type>]` on those lines only, after showing the change and asking (no terminal, no
-  write). `--allow <file:line>` records a sha256 of rule and value in `.vulcanus-allow`.
+  write). `--allow <file:line> --reason <text>` records the finding in `.vulcanus-allow`.
 - `vulcanus emit [project]` writes the project's current Capsule and Rules sections into its
   repository as one managed block, between `<!-- vulcanus:begin -->` and `<!-- vulcanus:end -->`,
   in `AGENTS.md`, `CLAUDE.md` (an `@AGENTS.md` import), `.cursor/rules/vulcanus.mdc`, and

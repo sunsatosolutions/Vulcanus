@@ -198,7 +198,7 @@ describe("vulcanus doctor and secrets", () => {
     }
   }
 
-  it("reports file:line kind, no value, non-zero exit; allow entry with reason passes", async () => {
+  it("reports file:line kind fingerprint, no value, non-zero exit; allow entry with reason passes", async () => {
     const { root, fake, line, rel } = await vaultWithSecret();
 
     const first = await run(root);
@@ -206,7 +206,11 @@ describe("vulcanus doctor and secrets", () => {
     assert.equal(first.out.includes(fake), false, "doctor printed a raw value");
     const report = parse(first.out);
     const hit = report.findings.find((f) => f.code === "SECRET" && f.level === "error");
-    assert.equal(`${hit.file}:${hit.line} ${hit.message}`, `${rel}:${line} github-token`);
+    assert.equal(
+      `${hit.file}:${hit.line} ${hit.message}`,
+      `${rel}:${line} github-token ${hit.fingerprint}`,
+    );
+    assert.match(hit.fingerprint, /^[0-9a-f]{12}$/);
     const info = report.findings.find((f) => f.code === "SECRET" && f.level === "info");
     assert.match(info.message, /known patterns/);
     assert.doesNotMatch(info.message, /clean/i);

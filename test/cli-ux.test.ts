@@ -3,10 +3,15 @@ import { execFile } from "node:child_process";
 import { chmod, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
-import { after, describe, it } from "node:test";
+import { devNull } from "node:os";
+import { after, before, describe, it } from "node:test";
 import { completionCommand, completionScript, SHELLS } from "../src/commands/completion.js";
 import { buildProgram } from "../src/program.js";
-import { installHooksCommand, scanStagedCommand, uninstallHooksCommand } from "../src/commands/hooks.js";
+import {
+  installHooksCommand,
+  scanStagedCommand,
+  uninstallHooksCommand,
+} from "../src/commands/hooks.js";
 import { collectStats, estimateTokens, statsCommand } from "../src/commands/stats.js";
 import { badChoiceProblem, formatProblem, noVaultProblem, EXIT } from "../src/errors.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
@@ -199,6 +204,23 @@ describe("shell completion", () => {
 });
 
 describe("git hooks", () => {
+  // A box may inject core.hooksPath (read-only, outside the repository) through GIT_CONFIG_*
+  // variables or a global config; these tests need git to use the repository's own hooks dir.
+  const saved: Record<string, string | undefined> = {};
+  const isolated = { GIT_CONFIG_COUNT: "0", GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: "1" };
+  before(() => {
+    for (const [key, value] of Object.entries(isolated)) {
+      saved[key] = process.env[key];
+      process.env[key] = value;
+    }
+  });
+  after(() => {
+    for (const key of Object.keys(isolated)) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
   it("installs a pre-commit hook that runs doctor", async () => {
     const root = await scaffold();
     await gitInit(root);

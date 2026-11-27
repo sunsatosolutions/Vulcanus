@@ -3,14 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { after, afterEach, describe, it } from "node:test";
 import { ALLOW_FILE, scanCommand } from "../src/commands/scan.js";
+import { runDoctor } from "../src/doctor/index.js";
 import { EXIT } from "../src/errors.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
-import { writeManifest } from "../src/manifest/io.js";
+import { readManifest, writeManifest } from "../src/manifest/io.js";
 import { setPromptDriver } from "../src/prompts.js";
-import { detectLine } from "../src/secrets/detect.js";
+import { scanText } from "../src/secrets/detector.js";
 import { setLogLevel } from "../src/ui.js";
 import { cleanup, manifest, project, scriptedPrompts, tempDir } from "./helpers.js";
-import { negatives, positives } from "./secret-fixtures.js";
 
 const tempDirs: string[] = [];
 after(async () => {
@@ -19,6 +19,11 @@ after(async () => {
 });
 
 const NOTE = "02_Projects/Alpha/Alpha Notes.md";
+
+// Test tokens are built at run time so no secret-shaped literal sits in the source.
+const rnd = (n: number, seed = "aB3dE5gH7jK9mN1pQ2rS4tU6vW8xY0zC") => seed.repeat(8).slice(0, n);
+const token = (seed?: string) => `${["gh", "p_"].join("")}${rnd(36, seed)}`;
+const awsKey = () => `${["AK", "IA"].join("")}${"Q7XK2M4P9R3T5V8W".slice(0, 16)}`;
 
 async function vaultWith(text: string): Promise<string> {
   const parent = await tempDir();
@@ -49,72 +54,43 @@ async function capture<T>(action: () => Promise<T>): Promise<{ result: T; output
   }
 }
 
-describe("secret detector", () => {
-  it("catches at least 95% of the fixtures, with the right type and level", () => {
-    const fixtures = positives();
-    assert.ok(fixtures.length >= 30, `only ${fixtures.length} fixtures`);
-    const missed = fixtures.filter(
-      (fixture) =>
-        !detectLine(fixture.line).some(
-          (match) =>
-            match.type === fixture.type &&
-            match.level === fixture.level &&
-            fixture.line.slice(match.start, match.end) === fixture.value,
-        ),
-    );
-    const rate = (fixtures.length - missed.length) / fixtures.length;
-    console.log(
-      `catch rate ${(rate * 100).toFixed(1)}% (${fixtures.length - missed.length}/${fixtures.length})`,
-    );
-    assert.ok(rate >= 0.95, `catch rate ${rate}; missed: ${missed.map((m) => m.name).join(", ")}`);
-  });
-
-  it("raises nothing on the negative set", () => {
-    const flagged = negatives().filter((line) => detectLine(line).length > 0);
-    console.log(`false positives ${flagged.length}/${negatives().length}`);
-    assert.deepEqual(flagged, []);
-  });
-
-  it("marks entropy as a warning and every named rule as an error", () => {
-    for (const fixture of positives()) {
-      assert.equal(fixture.level, fixture.type === "high_entropy" ? "warning" : "error");
-    }
-  });
-});
+async function approve(vault: string, answer: boolean) {
+  const restore = setPromptDriver(scriptedPrompts([answer]).driver);
+  try {
+    return await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
+  } finally {
+    restore();
+  }
+}
 
 describe("vulcanus scan", () => {
   afterEach(() => setLogLevel("normal"));
 
-  it("prints file:line type, never a value, and exits 1 on an error finding", async () => {
-    const fixtures = positives();
-    const vault = await vaultWith(fixtures.map((fixture) => fixture.line).join("\n") + "\n");
+  it("prints file:line kind fingerprint, never a value, and exits 1 on a match", async () => {
+    const github = token();
+    const aws = awsKey();
+    const vault = await vaultWith(`ok\nkey ${github}\nid ${aws}\n`);
     const { result, output } = await capture(() => scanCommand({ cwd: vault }));
     assert.equal(result, EXIT.failed);
-    assert.match(output, new RegExp(`${NOTE.replace(/\./g, "\\.")}:1 api_key`));
-    for (const fixture of fixtures) {
-      assert.ok(!output.includes(fixture.value), `${fixture.name} leaked`);
-      // A fragment must not leak either.
-      assert.ok(!output.includes(fixture.value.slice(4, 20)), `${fixture.name} leaked in part`);
+    assert.match(
+      output,
+      new RegExp(`^${NOTE.replace(/\./g, "\\.")}:2 github-token [0-9a-f]{12}$`, "m"),
+    );
+    assert.match(output, /:3 aws-key [0-9a-f]{12}$/m);
+    for (const value of [github, aws]) {
+      assert.ok(!output.includes(value));
+      assert.ok(!output.includes(value.slice(4, 20)), "a fragment leaked");
     }
   });
 
-  it("exits 0 and lists warnings when only the entropy rule fires", async () => {
-    const warning = positives().find((fixture) => fixture.level === "warning")!;
-    const vault = await vaultWith(`${warning.line}\n`);
-    const { result, output } = await capture(() => scanCommand({ cwd: vault }));
-    assert.equal(result, EXIT.ok);
-    assert.match(output, /warnings:\n.*:1 high_entropy/);
-    assert.ok(!output.includes(warning.value));
-  });
-
-  it("exits 0 on the negative set", async () => {
-    const vault = await vaultWith(negatives().join("\n") + "\n");
+  it("exits 0 on a vault with no match", async () => {
+    const vault = await vaultWith("# Notes\n\nid 123e4567-e89b-12d3-a456-426614174000\n");
     const { result } = await capture(() => scanCommand({ cwd: vault }));
     assert.equal(result, EXIT.ok);
   });
 
   it("--fix writes nothing without a terminal", async () => {
-    const text = `a\n${positives()[0].line}\n`;
+    const text = `a\nkey ${token()}\n`;
     const vault = await vaultWith(text);
     const { result } = await capture(() =>
       scanCommand({ cwd: vault, fix: true, interactive: false }),
@@ -124,62 +100,23 @@ describe("vulcanus scan", () => {
   });
 
   it("--fix patches only the finding's line, shows no value, and keeps CRLF", async () => {
-    const github = positives().find((fixture) => fixture.type === "github_token")!;
-    const text = `# Keep\r\n\r\n${github.line}\r\nlast line without newline`;
+    const github = token();
+    const text = `# Keep\r\n\r\nkey ${github}\r\nlast line without newline`;
     const vault = await vaultWith(text);
 
-    const declined = scriptedPrompts([false]);
-    let restore = setPromptDriver(declined.driver);
-    let run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
-    restore();
+    let run = await approve(vault, false);
     assert.equal(run.result, EXIT.cancelled);
     assert.equal(await readFile(resolve(vault, NOTE), "utf8"), text);
-    assert.ok(!run.output.includes(github.value));
+    assert.ok(!run.output.includes(github));
 
-    restore = setPromptDriver(scriptedPrompts([true]).driver);
-    run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
-    restore();
+    run = await approve(vault, true);
     assert.equal(run.result, EXIT.ok);
-    assert.ok(!run.output.includes(github.value));
-    const after = await readFile(resolve(vault, NOTE), "utf8");
+    assert.ok(!run.output.includes(github));
     assert.equal(
-      after,
-      `# Keep\r\n\r\n${github.line.replace(github.value, "[REDACTED:github_token]")}\r\nlast line without newline`,
+      await readFile(resolve(vault, NOTE), "utf8"),
+      "# Keep\r\n\r\nkey [REDACTED:github-token]\r\nlast line without newline",
     );
-    const again = await capture(() => scanCommand({ cwd: vault }));
-    assert.equal(again.result, EXIT.ok);
-  });
-
-  it("masks a whole quoted password that contains spaces", async () => {
-    for (const line of ['password: "correct horse 9 battery"', "pwd = 'tr0ub4dor and 3 more'"]) {
-      const value = line.slice(line.search(/["']/) + 1, -1);
-      const found = detectLine(line);
-      assert.equal(found.length, 1, line);
-      assert.equal(line.slice(found[0].start, found[0].end), value);
-    }
-    const vault = await vaultWith('password: "correct horse 9 battery"\n');
-    const restore = setPromptDriver(scriptedPrompts([true]).driver);
-    const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
-    restore();
-    assert.equal(run.result, EXIT.ok);
-    assert.ok(!run.output.includes("horse"));
-    assert.equal(await readFile(resolve(vault, NOTE), "utf8"), 'password: "[REDACTED:password]"\n');
-  });
-
-  it("masks a password that contains a token, whole, in the preview and the file", async () => {
-    const token = `ghp_${"aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hJ6"}`;
-    const line = `password: "${token} and more words 9"`;
-    const found = detectLine(line);
-    assert.ok(found.some((m) => m.type === "password"));
-    assert.ok(found.some((m) => m.type === "github_token"));
-    const vault = await vaultWith(`${line}\n`);
-    const restore = setPromptDriver(scriptedPrompts([true]).driver);
-    const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
-    restore();
-    assert.equal(run.result, EXIT.ok);
-    assert.ok(!run.output.includes("more words"));
-    assert.ok(!run.output.includes("ghp_"));
-    assert.equal(await readFile(resolve(vault, NOTE), "utf8"), 'password: "[REDACTED:password]"\n');
+    assert.equal((await capture(() => scanCommand({ cwd: vault }))).result, EXIT.ok);
   });
 
   describe("quoted password values", () => {
@@ -192,68 +129,36 @@ describe("vulcanus scan", () => {
         `password="ab${BS}${BS}${BS}"cd ef9" tail`,
         `ab${BS}${BS}${BS}"cd ef9`,
       ],
-      ["escaped backslash then close", `password="abc ef9${BS}${BS}" tail`, `abc ef9${BS}${BS}`],
-      ["mixed quotes inside", `password="it's ${BS}"ab${BS}" 9x"`, `it's ${BS}"ab${BS}" 9x`],
-      ["single quote holding a double", `password='say "hi" 9x'`, 'say "hi" 9x'],
-      ["unclosed double quote", 'password="ab cd ef9 and the rest', "ab cd ef9 and the rest"],
-      ["unclosed single quote", "passwd: 'ab cd ef9 more words", "ab cd ef9 more words"],
-      ["unclosed after escape", `password="ab cd${BS}"ef 9 end`, `ab cd${BS}"ef 9 end`],
     ];
-
-    async function fixed(line: string) {
-      const vault = await vaultWith(`${line}\n`);
-      const restore = setPromptDriver(scriptedPrompts([true]).driver);
-      const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
-      restore();
-      assert.equal(run.result, EXIT.ok);
-      return { output: run.output, file: await readFile(resolve(vault, NOTE), "utf8") };
-    }
-
-    function assertGone(value: string, ...texts: string[]) {
-      const pieces = [...value.split(/[\s"'\\]+/).filter((x) => x.length >= 2), value];
-      for (const text of texts) for (const piece of pieces) assert.ok(!text.includes(piece), piece);
-    }
 
     for (const [name, line, value] of cases) {
       it(`masks ${name} whole in the preview and the file`, async () => {
-        const found = detectLine(line);
-        assert.equal(found.length, 1);
-        assert.equal(line.slice(found[0].start, found[0].end), value);
-        const { output, file } = await fixed(line);
-        assertGone(value, output, file);
-        assert.match(file, /\[REDACTED:password\]/);
+        assert.equal(scanText(line).length, 1);
+        const vault = await vaultWith(`${line}\n`);
+        const run = await approve(vault, true);
+        assert.equal(run.result, EXIT.ok);
+        const file = await readFile(resolve(vault, NOTE), "utf8");
+        for (const piece of [...value.split(/[\s"'\\]+/).filter((x) => x.length >= 2), value]) {
+          assert.ok(!run.output.includes(piece) && !file.includes(piece), piece);
+        }
+        assert.match(file, /\[REDACTED:cli-password\]/);
       });
     }
 
     it("keeps text after a closed value", async () => {
-      const { file } = await fixed(`password="ab${BS}"cd ef9" then note`);
-      assert.equal(file, 'password="[REDACTED:password]" then note\n');
-    });
-
-    it("masks a token inside a quoted password", async () => {
-      const token = `ghp_${"aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hJ6"}`;
-      const line = `password="x${BS}"${token} y9"`;
-      const { output, file } = await fixed(line);
-      assertGone(token, output, file);
-      assert.ok(!output.includes("y9") && !file.includes("y9"));
-    });
-
-    it("masks both passwords on one line", async () => {
-      const line = `password="one${BS}"aa 9x" and pwd='two${BS}'bb 9y'`;
-      const found = detectLine(line);
-      assert.equal(found.length, 2);
-      const { output, file } = await fixed(line);
-      for (const piece of ["one", "aa", "9x", "two", "bb", "9y"]) {
-        assert.ok(!output.includes(piece) && !file.includes(piece), piece);
-      }
-      assert.equal(file, "password=\"[REDACTED:password]\" and pwd='[REDACTED:password]'\n");
+      const vault = await vaultWith(`password="ab${BS}"cd ef9" then note\n`);
+      await approve(vault, true);
+      assert.equal(
+        await readFile(resolve(vault, NOTE), "utf8"),
+        'password="[REDACTED:cli-password]" then note\n',
+      );
     });
   });
 
   it("--fix does not overwrite a file that changed while waiting for approval", async () => {
-    const github = positives().find((fixture) => fixture.type === "github_token")!;
-    const vault = await vaultWith(`${github.line}\n`);
-    const edited = `${github.line}\nuser note\n`;
+    const line = `key ${token()}`;
+    const vault = await vaultWith(`${line}\n`);
+    const edited = `${line}\nuser note\n`;
     const base = scriptedPrompts([]).driver;
     const restore = setPromptDriver({
       ...base,
@@ -268,26 +173,56 @@ describe("vulcanus scan", () => {
     assert.equal(await readFile(resolve(vault, NOTE), "utf8"), edited);
   });
 
-  it("--allow stores a hash, not the value, and scan then passes", async () => {
-    const github = positives().find((fixture) => fixture.type === "github_token")!;
-    const vault = await vaultWith(`x\n${github.line}\n`);
+  it("--allow needs a reason, stores a fingerprint, and doctor honours the same entry", async () => {
+    const github = token();
+    const vault = await vaultWith(`x\nkey ${github}\n`);
     assert.equal((await capture(() => scanCommand({ cwd: vault }))).result, EXIT.failed);
 
-    const nothing = await capture(() => scanCommand({ cwd: vault, allow: `${NOTE}:1` }));
+    const nothing = await capture(() =>
+      scanCommand({ cwd: vault, allow: `${NOTE}:1`, reason: "r" }),
+    );
     assert.equal(nothing.result, EXIT.usage);
+    const noReason = await capture(() => scanCommand({ cwd: vault, allow: `${NOTE}:2` }));
+    assert.equal(noReason.result, EXIT.usage);
 
-    const allowed = await capture(() => scanCommand({ cwd: vault, allow: `${NOTE}:2` }));
+    const allowed = await capture(() =>
+      scanCommand({ cwd: vault, allow: `${NOTE}:2`, reason: "documented example" }),
+    );
     assert.equal(allowed.result, EXIT.ok);
     const stored = await readFile(resolve(vault, ALLOW_FILE), "utf8");
-    assert.match(stored, /^sha256:[0-9a-f]{64} github_token\n$/);
-    assert.ok(!stored.includes(github.value));
+    assert.match(stored, /^[0-9a-f]{12} # documented example \(github-token\)\n$/);
+    assert.ok(!stored.includes(github));
     assert.equal((await capture(() => scanCommand({ cwd: vault }))).result, EXIT.ok);
 
-    // A different value on the same line is not covered by the old hash.
-    await writeFile(
-      resolve(vault, NOTE),
-      `x\n${positives().filter((f) => f.type === "github_token")[1].line}\n`,
+    const report = await runDoctor(vault, await readManifest(vault));
+    assert.equal(
+      report.findings.some(
+        (f) => f.code === "SECRET-ALLOW" || (f.code === "SECRET" && f.level === "error"),
+      ),
+      false,
     );
+
+    // A different value on the same line is not covered by the old fingerprint.
+    await writeFile(resolve(vault, NOTE), `x\nkey ${token("zY9xW7vU5tS3rQ1pN8mK6jH4gE2dB0aC")}\n`);
     assert.equal((await capture(() => scanCommand({ cwd: vault }))).result, EXIT.failed);
+  });
+});
+
+describe("one detector", () => {
+  it("scan, doctor and the library agree on the same note", async () => {
+    const text = `key ${token()}\nid ${awsKey()}\n`;
+    const vault = await vaultWith(text);
+    const library = scanText(text, NOTE).map(
+      (f) => `${f.file}:${f.line} ${f.kind} ${f.fingerprint}`,
+    );
+    const printed = (await capture(() => scanCommand({ cwd: vault }))).output
+      .split("\n")
+      .filter((line) => line.startsWith(NOTE));
+    assert.deepEqual(printed, library);
+    const report = await runDoctor(vault, await readManifest(vault));
+    const doctor = report.findings
+      .filter((f) => f.code === "SECRET" && f.level === "error")
+      .map((f) => `${f.file}:${f.line} ${f.message}`);
+    assert.deepEqual(doctor, library);
   });
 });

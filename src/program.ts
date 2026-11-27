@@ -236,10 +236,11 @@ export function buildProgram(): Command {
 
   program
     .command("scan")
-    .description("Find secrets in the vault's notes; exit 1 when one is certain")
-    .option("--fix", "replace each finding with [REDACTED:<type>] after you approve the change")
+    .description("Find secrets that match known patterns in the vault's notes; exit 1 on a match")
+    .option("--fix", "replace each finding with [REDACTED:<kind>] after you approve the change")
     .option("--allow <file:line>", "record the findings on that line as false positives")
-    .action(async (options: { fix?: boolean; allow?: string }) => {
+    .option("--reason <text>", "why the --allow finding is not a secret (required with --allow)")
+    .action(async (options: { fix?: boolean; allow?: string; reason?: string }) => {
       process.exitCode = await scanCommand(options);
     });
 
