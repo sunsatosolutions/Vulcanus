@@ -4,6 +4,12 @@
 
 ### Added
 
+- `vulcanus scan` looks for secrets in the vault's managed notes with built-in rules (no LLM, no new
+  dependency): `sk-`, GitHub, AWS, Slack and JWT formats, `Authorization: Bearer`, `password=`,
+  passwords in connection strings, and a high-entropy warning. It prints `file:line type` and never
+  a value. Exit `1` on an error finding; warnings alone exit `0`. `--fix` replaces findings with
+  `[REDACTED:<type>]` on those lines only, after showing the change and asking (no terminal, no
+  write). `--allow <file:line>` records a sha256 of rule and value in `.vulcanus-allow`.
 - `vulcanus emit [project]` writes the project's current Capsule and Rules sections into its
   repository as one managed block, between `<!-- vulcanus:begin -->` and `<!-- vulcanus:end -->`,
   in `AGENTS.md`, `CLAUDE.md` (an `@AGENTS.md` import), `.cursor/rules/vulcanus.mdc`, and

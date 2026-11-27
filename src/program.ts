@@ -16,6 +16,7 @@ import {
   removeProjectCommand,
   renameProjectCommand,
 } from "./commands/project.js";
+import { scanCommand } from "./commands/scan.js";
 import { rulesCheckCommand, rulesLinkCommand } from "./commands/rules.js";
 import { serveCommand } from "./commands/serve.js";
 import { skillsCommand } from "./commands/skills.js";
@@ -231,6 +232,15 @@ export function buildProgram(): Command {
     .option("--json", "print the report as JSON")
     .action(async (project: string | undefined, options: { root?: string; json?: boolean }) => {
       process.exitCode = await driftCommand(project, options);
+    });
+
+  program
+    .command("scan")
+    .description("Find secrets in the vault's notes; exit 1 when one is certain")
+    .option("--fix", "replace each finding with [REDACTED:<type>] after you approve the change")
+    .option("--allow <file:line>", "record the findings on that line as false positives")
+    .action(async (options: { fix?: boolean; allow?: string }) => {
+      process.exitCode = await scanCommand(options);
     });
 
   const rules = program
