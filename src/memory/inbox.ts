@@ -21,8 +21,10 @@ import {
   LifecycleTargetError,
   matchProject,
   openVault,
+  SecretRejectedError,
   type VaultHandle,
 } from "../mcp/tools.js";
+import { maskSecrets } from "../secrets/detector.js";
 import { askConfirm, askSelect, askText } from "../prompts.js";
 import {
   compareWithVault,
@@ -201,9 +203,10 @@ export async function reviewCandidates(
         initialValue: candidate.known ? "skip" : candidate.replaces ? "replace" : candidate.kind,
       });
       if (action !== "edit") break;
-      text =
+      text = maskSecrets(
         (await askText({ message: t.memoryEditText, initialValue: text, required: true })).trim() ||
-        text;
+          text,
+      ).text;
     }
 
     if (action === "stop") {
@@ -218,10 +221,11 @@ export async function reviewCandidates(
     const asRule = action === "rule";
     const note = asRule ? project.rules : project.decisions;
     const suggested = suggestTitle(text, await headingsIn(handle, note.path));
-    const title =
+    const title = maskSecrets(
       (
         await askText({ message: t.memoryEditTitle, initialValue: suggested, required: true })
-      ).trim() || suggested;
+      ).trim() || suggested,
+    ).text;
     const when = date === "—" ? today() : date;
     // A harvested candidate carries where it came from: the files and the commit,
     // never the commit message beyond the wording the operator accepted.
@@ -252,7 +256,8 @@ export async function reviewCandidates(
     try {
       await write(supersedes);
     } catch (error) {
-      if (!(error instanceof LifecycleTargetError)) throw error;
+      if (!(error instanceof LifecycleTargetError) || error instanceof SecretRejectedError)
+        throw error;
       p.log.warn(t.memorySupersedeFailed(supersedes ?? "", error.message));
       await write(undefined);
     }

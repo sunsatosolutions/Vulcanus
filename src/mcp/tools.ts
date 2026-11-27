@@ -17,6 +17,8 @@ import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { changedSections } from "../memory/codedrift.js";
 import type { FreshnessState } from "../memory/freshness.js";
+import { formatProblem } from "../errors.js";
+import { scanText, type SecretKind } from "../secrets/detector.js";
 import { COMMIT_ID } from "../util/git.js";
 import {
   findSection,
@@ -338,6 +340,29 @@ export class LifecycleTargetError extends Error {
   }
 }
 
+/** A write refused because a field holds a secret; nothing was written. */
+export class SecretRejectedError extends LifecycleTargetError {
+  constructor(field: string, kind: SecretKind) {
+    super(
+      formatProblem({
+        what: `Refused to write: \`${field}\` holds a secret (${kind}); nothing was written.`,
+        why: "Notes are committed, synced and read by agents, so a secret written here leaks.",
+        fix: "Remove the value, name it instead (e.g. 'the AWS key in the vault') and call again.",
+      }).trimEnd(),
+    );
+    this.name = "SecretRejectedError";
+  }
+}
+
+/** Throw before any write when one of the fields holds a known-pattern secret. */
+function rejectSecrets(fields: Record<string, string | string[] | undefined>): void {
+  for (const [field, value] of Object.entries(fields)) {
+    if (value === undefined) continue;
+    const [finding] = scanText([value].flat().join("\n"));
+    if (finding) throw new SecretRejectedError(field, finding.kind);
+  }
+}
+
 /** A section heading must be one non-empty line, or the note gains a section nobody can address. */
 function headingText(raw: string, what: string): string {
   const heading = raw.trim();
@@ -437,6 +462,7 @@ export async function appendDecision(
   details?: string,
   options: MemoryWriteOptions = {},
 ): Promise<AppendDecisionResult | null> {
+  rejectSecrets({ title, decision, details, supersedes: options.supersedes, paths: options.paths });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
@@ -523,6 +549,7 @@ export async function updateCapsule(
   section: CapsuleSection,
   body: string,
 ): Promise<SectionUpdateResult | null> {
+  rejectSecrets({ body });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
@@ -574,6 +601,7 @@ export async function appendRule(
   rule: string,
   options: MemoryWriteOptions = {},
 ): Promise<AppendRuleResult | null> {
+  rejectSecrets({ name, rule, supersedes: options.supersedes });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
