@@ -153,7 +153,7 @@ vulcanus stats           # token budget: what a cold-start agent reads, what rec
 ```
 
 ```bash
-vulcanus doctor          # validate the vault against its manifest
+vulcanus doctor          # validate the vault against its manifest; reports known-pattern secrets as file:line kind (allow with .vulcanus-allow)
 ```
 
 ```bash

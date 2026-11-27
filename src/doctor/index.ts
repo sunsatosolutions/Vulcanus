@@ -25,6 +25,8 @@ import { compareVersions } from "../util/semver.js";
 import { SKILL_DIRS } from "../generate/skills.js";
 import { checkEmit } from "../emit/check.js";
 import { checkInstructions } from "../instructions/check.js";
+import { ALLOW_FILE, isAllowed, readAllow } from "../secrets/allow.js";
+import { scanText } from "../secrets/detector.js";
 import { CLI_VERSION, PROTOCOL_VERSION } from "../version.js";
 
 export type FindingLevel = "error" | "warning" | "info";
@@ -34,6 +36,10 @@ export interface DoctorFinding {
   code: string;
   message: string;
   file?: string;
+  /** Set on SECRET findings: the line the value starts on. */
+  line?: number;
+  /** Set on SECRET findings: the id `.vulcanus-allow` accepts. Never the value. */
+  fingerprint?: string;
 }
 
 export interface DoctorReport {
@@ -524,6 +530,41 @@ export async function runDoctor(
 
   // --- Emitted agent files -------------------------------------------------
   findings.push(...(await checkEmit(vaultRoot, manifest, contents, options.today ?? today())));
+
+  // --- Secrets matching known patterns -------------------------------------
+  const allow = await readAllow(vaultRoot);
+  for (const entry of allow?.errors ?? []) {
+    findings.push({
+      level: "error",
+      code: "SECRET-ALLOW",
+      message: `${ALLOW_FILE} line ${entry.line}: ${entry.message}`,
+      file: ALLOW_FILE,
+    });
+  }
+  let secretCount = 0;
+  let allowedCount = 0;
+  for (const file of files) {
+    for (const hit of scanText(contents.get(file)!, file)) {
+      if (isAllowed(allow, hit)) {
+        allowedCount += 1;
+        continue;
+      }
+      secretCount += 1;
+      findings.push({
+        level: "error",
+        code: "SECRET",
+        message: hit.kind,
+        file: hit.file,
+        line: hit.line,
+        fingerprint: hit.fingerprint,
+      });
+    }
+  }
+  add(
+    "info",
+    "SECRET",
+    `${files.length} notes checked against known patterns: ${secretCount} match${secretCount === 1 ? "" : "es"}, ${allowedCount} allowed. Known patterns only; no match is not a guarantee.`,
+  );
 
   // --- Ignore rules --------------------------------------------------------
   const gitignorePath = resolve(vaultRoot, ".gitignore");

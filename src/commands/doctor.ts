@@ -24,7 +24,13 @@ export function reportDoctor(report: DoctorReport): void {
   for (const [code, findings] of grouped) {
     const lines = findings.map(
       (finding) =>
-        `${SYMBOL[finding.level] ?? "·"} ${finding.file ? `${finding.file}: ` : ""}${finding.message}`,
+        `${SYMBOL[finding.level] ?? "·"} ${
+          finding.line !== undefined
+            ? `${finding.file}:${finding.line} `
+            : finding.file
+              ? `${finding.file}: `
+              : ""
+        }${finding.message}`,
     );
     p.log.message(`${code}\n${lines.join("\n")}`);
   }
