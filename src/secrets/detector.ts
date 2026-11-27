@@ -7,8 +7,8 @@ import { createHash } from "node:crypto";
  * that the text holds no secret. The raw matched value never leaves this
  * file: findings carry a file, a line, a kind and a short fingerprint.
  *
- * Callers: `vulcanus doctor` (scan a vault), and — in a later round — import
- * masking, MCP write rejection, sync and hooks. They use `scanText`,
+ * Callers: `vulcanus doctor` (scan a vault), import and harvest masking, MCP
+ * write rejection and the pre-commit hook. They use `scanText`,
  * `maskSecrets` and `hasSecret`.
  */
 
@@ -31,7 +31,7 @@ export interface SecretFinding {
   /** 1-based line the secret starts on. */
   line: number;
   kind: SecretKind;
-  /** What replaces the value in masked text: ‹secret:<kind>›. */
+  /** What replaces the value in masked text: [REDACTED:<kind>]. */
   mask: string;
   /** First 12 hex of sha256(kind + value). Stable when the line moves. */
   fingerprint: string;
@@ -48,7 +48,7 @@ export const DEFAULT_ENTROPY_THRESHOLD = 3.2;
 export const DEFAULT_MIN_LENGTH = 12;
 
 export function maskFor(kind: SecretKind): string {
-  return `‹secret:${kind}›`;
+  return `[REDACTED:${kind}]`;
 }
 
 interface Span {
@@ -252,13 +252,19 @@ export function hasSecret(text: string, options: DetectOptions = {}): boolean {
   return collect(text, resolveOptions(options)).length > 0;
 }
 
-/** `text` with every matched value replaced by its mask, plus the findings. */
+/**
+ * `text` with every matched value replaced by its mask, plus the findings.
+ * `allowed` spares a finding (for `.vulcanus-allow`): it is neither masked nor reported.
+ */
 export function maskSecrets(
   text: string,
   file = "",
   options: DetectOptions = {},
+  allowed?: (finding: SecretFinding) => boolean,
 ): { text: string; findings: SecretFinding[] } {
-  const spans = collect(text, resolveOptions(options));
+  const spans = collect(text, resolveOptions(options)).filter(
+    (span) => !allowed?.(toFinding(file, text, span)),
+  );
   let out = "";
   let cursor = 0;
   for (const span of spans) {

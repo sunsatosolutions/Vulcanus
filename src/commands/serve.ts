@@ -14,6 +14,7 @@ import {
   search,
   updateCapsule,
 } from "../mcp/tools.js";
+import { SecretWriteError } from "../secrets/guard.js";
 import { CLI_VERSION } from "../version.js";
 import { collectStatus } from "./status.js";
 
@@ -34,7 +35,9 @@ async function lifecycleSafe<T>(write: () => Promise<T>): Promise<T | { error: s
   try {
     return await write();
   } catch (error) {
-    if (error instanceof LifecycleTargetError) return { error: error.message };
+    if (error instanceof LifecycleTargetError || error instanceof SecretWriteError) {
+      return { error: error.message };
+    }
     throw error;
   }
 }
@@ -159,7 +162,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a decision",
       description:
-        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. Pass `paths` (repo-relative files the decision rests on) and `commit` so `doctor` flags CODE-DRIFT and `recall` marks the decision when that code changes. When it replaces an earlier decision, pass that decision's heading as `supersedes`: the new section records `supersedes::`, and the old one gains `superseded-by::` and `superseded-on::` under its heading but is otherwise left as history — never delete or rewrite the old decision yourself. Writes to disk: it adds to the end of the note, so calling it twice records the decision twice. Returns the note path and the heading written; errors when the project or its Decisions note is missing, or when `supersedes` names no live section (then nothing is written).",
+        "Append a confirmed decision to a project's Decisions note, in the vault's Decision/Details format. Only record what the operator has actually confirmed. Pass `paths` (repo-relative files the decision rests on) and `commit` so `doctor` flags CODE-DRIFT and `recall` marks the decision when that code changes. When it replaces an earlier decision, pass that decision's heading as `supersedes`: the new section records `supersedes::`, and the old one gains `superseded-by::` and `superseded-on::` under its heading but is otherwise left as history — never delete or rewrite the old decision yourself. Writes to disk: it adds to the end of the note, so calling it twice records the decision twice. Refused, writing nothing, when the content matches a known secret pattern (the error names the kind and line, never the value). Returns the note path and the heading written; errors when the project or its Decisions note is missing, or when `supersedes` names no live section (then nothing is written).",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         title: z.string().describe("Short heading for the decision"),
@@ -199,7 +202,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Refresh a capsule section",
       description:
-        "Replace one section of a project's Capsule — the compressed summary every recall reads first. Use it after the operator confirms something that makes the summary wrong or incomplete; never to record a guess. `Read Next` is generated and cannot be written here. Writes to disk and overwrites that section's previous contents, which are recoverable only from Git; every other section and the rest of the file are left untouched. Errors when the project or its Capsule is missing.",
+        "Replace one section of a project's Capsule — the compressed summary every recall reads first. Use it after the operator confirms something that makes the summary wrong or incomplete; never to record a guess. `Read Next` is generated and cannot be written here. Writes to disk and overwrites that section's previous contents, which are recoverable only from Git; every other section and the rest of the file are left untouched. Refused, writing nothing, when the body matches a known secret pattern. Errors when the project or its Capsule is missing.",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         section: z.enum(CAPSULE_SECTIONS).describe("Which capsule section to replace"),
@@ -211,8 +214,9 @@ export function buildVaultServer(start: string): McpServer {
       const vaultRoot = vault();
       if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
-      const result = await updateCapsule(handle, project, section, body);
+      const result = await lifecycleSafe(() => updateCapsule(handle, project, section, body));
       if (!result) return failure(`No project matches "${project}", or its Capsule is missing.`);
+      if ("error" in result) return failure(result.error);
       return json(result);
     },
   );
@@ -222,7 +226,7 @@ export function buildVaultServer(start: string): McpServer {
     {
       title: "Record a rule",
       description:
-        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation. Use `append_decision` instead for a choice that was made, and `update_capsule` when the summary itself is now wrong. When it replaces an earlier rule, pass that rule's heading as `supersedes`; the old rule is marked `superseded-by::` and kept as history. Writes to disk: it appends, so calling it twice records the rule twice. Errors when the project or its Rules note is missing, or when `supersedes` names no live rule (then nothing is written).",
+        "Add a durable rule to a project's Rules note. Rules are standing constraints the operator has confirmed — how to work on this project, what never to assume — not observations about one conversation. Use `append_decision` instead for a choice that was made, and `update_capsule` when the summary itself is now wrong. When it replaces an earlier rule, pass that rule's heading as `supersedes`; the old rule is marked `superseded-by::` and kept as history. Writes to disk: it appends, so calling it twice records the rule twice. Refused, writing nothing, when the content matches a known secret pattern. Errors when the project or its Rules note is missing, or when `supersedes` names no live rule (then nothing is written).",
       inputSchema: {
         project: z.string().describe("Project name, id, or trigger word"),
         name: z.string().describe('Short name for the rule, e.g. "Naming"'),

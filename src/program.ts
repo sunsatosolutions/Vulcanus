@@ -7,7 +7,7 @@ import { bridgeCommand } from "./commands/bridge.js";
 import { emitCommand } from "./commands/emit.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { driftCommand } from "./commands/drift.js";
-import { installHooksCommand, uninstallHooksCommand } from "./commands/hooks.js";
+import { installHooksCommand, scanStagedCommand, uninstallHooksCommand } from "./commands/hooks.js";
 import { harvestCommand } from "./commands/harvest.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
@@ -429,10 +429,16 @@ export function buildProgram(): Command {
     .description("Git hooks that keep a broken memory graph out of history");
   hooks
     .command("install")
-    .description("Install a pre-commit hook that runs `vulcanus doctor`")
+    .description("Install a pre-commit hook that scans for secrets and runs `vulcanus doctor`")
     .option("--force", "replace a pre-commit hook this CLI did not write")
     .action(async (options: { force?: boolean }) => {
       process.exitCode = await installHooksCommand(options);
+    });
+  hooks
+    .command("scan-staged")
+    .description("Scan staged content for secrets (run by the pre-commit hook)")
+    .action(async () => {
+      process.exitCode = await scanStagedCommand();
     });
   hooks
     .command("uninstall")

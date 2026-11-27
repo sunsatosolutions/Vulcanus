@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { noVaultProblem, reportProblem } from "../errors.js";
 import { findVaultRoot, readManifest } from "../manifest/io.js";
+import { isAllowed, readAllow } from "../secrets/allow.js";
+import { scanText } from "../secrets/detector.js";
 import { toPosix } from "../util/paths.js";
 import * as p from "../ui.js";
 
@@ -23,9 +25,9 @@ function hookScript(vaultRoot: string): string {
   return `#!/bin/sh
 ${SIGNATURE}
 #
-# Refuse a commit that would put a broken memory graph into history: a dangling
-# wikilink is far cheaper to fix now than to discover months later, when an
-# agent silently recalls nothing.
+# Refuse a commit that would put a secret or a broken memory graph into
+# history: a leaked key or a dangling wikilink is far cheaper to fix now than
+# to discover months later.
 #
 # Bypass once with:  git commit --no-verify
 
@@ -34,6 +36,12 @@ cd ${quoted} || exit 1
 if ! command -v vulcanus >/dev/null 2>&1; then
   echo "vulcanus not on PATH; skipping vault validation." >&2
   exit 0
+fi
+
+# Staged content matching a known secret pattern (.vulcanus-allow is honoured).
+if ! vulcanus hooks scan-staged >&2; then
+  echo "staged content matches a known secret pattern; commit refused." >&2
+  exit 1
 fi
 
 if ! vulcanus doctor --json > /dev/null 2>&1; then
@@ -66,6 +74,57 @@ async function hooksDir(vaultRoot: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+const run_ = (cwd: string, args: string[]) =>
+  run("git", args, { cwd, encoding: "buffer", maxBuffer: 256 * 1024 * 1024 });
+
+/**
+ * Scan what is staged (the index, not the working tree) inside the vault for
+ * known secret patterns. Prints kind, location and allow id, never the value.
+ * 0 = clean, 1 = findings.
+ */
+export async function scanStagedCommand(options: HooksOptions = {}): Promise<number> {
+  const start = options.cwd ?? process.cwd();
+  const vaultRoot = findVaultRoot(start);
+  if (!vaultRoot) return reportProblem(noVaultProblem(start, "vulcanus hooks scan-staged"));
+
+  let names: string[];
+  try {
+    const { stdout } = await run_(vaultRoot, [
+      "diff",
+      "--cached",
+      "--name-only",
+      "--diff-filter=ACMR",
+      "--relative",
+      "-z",
+    ]);
+    names = stdout.toString("utf8").split("\0").filter(Boolean);
+  } catch {
+    return reportProblem({
+      what: "Could not read the staged changes.",
+      why: `${vaultRoot} is not a Git repository.`,
+      fix: "git init",
+    });
+  }
+
+  const allow = await readAllow(vaultRoot);
+  let found = 0;
+  for (const name of names) {
+    const { stdout } = await run_(vaultRoot, ["show", `:./${name}`]);
+    if (stdout.includes(0)) continue; // binary
+    for (const hit of scanText(stdout.toString("utf8"), toPosix(name))) {
+      if (isAllowed(allow, hit)) continue;
+      found += 1;
+      process.stderr.write(`${hit.file}:${hit.line} ${hit.kind} (allow id ${hit.fingerprint})\n`);
+    }
+  }
+  if (found) {
+    process.stderr.write(
+      `${found} staged secret${found === 1 ? "" : "s"} matching known patterns. Remove the value (and rotate the key); if it is not a secret, add a reasoned entry to .vulcanus-allow.\n`,
+    );
+  }
+  return found ? 1 : 0;
 }
 
 export async function installHooksCommand(options: HooksOptions = {}): Promise<number> {
@@ -108,7 +167,7 @@ export async function installHooksCommand(options: HooksOptions = {}): Promise<n
   p.intro(`hooks — ${manifest.vault.name}`);
   p.log.success(`pre-commit hook installed at ${target}`);
   p.outro(
-    "Commits now run `vulcanus doctor` and `vulcanus emit --check --emitted-only` first. Bypass one with `git commit --no-verify`.",
+    "Commits now run a staged-secret scan, `vulcanus doctor` and `vulcanus emit --check --emitted-only` first. Bypass one with `git commit --no-verify`.",
   );
   return 0;
 }

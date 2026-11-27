@@ -443,6 +443,27 @@ Your own notes are never rewritten — `update` reports how many it left untouch
 
 After a command, the CLI checks npm at most once a day and prints a one-line notice when a newer release exists. Set `VULCANUS_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER`, or run in CI) to turn it off; it fails silently offline.
 
+## Secrets (Blackbar)
+
+A safety net for keys that end up in memory by accident. It matches known patterns only: cloud and
+token prefixes (AWS, GitHub, npm, Stripe, Slack, Google, LLM keys), private-key blocks, passworded
+database URLs, `Authorization: Bearer`, command-line passwords, and a high-entropy value next to
+`password`, `secret`, `token` or `api_key`. A clean result does not mean there is no secret.
+
+- `import` and `harvest` flag a candidate that holds a secret (kind and line, never the value) and write it masked, as `[REDACTED:github-token]`.
+- MCP `append_decision`, `append_rule` and `update_capsule` refuse content with a secret and write nothing; the error names the kind and line, not the value.
+- `vulcanus doctor` reports each match as `file:line kind` and exits non-zero.
+- `vulcanus hooks install` adds a pre-commit hook that stops a commit when the staged content has a match. An existing hook that Vulcanus did not write is never overwritten.
+
+Accept a false positive in `.vulcanus-allow` at the vault root, one per line, with a reason (without one the line is an error):
+
+```
+02_Projects/Alpha/Alpha Capsule.md:12:github-token # documented example, not a real key
+0123456789ab # same value anywhere; fingerprint is in `doctor --json`
+```
+
+This is a safety net, not a replacement for key rotation: a key that reached a note, a commit or a chat is exposed. Rotate it.
+
 ## Validation
 
 `vulcanus doctor` is the part that keeps a growing vault honest. Every check is derived from `vulcanus.json`, so it stays correct as your tree changes:

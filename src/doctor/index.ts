@@ -563,7 +563,7 @@ export async function runDoctor(
   add(
     "info",
     "SECRET",
-    `${files.length} notes checked against known patterns: ${secretCount} match${secretCount === 1 ? "" : "es"}, ${allowedCount} allowed. Known patterns only; no match is not a guarantee.`,
+    `${files.length} notes checked against known patterns: ${secretCount} match${secretCount === 1 ? "" : "es"}, ${allowedCount} allowed. Known patterns only; no match is not a guarantee.${secretCount ? " Mask them with `vulcanus scan --fix`, or add a reasoned entry to .vulcanus-allow." : ""}`,
   );
 
   // --- Ignore rules --------------------------------------------------------

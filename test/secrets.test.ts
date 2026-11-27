@@ -131,8 +131,8 @@ describe("secret detector: no raw value leaves", () => {
     for (const value of [...values, rnd(40)]) {
       assert.equal(dump.includes(value), false, "a raw value appeared in detector output");
     }
-    assert.equal(masked.text.includes("‹secret:aws-key›"), true);
-    assert.equal(masked.text.includes("‹secret:private-key›"), true);
+    assert.equal(masked.text.includes("[REDACTED:aws-key]"), true);
+    assert.equal(masked.text.includes("[REDACTED:private-key]"), true);
     assert.equal(masked.text.includes(dashes), false);
     assert.equal(findings.length, 4);
   });
