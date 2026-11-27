@@ -9,7 +9,6 @@
  */
 import { isStopword } from "../importers/stopwords.js";
 import type { ImportSourceId, NormalizedConversation } from "../importers/types.js";
-import { maskSecrets } from "../secrets/detector.js";
 import { classify, CUES, type Cue } from "./cues.js";
 import { parseSections, type MemorySection } from "./lifecycle.js";
 
@@ -143,7 +142,7 @@ export function hitsIn(
   let n = 0;
   for (const message of conversation.messages) {
     if (message.role !== "user") continue;
-    for (const sentence of sentencesOf(maskSecrets(message.text).text)) {
+    for (const sentence of sentencesOf(message.text)) {
       n += 1;
       const match = classify(sentence, cues);
       if (!match) continue;

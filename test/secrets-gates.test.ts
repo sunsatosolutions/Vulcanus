@@ -3,18 +3,20 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { buildExtractDigest } from "../src/ai/extract.js";
+import { execFileSync } from "node:child_process";
 import { importCommand } from "../src/commands/import.js";
 import { generateFiles, writeFiles } from "../src/generate/index.js";
 import { maskConversation } from "../src/importers/mask.js";
 import { writeManifest } from "../src/manifest/io.js";
 import { appendDecision, appendRule, openVault, updateCapsule } from "../src/mcp/tools.js";
+import { harvestCandidates } from "../src/memory/harvest.js";
 import { setPromptDriver, type PromptDriver } from "../src/prompts.js";
 import { setLogLevel } from "../src/ui.js";
 import { cleanup, manifest, project, tempDir } from "./helpers.js";
 
 // Built at run time: no token-shaped text sits in the repo.
 const KEY = `${["AK", "IA"].join("")}${"7Q2".repeat(6).slice(0, 16)}`;
-const MASK = "‹secret:aws-key›";
+const MASK = "[REDACTED:aws-key]";
 
 const tempDirs: string[] = [];
 before(() => setLogLevel("quiet"));
@@ -98,8 +100,8 @@ describe("import masks secrets", () => {
       `We decided ${KEY} is the Meridian deploy key from now on.`,
     );
     assert.ok(
-      shown.some((line) => line.includes(MASK)),
-      "the suggested title shows the mask",
+      shown.some((line) => line.includes("REDACTED:aws-key")),
+      "the suggested title shows the mask (suggestTitle drops the brackets)",
     );
 
     const note = await readFile(resolve(root, DECISIONS), "utf8");
@@ -170,6 +172,31 @@ describe("import masks secrets", () => {
       await readFile(resolve(root, DECISIONS), "utf8"),
       /### Decision\n\nWe decided Meridian bills monthly per active seat\./,
     );
+  });
+});
+
+describe("harvest masks secrets", () => {
+  it("keeps the raw key out of candidate text", async () => {
+    const root = await scaffold();
+    const repo = await tempDir();
+    tempDirs.push(repo);
+    const git = (...args: string[]) =>
+      execFileSync(
+        "git",
+        ["-c", "user.name=T", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", ...args],
+        { cwd: repo },
+      );
+    git("init", "-q");
+    await mkdir(join(repo, "meridian"), { recursive: true });
+    await writeFile(join(repo, "meridian", "a.txt"), "1");
+    git("add", "-A");
+    git("commit", "-q", "-m", `Rotate key\n\nWe moved to ${KEY} because the old one leaked.`);
+    const { plan } = await openVault(root);
+    const { candidates } = await harvestCandidates(plan, repo, "30d");
+    assert.ok(candidates.length > 0);
+    const text = candidates.map((entry) => entry.text).join("\n");
+    assert.ok(!text.includes(KEY));
+    assert.ok(text.includes(MASK));
   });
 });
 

@@ -8,7 +8,7 @@
  */
 import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { loadVaultNotes, vaultFreshness } from "../doctor/index.js";
 import { findStaleCapsules } from "../commands/status.js";
 import { buildPlan, type ProjectPlan, type VaultPlan } from "../manifest/derive.js";
@@ -17,8 +17,8 @@ import { readManifest } from "../manifest/io.js";
 import type { VaultManifest } from "../manifest/schema.js";
 import { changedSections } from "../memory/codedrift.js";
 import type { FreshnessState } from "../memory/freshness.js";
-import { formatProblem } from "../errors.js";
-import { scanText, type SecretKind } from "../secrets/detector.js";
+import { assertNoNewSecrets } from "../secrets/guard.js";
+import { toPosix } from "../util/paths.js";
 import { COMMIT_ID } from "../util/git.js";
 import {
   findSection,
@@ -340,29 +340,6 @@ export class LifecycleTargetError extends Error {
   }
 }
 
-/** A write refused because a field holds a secret; nothing was written. */
-export class SecretRejectedError extends LifecycleTargetError {
-  constructor(field: string, kind: SecretKind) {
-    super(
-      formatProblem({
-        what: `Refused to write: \`${field}\` holds a secret (${kind}); nothing was written.`,
-        why: "Notes are committed, synced and read by agents, so a secret written here leaks.",
-        fix: "Remove the value, name it instead (e.g. 'the AWS key in the vault') and call again.",
-      }).trimEnd(),
-    );
-    this.name = "SecretRejectedError";
-  }
-}
-
-/** Throw before any write when one of the fields holds a known-pattern secret. */
-function rejectSecrets(fields: Record<string, string | string[] | undefined>): void {
-  for (const [field, value] of Object.entries(fields)) {
-    if (value === undefined) continue;
-    const [finding] = scanText([value].flat().join("\n"));
-    if (finding) throw new SecretRejectedError(field, finding.kind);
-  }
-}
-
 /** A section heading must be one non-empty line, or the note gains a section nobody can address. */
 function headingText(raw: string, what: string): string {
   const heading = raw.trim();
@@ -395,6 +372,7 @@ export interface MemoryWriteOptions {
  * cannot leave a half-linked pair.
  */
 async function appendSection(
+  vaultRoot: string,
   notePath: string,
   noteName: string,
   heading: string,
@@ -446,7 +424,9 @@ async function appendSection(
     ...body,
     "",
   ].join("\n");
-  await writeFile(notePath, `${next.replace(/\n*$/, "\n")}${section}`, "utf8");
+  const content = `${next.replace(/\n*$/, "\n")}${section}`;
+  await assertNoNewSecrets(vaultRoot, toPosix(relative(vaultRoot, notePath)), current, content);
+  await writeFile(notePath, content, "utf8");
   return superseded ? { superseded } : {};
 }
 
@@ -462,7 +442,6 @@ export async function appendDecision(
   details?: string,
   options: MemoryWriteOptions = {},
 ): Promise<AppendDecisionResult | null> {
-  rejectSecrets({ title, decision, details, supersedes: options.supersedes, paths: options.paths });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
@@ -495,10 +474,17 @@ export async function appendDecision(
     decision.trim(),
     ...(details?.trim() ? ["", "### Details", "", details.trim()] : []),
   ];
-  const written = await appendSection(path, project.decisions.name, heading, body, {
-    ...rest,
-    fields: [...(rest.fields ?? []), ...codeFields],
-  });
+  const written = await appendSection(
+    handle.vaultRoot,
+    path,
+    project.decisions.name,
+    heading,
+    body,
+    {
+      ...rest,
+      fields: [...(rest.fields ?? []), ...codeFields],
+    },
+  );
   return {
     project: project.project.name,
     path: project.decisions.path,
@@ -549,7 +535,6 @@ export async function updateCapsule(
   section: CapsuleSection,
   body: string,
 ): Promise<SectionUpdateResult | null> {
-  rejectSecrets({ body });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
@@ -569,6 +554,7 @@ export async function updateCapsule(
     // A capsule from an older generator may not carry every section yet.
     const heading = noteText(language).heading(section);
     const appended = `${current.trimEnd()}\n\n${heading}\n\n${body.trim()}\n`;
+    await assertNoNewSecrets(handle.vaultRoot, project.capsule.path, current, appended);
     await writeFile(path, appended, "utf8");
     return {
       project: project.project.name,
@@ -578,6 +564,7 @@ export async function updateCapsule(
     };
   }
 
+  await assertNoNewSecrets(handle.vaultRoot, project.capsule.path, current, updated);
   await writeFile(path, updated, "utf8");
   return { project: project.project.name, path: project.capsule.path, section, replaced: true };
 }
@@ -601,7 +588,6 @@ export async function appendRule(
   rule: string,
   options: MemoryWriteOptions = {},
 ): Promise<AppendRuleResult | null> {
-  rejectSecrets({ name, rule, supersedes: options.supersedes });
   const project = matchProject(handle.plan, projectQuery);
   if (!project) return null;
 
@@ -610,7 +596,14 @@ export async function appendRule(
 
   const base = headingText(name, "The rule name");
   const heading = /rule$/i.test(base) ? base : `${base} Rule`;
-  const written = await appendSection(path, project.rules.name, heading, [rule.trim()], options);
+  const written = await appendSection(
+    handle.vaultRoot,
+    path,
+    project.rules.name,
+    heading,
+    [rule.trim()],
+    options,
+  );
   return { project: project.project.name, path: project.rules.path, rule: heading, ...written };
 }
 

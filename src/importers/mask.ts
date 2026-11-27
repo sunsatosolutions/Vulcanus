@@ -3,7 +3,7 @@ import type { NormalizedConversation } from "./types.js";
 
 /**
  * Every text field of a conversation with known-pattern secrets replaced by
- * `‹secret:<kind>›`. Applied where conversations enter the pipeline, so the
+ * `[REDACTED:<kind>]`. Applied where conversations enter the pipeline, so the
  * analysis, the candidate list, `--json`, the seen ledger, the AI digests and
  * the notes only ever see the masked text.
  */

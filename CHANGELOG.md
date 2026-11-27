@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- Blackbar: secrets are masked and refused on every write path. `import` and `harvest` flag a
+  candidate holding a secret (kind and line, never the value) and write it as
+  `[REDACTED:<kind>]`; MCP `append_decision`, `append_rule` and `update_capsule` refuse content
+  with a new secret and write nothing; `doctor` suggests `vulcanus scan --fix` when it finds
+  one; `hooks install` adds a staged-content scan (`vulcanus hooks scan-staged`) to the
+  pre-commit hook. `.vulcanus-allow` is honoured on all of them. The mask is now
+  `[REDACTED:<kind>]` (was `‹secret:<kind>›`).
 - `vulcanus doctor` scans the vault's notes for secrets that match known patterns (cloud and
   token prefixes, private-key blocks, passworded database URLs, `Authorization: Bearer`,
   command-line passwords, and a high-entropy value next to `password`, `secret`, `token` or

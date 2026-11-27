@@ -21,7 +21,6 @@ import {
   LifecycleTargetError,
   matchProject,
   openVault,
-  SecretRejectedError,
   type VaultHandle,
 } from "../mcp/tools.js";
 import { maskSecrets } from "../secrets/detector.js";
@@ -38,6 +37,8 @@ import {
   type SentenceHit,
 } from "./extract.js";
 import { parseSections, sectionState, today } from "./lifecycle.js";
+import { readAllow } from "../secrets/allow.js";
+import { screenText } from "../secrets/guard.js";
 
 /**
  * Which project a conversation is about: the grouping its source recorded
@@ -162,6 +163,7 @@ export async function reviewCandidates(
   t: Messages,
 ): Promise<ReviewOutcome> {
   const outcome: ReviewOutcome = { accepted: 0, skipped: 0, stopped: false, written: [] };
+  const allow = await readAllow(handle.vaultRoot);
 
   for (const candidate of candidates) {
     const project = matchProject(handle.plan, candidate.project);
@@ -173,9 +175,17 @@ export async function reviewCandidates(
     let action: Action;
 
     for (;;) {
+      // A value matching a known secret pattern is never shown or written: the
+      // review sees the mask, with the kind and line (in this candidate) flagged.
+      const screened = screenText(allow, text, project.decisions.path);
+      text = screened.text;
       p.note(
         [
           `"${text}"`,
+          ...screened.findings.map(
+            (finding) =>
+              `secret: ${finding.kind} (line ${finding.line}) is masked as ${finding.mask}`,
+          ),
           ...(candidate.known ? [t.memoryKnown(candidate.known.heading)] : []),
           ...(candidate.replaces ? [t.memoryMayReplace(candidate.replaces.heading)] : []),
         ].join("\n"),
@@ -220,11 +230,14 @@ export async function reviewCandidates(
 
     const asRule = action === "rule";
     const note = asRule ? project.rules : project.decisions;
+    text = screenText(allow, text, note.path).text;
     const suggested = suggestTitle(text, await headingsIn(handle, note.path));
-    const title = maskSecrets(
+    const title = screenText(
+      allow,
       (
         await askText({ message: t.memoryEditTitle, initialValue: suggested, required: true })
       ).trim() || suggested,
+      note.path,
     ).text;
     const when = date === "—" ? today() : date;
     // A harvested candidate carries where it came from: the files and the commit,
@@ -256,8 +269,7 @@ export async function reviewCandidates(
     try {
       await write(supersedes);
     } catch (error) {
-      if (!(error instanceof LifecycleTargetError) || error instanceof SecretRejectedError)
-        throw error;
+      if (!(error instanceof LifecycleTargetError)) throw error;
       p.log.warn(t.memorySupersedeFailed(supersedes ?? "", error.message));
       await write(undefined);
     }
