@@ -211,7 +211,8 @@ jobs:
           path: |
             dist/vulcanus-site-*.tar.gz
             dist/SHA256SUMS
-          retention-days: 30
+          # Only this run's later jobs (and a rerun of them) need it; production takes the rc release asset.
+          retention-days: 3
 
   staging:
     name: Webtest deploy and smoke
@@ -291,7 +292,7 @@ jobs:
         with:
           name: webtest-gate
           path: gate
-          retention-days: 30
+          retention-days: 14
 
   rc:
     name: Release candidate (rc)
