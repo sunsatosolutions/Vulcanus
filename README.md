@@ -159,7 +159,7 @@ vulcanus doctor          # validate the vault against its manifest; reports know
 ```bash
 vulcanus review          # notes whose review is overdue, oldest first (--ok <note> marks one reviewed)
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
-vulcanus scan [--fix|--allow <file:line>] # secrets in notes; prints file:line type, never the value
+vulcanus scan [--fix|--allow <file:line> --reason <text>] # secrets in notes; prints file:line kind fingerprint, never the value
 vulcanus rules link <project> --root <dir> [--write]  # put the Capsule rules into the code repo (dry run by default)
 vulcanus rules check --root <dir> [--json]            # copies that differ, paths or scripts that are gone
 vulcanus emit [project] [--dry-run | --check]         # write current Capsule and rules into the repo's agent files
@@ -444,36 +444,31 @@ Your own notes are never rewritten — `update` reports how many it left untouch
 
 After a command, the CLI checks npm at most once a day and prints a one-line notice when a newer release exists. Set `VULCANUS_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER`, or run in CI) to turn it off; it fails silently offline.
 
-## Secret scanning (Blackbar)
+## Secret scanning
 
-A safety net for keys that end up in memory by accident. It matches known patterns only: cloud and
-token prefixes (AWS, GitHub, npm, Stripe, Slack, Google, LLM keys), JWTs, private-key blocks,
-passworded database URLs, `Authorization: Bearer`, command-line and `password=` values (unquoted,
-quoted, or with escaped quotes), and a high-entropy value next to `password`, `secret`, `token` or
-`api_key`. A clean result does not mean there is no secret.
+A safety net for keys that end up in memory by accident. One detector (`src/secrets`) serves every gate below, so they all agree on what a secret is and what the mask looks like: `[REDACTED:<kind>]`.
 
-**Tarama bir güvenlik ağıdır; sızan anahtarı yenilemenin (rotation) yerine geçmez.** A key that reached a note, a commit or a chat is exposed: rotate it, then clean up.
+It matches **known patterns** only: cloud and token prefixes (AWS, GitHub, npm, Stripe, Slack, Google, LLM keys), JWTs, private-key blocks, passworded database URLs, `Authorization: Bearer`, command-line and `password=` values (unquoted, quoted, or with escaped quotes), and a high-entropy value next to `password`, `secret`, `token` or `api_key`. It is not a secret manager, and it makes no claim of full coverage: a clean result means no known pattern matched, not that the vault holds no secret. A key that reached a note, a commit or a chat is exposed; rotate it first, then clean up.
 
-### Where it runs
+### The four gates
 
-- `vulcanus scan` reads every note in the vault, prints `file:line type` (never the value) and exits 1 when a certain match is found.
-  - `--fix` shows each line as it would become, `[REDACTED:<type>]` in place of the value, and writes only after you confirm in a terminal.
-  - `--allow <file:line>` records the findings on that line as false positives in `.vulcanus-allow`.
-- `import` and `harvest` flag a candidate that holds a secret (kind and line, never the value) and write it masked, as `[REDACTED:github-token]`. The terminal and the ledger never show the raw value.
-- MCP `append_decision`, `append_rule` and `update_capsule` refuse content with a secret and write nothing; the error names the kind and line, not the value.
-- `vulcanus doctor` reports each match as a `SECRET` finding (`file:line kind`) and exits non-zero.
-- `vulcanus hooks install` adds a pre-commit hook that stops a commit when the staged content has a match; a key removed from the working tree but still staged is still refused. An existing hook that Vulcanus did not write is never overwritten. Bypass once with `git commit --no-verify`.
+- **doctor.** `vulcanus doctor` scans every note and reports each match as a `SECRET` finding, `file:line kind fingerprint`, then exits non-zero. The value is never printed. `vulcanus sync` runs doctor, so it refuses to commit while a match remains.
+- **import.** `import` and `harvest` flag a candidate that holds a secret (kind and line, never the value) and write it masked, as `[REDACTED:github-token]`. The terminal and the ledger never show the raw value.
+- **MCP writes.** `append_decision`, `append_rule` and `update_capsule` refuse content that adds a secret and write nothing; the error names the kind and line, not the value.
+- **pre-commit.** `vulcanus hooks install` adds a hook that scans the staged content (a key removed from the working tree but still staged is still refused) and runs doctor. A hook Vulcanus did not write is never overwritten. Bypass once with `git commit --no-verify`.
+
+`vulcanus scan` is the command-line view of the same detector: it prints `file:line kind fingerprint` and exits 1 on a match. `--fix` shows each changed line with the value replaced by `[REDACTED:<kind>]` and writes only after you confirm in a terminal.
 
 ### .vulcanus-allow
 
-Accept a false positive in `.vulcanus-allow` at the vault root, one per line, with a reason (without one the line is an error). The file stores a location or a hash of the value, never the value itself:
+Accept a false positive in `.vulcanus-allow` at the vault root, one entry per line, each with a reason (an entry without one is an error). The file stores a location or a 12-hex fingerprint of the value, never the value. Every gate above reads it.
 
 ```
-02_Projects/Alpha/Alpha Capsule.md:12:github-token # documented example, not a real key
-0123456789ab # same value anywhere; 12-hex fingerprint is in `doctor --json`
+<file>:<line>:<kind> # <why this is not a secret>
+<fingerprint> # <why this is not a secret>
 ```
 
-`scan --allow` writes a `sha256:<hash> <type>` line instead. Only `scan` reads that form; `doctor`, the hook, import and MCP do not, and `doctor` reports it as `SECRET-ALLOW`. Until the two forms are unified, prefer the reasoned entries above.
+`vulcanus scan --allow <file>:<line> --reason "<why>"` writes the fingerprint form for you. A location entry stops matching when the line moves; a fingerprint follows the value.
 
 ## Validation
 

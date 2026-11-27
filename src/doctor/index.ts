@@ -553,7 +553,7 @@ export async function runDoctor(
       findings.push({
         level: "error",
         code: "SECRET",
-        message: hit.kind,
+        message: `${hit.kind} ${hit.fingerprint}`,
         file: hit.file,
         line: hit.line,
         fingerprint: hit.fingerprint,
