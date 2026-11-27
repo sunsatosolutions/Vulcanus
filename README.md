@@ -444,26 +444,36 @@ Your own notes are never rewritten — `update` reports how many it left untouch
 
 After a command, the CLI checks npm at most once a day and prints a one-line notice when a newer release exists. Set `VULCANUS_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER`, or run in CI) to turn it off; it fails silently offline.
 
-## Secrets (Blackbar)
+## Secret scanning (Blackbar)
 
 A safety net for keys that end up in memory by accident. It matches known patterns only: cloud and
-token prefixes (AWS, GitHub, npm, Stripe, Slack, Google, LLM keys), private-key blocks, passworded
-database URLs, `Authorization: Bearer`, command-line passwords, and a high-entropy value next to
-`password`, `secret`, `token` or `api_key`. A clean result does not mean there is no secret.
+token prefixes (AWS, GitHub, npm, Stripe, Slack, Google, LLM keys), JWTs, private-key blocks,
+passworded database URLs, `Authorization: Bearer`, command-line and `password=` values (unquoted,
+quoted, or with escaped quotes), and a high-entropy value next to `password`, `secret`, `token` or
+`api_key`. A clean result does not mean there is no secret.
 
-- `import` and `harvest` flag a candidate that holds a secret (kind and line, never the value) and write it masked, as `[REDACTED:github-token]`.
+**Tarama bir güvenlik ağıdır; sızan anahtarı yenilemenin (rotation) yerine geçmez.** A key that reached a note, a commit or a chat is exposed: rotate it, then clean up.
+
+### Where it runs
+
+- `vulcanus scan` reads every note in the vault, prints `file:line type` (never the value) and exits 1 when a certain match is found.
+  - `--fix` shows each line as it would become, `[REDACTED:<type>]` in place of the value, and writes only after you confirm in a terminal.
+  - `--allow <file:line>` records the findings on that line as false positives in `.vulcanus-allow`.
+- `import` and `harvest` flag a candidate that holds a secret (kind and line, never the value) and write it masked, as `[REDACTED:github-token]`. The terminal and the ledger never show the raw value.
 - MCP `append_decision`, `append_rule` and `update_capsule` refuse content with a secret and write nothing; the error names the kind and line, not the value.
-- `vulcanus doctor` reports each match as `file:line kind` and exits non-zero.
-- `vulcanus hooks install` adds a pre-commit hook that stops a commit when the staged content has a match. An existing hook that Vulcanus did not write is never overwritten.
+- `vulcanus doctor` reports each match as a `SECRET` finding (`file:line kind`) and exits non-zero.
+- `vulcanus hooks install` adds a pre-commit hook that stops a commit when the staged content has a match; a key removed from the working tree but still staged is still refused. An existing hook that Vulcanus did not write is never overwritten. Bypass once with `git commit --no-verify`.
 
-Accept a false positive in `.vulcanus-allow` at the vault root, one per line, with a reason (without one the line is an error):
+### .vulcanus-allow
+
+Accept a false positive in `.vulcanus-allow` at the vault root, one per line, with a reason (without one the line is an error). The file stores a location or a hash of the value, never the value itself:
 
 ```
 02_Projects/Alpha/Alpha Capsule.md:12:github-token # documented example, not a real key
-0123456789ab # same value anywhere; fingerprint is in `doctor --json`
+0123456789ab # same value anywhere; 12-hex fingerprint is in `doctor --json`
 ```
 
-This is a safety net, not a replacement for key rotation: a key that reached a note, a commit or a chat is exposed. Rotate it.
+`scan --allow` writes a `sha256:<hash> <type>` line instead. Only `scan` reads that form; `doctor`, the hook, import and MCP do not, and `doctor` reports it as `SECRET-ALLOW`. Until the two forms are unified, prefer the reasoned entries above.
 
 ## Validation
 

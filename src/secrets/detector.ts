@@ -23,6 +23,7 @@ export type SecretKind =
   | "private-key"
   | "db-url"
   | "bearer-token"
+  | "jwt"
   | "cli-password"
   | "generic-secret";
 
@@ -101,6 +102,14 @@ const PATTERNS: Pattern[] = [
     regex: /\bAuthorization["']?\s*[:=]\s*["']?Bearer\s+([A-Za-z0-9._~+/=-]{8,})/gi,
     group: 1,
     accept: (value) => !isPlaceholder(value),
+  },
+  { kind: "jwt", regex: /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g },
+  {
+    // A quoted password holding an escaped quote: the keyword rule below stops at the backslash.
+    kind: "cli-password",
+    regex: /\b[\w.-]*(?:password|passwd|pwd)["']?\s*[:=]\s*(["'])((?:\\.|(?!\1)[^\\\n])+)\1/gi,
+    group: 2,
+    accept: (value) => value.includes("\\") && !isPlaceholder(value),
   },
   {
     kind: "cli-password",

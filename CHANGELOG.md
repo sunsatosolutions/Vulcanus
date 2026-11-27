@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Blackbar detects JWTs (`jwt`) and a quoted `password=` value that holds an escaped quote, whose
+  tail the keyword rule used to leave readable. A recall fixture set (37 fake patterns built at
+  run time) fails the build below 95%, and an end-to-end test covers import masking and the
+  pre-commit hook. The README has a "Secret scanning (Blackbar)" section.
 - Blackbar: secrets are masked and refused on every write path. `import` and `harvest` flag a
   candidate holding a secret (kind and line, never the value) and write it as
   `[REDACTED:<kind>]`; MCP `append_decision`, `append_rule` and `update_capsule` refuse content
