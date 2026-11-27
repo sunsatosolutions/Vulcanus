@@ -169,6 +169,22 @@ describe("vulcanus scan", () => {
     );
   });
 
+  it("masks a password that contains a token, whole, in the preview and the file", async () => {
+    const token = `ghp_${"aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hJ6"}`;
+    const line = `password: "${token} and more words 9"`;
+    const found = detectLine(line);
+    assert.ok(found.some((m) => m.type === "password"));
+    assert.ok(found.some((m) => m.type === "github_token"));
+    const vault = await vaultWith(`${line}\n`);
+    const restore = setPromptDriver(scriptedPrompts([true]).driver);
+    const run = await capture(() => scanCommand({ cwd: vault, fix: true, interactive: true }));
+    restore();
+    assert.equal(run.result, EXIT.ok);
+    assert.ok(!run.output.includes("more words"));
+    assert.ok(!run.output.includes("ghp_"));
+    assert.equal(await readFile(resolve(vault, NOTE), "utf8"), 'password: "[REDACTED:password]"\n');
+  });
+
   it("--fix does not overwrite a file that changed while waiting for approval", async () => {
     const github = positives().find((fixture) => fixture.type === "github_token")!;
     const vault = await vaultWith(`${github.line}\n`);

@@ -42,11 +42,21 @@ const splitLines = (text: string): string[] => text.split(/(?<=\n)/);
 const bare = (line: string): string => line.replace(/\r?\n$/, "");
 
 function redact(line: string, findings: SecretMatch[]): string {
-  let out = bare(line);
-  for (const f of [...findings].sort((a, b) => b.start - a.start)) {
-    out = `${out.slice(0, f.start)}[REDACTED:${f.type}]${out.slice(f.end)}`;
+  const text = bare(line);
+  // Overlapping findings collapse into one span, labelled by the widest of them.
+  const spans: { start: number; end: number; type: string; width: number }[] = [];
+  for (const f of [...findings].sort((a, b) => a.start - b.start)) {
+    const last = spans[spans.length - 1];
+    if (last && f.start < last.end) {
+      last.end = Math.max(last.end, f.end);
+      if (f.end - f.start > last.width) [last.type, last.width] = [f.type, f.end - f.start];
+    } else spans.push({ start: f.start, end: f.end, type: f.type, width: f.end - f.start });
   }
-  return out + line.slice(bare(line).length);
+  let out = text;
+  for (const s of spans.reverse()) {
+    out = `${out.slice(0, s.start)}[REDACTED:${s.type}]${out.slice(s.end)}`;
+  }
+  return out + line.slice(text.length);
 }
 
 async function scanVault(vaultRoot: string): Promise<{

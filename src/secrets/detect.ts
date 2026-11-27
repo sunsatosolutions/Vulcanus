@@ -117,7 +117,7 @@ export function hashSecret(ruleId: string, value: string): string {
   return createHash("sha256").update(`${ruleId}\0${value}`).digest("hex");
 }
 
-/** Every secret in one line, without overlaps, in line order. Values are never returned. */
+/** Every secret in one line, in line order; matches may overlap, none lies inside another. Values are never returned. */
 export function detectLine(line: string): SecretMatch[] {
   const taken: SecretMatch[] = [];
   for (const rule of RULES) {
@@ -129,7 +129,8 @@ export function detectLine(line: string): SecretMatch[] {
       const [start, end] = span;
       const value = line.slice(start, end);
       if (rule.accept && !rule.accept(value)) continue;
-      if (taken.some((other) => start < other.end && other.start < end)) continue;
+      // Only a match inside an earlier one is dropped; a wider or partly overlapping one stays so `--fix` masks the whole span.
+      if (taken.some((other) => other.start <= start && end <= other.end)) continue;
       taken.push({
         rule: rule.id,
         type: rule.type,
