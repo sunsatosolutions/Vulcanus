@@ -211,8 +211,9 @@ export function buildVaultServer(start: string): McpServer {
       const vaultRoot = vault();
       if (!vaultRoot) return noVaultFailure(start);
       const handle = await openVault(vaultRoot);
-      const result = await updateCapsule(handle, project, section, body);
+      const result = await lifecycleSafe(() => updateCapsule(handle, project, section, body));
       if (!result) return failure(`No project matches "${project}", or its Capsule is missing.`);
+      if ("error" in result) return failure(result.error);
       return json(result);
     },
   );

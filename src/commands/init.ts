@@ -4,6 +4,7 @@ import { mkdir, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { basename, relative, resolve } from "node:path";
+import { maskedStream } from "../importers/mask.js";
 import { expandHome } from "../util/paths.js";
 import { planHandoff, runHandoff } from "../ai/handoff.js";
 import { LOCALE_LABELS, LOCALES, messages, type Locale } from "../i18n.js";
@@ -154,7 +155,7 @@ async function runImport(locale: Locale): Promise<ImportOutcome> {
   const reading = p.spinner();
   reading.start(t.reading);
   try {
-    const analysis = await analyzeConversations(() => adapter.load(path));
+    const analysis = await analyzeConversations(() => maskedStream(adapter.load(path)));
     reading.stop(t.readDone(analysis.conversations, analysis.candidates.length));
     if (analysis.conversations === 0) return { candidates: [], record: null };
 
