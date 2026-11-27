@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `vulcanus doctor` scans the vault's notes for secrets that match known patterns (cloud and
+  token prefixes, private-key blocks, passworded database URLs, `Authorization: Bearer`,
+  command-line passwords, and a high-entropy value next to `password`, `secret`, `token` or
+  `api_key`). A finding is written as `file:line kind` and the value is never printed; any
+  finding makes doctor exit non-zero. UUIDs, git SHAs and content hashes are not findings. A
+  vault-root `.vulcanus-allow` accepts a finding, one per line, as `file:line:kind # reason` or
+  `<fingerprint> # reason` (fingerprints are in `doctor --json`); a line without a reason is
+  an error. A pass means no known pattern matched, not that the vault holds no secret. The
+  detector (`src/secrets/detector.ts`: `scanText`, `maskSecrets`, `hasSecret`) is shared with
+  the import, MCP, sync and hook checks that follow.
 
 - `vulcanus emit [project]` writes the project's current Capsule and Rules sections into its
   repository as one managed block, between `<!-- vulcanus:begin -->` and `<!-- vulcanus:end -->`,
