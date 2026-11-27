@@ -6,7 +6,7 @@ export class SecretWriteError extends Error {
   constructor(file: string, findings: SecretFinding[]) {
     const what = findings.map((entry) => `${entry.kind} (line ${entry.line})`).join(", ");
     super(
-      `Refused: ${file} would gain a value matching a known secret pattern: ${what}. Nothing was written. Remove the value; if it is not a secret, add a reasoned entry to .vulcanus-allow.`,
+      `Refused to write: ${file} would gain a value matching a known secret pattern: ${what}. Nothing was written. Remove the value; if it is not a secret, add a reasoned entry to .vulcanus-allow.`,
     );
     this.name = "SecretWriteError";
   }

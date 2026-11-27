@@ -11,6 +11,7 @@ import {
 } from "../importers/index.js";
 import type { AnalysisResult } from "../importers/analyze.js";
 import type { NormalizedConversation } from "../importers/types.js";
+import { maskedStream } from "../importers/mask.js";
 import { readSeen, rememberIds, seenIds, skipSeen, writeSeen } from "../importers/seen.js";
 import { messages, type Locale, type Messages } from "../i18n.js";
 import { askConfirm, askMultiselect, askSelect, askText, setPromptLocale } from "../prompts.js";
@@ -183,7 +184,11 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   // The memory review keeps its own ledger: a conversation scanned for project
   // names has not been reviewed for decisions, and the reverse.
   const memorySeen = options.all ? new Set<string>() : seenIds(ledger, adapter.id, "memory");
-  const memoryStream = skipSeen(() => adapter.load(path), memorySeen, new Set<string>());
+  const memoryStream = skipSeen(
+    () => maskedStream(adapter.load(path)),
+    memorySeen,
+    new Set<string>(),
+  );
 
   const reviewMemory = async (): Promise<boolean> => {
     const run = await runMemoryInbox({
@@ -242,7 +247,7 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   }
   const previously = options.all ? new Set<string>() : seenIds(ledger, adapter.id);
   const encountered = new Set<string>();
-  const stream = skipSeen(() => adapter.load(path), previously, encountered);
+  const stream = skipSeen(() => maskedStream(adapter.load(path)), previously, encountered);
 
   const reading = p.spinner();
   reading.start(t.reading);
@@ -256,7 +261,12 @@ export async function importCommand(options: ImportOptions = {}): Promise<number
   reading.stop(t.readDone(analysis.conversations, analysis.candidates.length));
 
   if (options.aiGroup) {
-    analysis = await groupWithAi(analysis, () => adapter.load(path), options.aiGroup, t);
+    analysis = await groupWithAi(
+      analysis,
+      () => maskedStream(adapter.load(path)),
+      options.aiGroup,
+      t,
+    );
   }
 
   const skipped = encountered.size - analysis.conversations;

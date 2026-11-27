@@ -159,6 +159,7 @@ vulcanus doctor          # validate the vault against its manifest; reports know
 ```bash
 vulcanus review          # notes whose review is overdue, oldest first (--ok <note> marks one reviewed)
 vulcanus drift [project] # notes that claim paths or npm scripts the project's code no longer has
+vulcanus scan [--fix|--allow <file:line>] # secrets in notes; prints file:line type, never the value
 vulcanus rules link <project> --root <dir> [--write]  # put the Capsule rules into the code repo (dry run by default)
 vulcanus rules check --root <dir> [--json]            # copies that differ, paths or scripts that are gone
 vulcanus emit [project] [--dry-run | --check]         # write current Capsule and rules into the repo's agent files

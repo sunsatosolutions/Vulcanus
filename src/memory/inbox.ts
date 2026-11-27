@@ -23,6 +23,7 @@ import {
   openVault,
   type VaultHandle,
 } from "../mcp/tools.js";
+import { maskSecrets } from "../secrets/detector.js";
 import { askConfirm, askSelect, askText } from "../prompts.js";
 import {
   compareWithVault,
@@ -212,9 +213,10 @@ export async function reviewCandidates(
         initialValue: candidate.known ? "skip" : candidate.replaces ? "replace" : candidate.kind,
       });
       if (action !== "edit") break;
-      text =
+      text = maskSecrets(
         (await askText({ message: t.memoryEditText, initialValue: text, required: true })).trim() ||
-        text;
+          text,
+      ).text;
     }
 
     if (action === "stop") {
